@@ -1,69 +1,73 @@
-<script setup>
-import { reactive, computed } from 'vue';
+<script>
 import { scaleLinear, scaleSqrt, max } from 'd3';
 
-const props = defineProps({
-  articles: { type: Array, required: true },
-  date: { type: String, required: true },
-});
-
-const margin = { top: 20, right: 20, bottom: 40, left: 60 };
-const width = 720 - margin.left - margin.right;
-const height = 420 - margin.top - margin.bottom;
-
-const xScale = computed(() =>
-  scaleLinear()
-    .domain([0, max(props.articles, a => a.extract_length) * 1.1 || 1])
-    .range([margin.left, margin.left + width])
-);
-
-const yScale = computed(() =>
-  scaleLinear()
-    .domain([0, max(props.articles, a => a.views) * 1.1 || 1])
-    .range([margin.top + height, margin.top])
-);
-
-const rScale = computed(() =>
-  scaleSqrt()
-    .domain([0, max(props.articles, a => a.views) || 1])
-    .range([8, 40])
-);
-
-const yTicks = computed(() => yScale.value.ticks(4));
-const xTicks = computed(() => xScale.value.ticks(4));
-
-const bubbles = computed(() =>
-  props.articles.map(a => ({
-    ...a,
-    cx: xScale.value(a.extract_length),
-    cy: yScale.value(a.views),
-    r: rScale.value(a.views),
-  }))
-);
-
-const tooltip = reactive({
-  visible: false,
-  x: 0,
-  y: 0,
-  html: '',
-});
-
-function onHover(event, article) {
-  tooltip.visible = true;
-  tooltip.x = event.pageX + 14;
-  tooltip.y = event.pageY - 10;
-  tooltip.html =
-    `<div class="t-title">${article.title}</div>` +
-    `<div class="t-meta">${article.views.toLocaleString()} views · ${article.extract_length} chars</div>`;
-}
-
-function hideTooltip() {
-  tooltip.visible = false;
-}
-
-function openArticle(article) {
-  window.open(article.url, '_blank');
-}
+export default {
+  name: 'BubbleChart',
+  props: {
+    articles: { type: Array, required: true },
+    date: { type: String, required: true },
+  },
+  data() {
+    return {
+      margin: { top: 20, right: 20, bottom: 40, left: 60 },
+      width: 720 - 60 - 20,
+      height: 420 - 20 - 40,
+      tooltip: {
+        visible: false,
+        x: 0,
+        y: 0,
+        html: '',
+      },
+    };
+  },
+  computed: {
+    xScale() {
+      return scaleLinear()
+        .domain([0, max(this.articles, a => a.extract_length) * 1.1 || 1])
+        .range([this.margin.left, this.margin.left + this.width]);
+    },
+    yScale() {
+      return scaleLinear()
+        .domain([0, max(this.articles, a => a.views) * 1.1 || 1])
+        .range([this.margin.top + this.height, this.margin.top]);
+    },
+    rScale() {
+      return scaleSqrt()
+        .domain([0, max(this.articles, a => a.views) || 1])
+        .range([8, 40]);
+    },
+    yTicks() {
+      return this.yScale.ticks(4);
+    },
+    xTicks() {
+      return this.xScale.ticks(4);
+    },
+    bubbles() {
+      return this.articles.map(a => ({
+        ...a,
+        cx: this.xScale(a.extract_length),
+        cy: this.yScale(a.views),
+        r: this.rScale(a.views),
+      }));
+    },
+  },
+  methods: {
+    onHover(event, article) {
+      this.tooltip.visible = true;
+      this.tooltip.x = event.pageX + 14;
+      this.tooltip.y = event.pageY - 10;
+      this.tooltip.html =
+        `<div class="t-title">${article.title}</div>` +
+        `<div class="t-meta">${article.views.toLocaleString()} views · ${article.extract_length} chars</div>`;
+    },
+    hideTooltip() {
+      this.tooltip.visible = false;
+    },
+    openArticle(article) {
+      window.open(article.url, '_blank');
+    },
+  },
+};
 </script>
 
 <template>

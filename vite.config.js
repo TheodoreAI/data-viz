@@ -4,6 +4,10 @@ import vue from '@vitejs/plugin-vue';
 export default defineConfig(({ command }) => ({
   plugins: [vue()],
   base: command === 'build' ? '/static/dist/' : '/',
+  server: {
+    port: 8080,
+    strictPort: true,
+  },
   build: {
     manifest: true,
     outDir: 'static/dist',
