@@ -19,6 +19,7 @@ export default {
       dragNode: null,
       panning: false,
       expandingId: null,
+      hoveredId: null,
     };
   },
   computed: {
@@ -57,6 +58,10 @@ export default {
     nodeById(id) {
       return this.nodes.find(n => n.id === id);
     },
+    nodeRadius(node) {
+      const base = node.isCenter ? 14 : 9;
+      return this.hoveredId === node.id ? base * 1.35 : base;
+    },
     async expandNode(node) {
       if (node.expanded || this.expandingId) return;
       this.expandingId = node.id;
@@ -80,10 +85,17 @@ export default {
       }
     },
     showTooltip(event, node) {
-      this.tooltip = { visible: true, x: event.pageX + 14, y: event.pageY - 10, text: node.id };
+      const point = event.touches ? event.touches[0] : event;
+      this.tooltip = { visible: true, x: point.pageX + 14, y: point.pageY - 10, text: node.id };
+      this.hoveredId = node.id;
     },
     hideTooltip() {
       this.tooltip.visible = false;
+      this.hoveredId = null;
+    },
+    openArticle(node) {
+      const url = `https://en.wikipedia.org/wiki/${encodeURIComponent(node.id.replace(/ /g, '_'))}`;
+      window.open(url, '_blank');
     },
     onNodePointerDown(event, node) {
       event.stopPropagation();
@@ -126,7 +138,7 @@ export default {
   <div class="graph-root">
     <header class="graph-header">
       <h1>Article Link Graph</h1>
-      <p class="subtitle">Starting from “{{ seedTitle }}”. Click a node to expand its links. Drag to reposition, scroll to zoom.</p>
+      <p class="subtitle">Starting from “{{ seedTitle }}”. Click a node to open it on Wikipedia, tap the + to expand its links. Drag to reposition, scroll to zoom.</p>
     </header>
 
     <svg
@@ -154,10 +166,23 @@ export default {
           :transform="`translate(${node.x}, ${node.y})`"
           @pointerdown="onNodePointerDown($event, node)"
           @mousemove="showTooltip($event, node)"
+          @touchstart="showTooltip($event, node)"
           @mouseleave="hideTooltip"
-          @click="expandNode(node)"
+          @click="openArticle(node)"
         >
-          <circle :r="node.isCenter ? 14 : 9" />
+          <circle :r="nodeRadius(node)" />
+          <g
+            v-if="!node.expanded && hoveredId === node.id"
+            class="expand-badge"
+            :transform="`translate(${nodeRadius(node) * 0.75}, ${nodeRadius(node) * 0.75})`"
+            @click.stop="expandNode(node)"
+            @pointerdown.stop
+            @touchstart.stop="showTooltip($event, node)"
+          >
+            <circle r="7" />
+            <line x1="-3.5" y1="0" x2="3.5" y2="0" />
+            <line x1="0" y1="-3.5" x2="0" y2="3.5" />
+          </g>
         </g>
         <text
           v-if="nodeById(seedTitle)"
@@ -209,6 +234,7 @@ export default {
   stroke: var(--muted, #898781);
   stroke-width: 2;
   cursor: pointer;
+  transition: r 0.15s ease;
 }
 .graph-node:hover circle {
   stroke: var(--series-1, #2a78d6);
@@ -219,6 +245,17 @@ export default {
 }
 .graph-node.expanding circle {
   opacity: 0.5;
+}
+.expand-badge circle {
+  fill: var(--series-1, #2a78d6);
+  stroke: var(--surface-1, #fcfcfb);
+  stroke-width: 1.5;
+  cursor: pointer;
+}
+.expand-badge line {
+  stroke: #fff;
+  stroke-width: 1.5;
+  pointer-events: none;
 }
 .graph-center-label {
   fill: var(--text-primary, #0b0b0b);
