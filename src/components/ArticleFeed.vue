@@ -10,6 +10,7 @@ export default {
       history: [this.initialArticle],
       currentIndex: 0,
       loading: false,
+      navigating: false,
       direction: 'up',
       selectedTopic: '',
     };
@@ -33,22 +34,39 @@ export default {
     window.removeEventListener('touchend', this.onTouchEnd);
   },
   methods: {
+    cardScrollState() {
+      const card = this.$refs.cardEl;
+      if (!card) return { atTop: true, atBottom: true };
+      return {
+        atTop: card.scrollTop <= 0,
+        atBottom: card.scrollTop + card.clientHeight >= card.scrollHeight - 1,
+      };
+    },
     onWheel(event) {
-      if (this.loading) return;
-      if (event.deltaY > 20) this.goNext();
-      else if (event.deltaY < -20) this.goBack();
+      if (this.loading || this.navigating) return;
+      const { atTop, atBottom } = this.cardScrollState();
+      if (event.deltaY > 20 && atBottom) this.goNext();
+      else if (event.deltaY < -20 && atTop) this.goBack();
     },
     onTouchStart(event) {
       this.touchStartY = event.touches[0].clientY;
     },
     onTouchEnd(event) {
-      if (this.loading || this.touchStartY == null) return;
+      if (this.loading || this.navigating || this.touchStartY == null) return;
       const deltaY = this.touchStartY - event.changedTouches[0].clientY;
-      if (deltaY > 40) this.goNext();
-      else if (deltaY < -40) this.goBack();
+      const { atTop, atBottom } = this.cardScrollState();
+      if (deltaY > 40 && atBottom) this.goNext();
+      else if (deltaY < -40 && atTop) this.goBack();
       this.touchStartY = null;
     },
+    startNavigationCooldown() {
+      this.navigating = true;
+      setTimeout(() => {
+        this.navigating = false;
+      }, 400);
+    },
     async goNext() {
+      this.startNavigationCooldown();
       this.direction = 'up';
       if (this.currentIndex < this.history.length - 1) {
         this.currentIndex += 1;
@@ -58,6 +76,7 @@ export default {
     },
     goBack() {
       if (!this.canGoBack) return;
+      this.startNavigationCooldown();
       this.direction = 'down';
       this.currentIndex -= 1;
     },
@@ -111,7 +130,7 @@ export default {
     </header>
 
     <Transition v-if="currentArticle" :name="direction === 'up' ? 'slide-up' : 'slide-down'" mode="out-in">
-      <article :key="currentIndex" class="feed-card">
+      <article :key="currentIndex" ref="cardEl" class="feed-card">
         <div v-if="currentArticle.thumbnail" class="feed-image">
           <img :src="currentArticle.thumbnail.source" :alt="currentArticle.title">
         </div>
