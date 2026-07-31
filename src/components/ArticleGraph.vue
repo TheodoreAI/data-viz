@@ -22,7 +22,7 @@ export default {
     return {
       nodes: [],
       links: [],
-      tooltip: { visible: false, x: 0, y: 0, text: '' },
+      tooltip: { visible: false, x: 0, y: 0, title: '', extract: '', thumbnail: null, loading: false },
       zoom: defaultZoom(),
       dragNode: null,
       panning: false,
@@ -43,6 +43,7 @@ export default {
     this.activePointers = new Map();
     this.pinch = null;
     this.swipeStart = null;
+    this.summaryCache = {};
     this.populateGraph(this.seedTitle, this.seedLinks);
   },
   mounted() {
@@ -151,11 +152,31 @@ export default {
         y: rect.top + window.scrollY + (this.zoom.y + node.y * this.zoom.k) * scaleY,
       };
     },
-    showTooltip(node) {
+    async showTooltip(node) {
+      this.hoveredId = node.id;
+      const cached = this.summaryCache[node.id];
+      this.positionTooltip(node, {
+        title: node.id,
+        extract: cached ? cached.extract : '',
+        thumbnail: cached ? cached.thumbnail : null,
+        loading: !cached,
+      });
+      if (cached) return;
+      try {
+        const response = await fetch(`/api/article-summary?title=${encodeURIComponent(node.id)}`);
+        const data = await response.json();
+        this.summaryCache[node.id] = data;
+        if (this.hoveredId === node.id) {
+          this.positionTooltip(node, { title: data.title, extract: data.extract, thumbnail: data.thumbnail, loading: false });
+        }
+      } catch {
+        if (this.hoveredId === node.id) this.tooltip.loading = false;
+      }
+    },
+    positionTooltip(node, content) {
       const pos = this.nodeScreenPosition(node);
       const radius = this.nodeRadius(node);
-      this.tooltip = { visible: true, x: pos.x, y: pos.y - radius - 8, text: node.id };
-      this.hoveredId = node.id;
+      this.tooltip = { visible: true, x: pos.x, y: pos.y - radius - 8, ...content };
     },
     hideTooltip() {
       this.tooltip.visible = false;
@@ -239,10 +260,10 @@ export default {
       const dy = event.clientY - this.swipeStart.y;
       const duration = Date.now() - this.swipeStart.time;
       this.swipeStart = null;
-      if (Math.abs(dy) < SWIPE_MIN_DISTANCE) return;
-      if (Math.abs(dy) < Math.abs(dx) * 1.5) return;
+      if (Math.abs(dx) < SWIPE_MIN_DISTANCE) return;
+      if (Math.abs(dx) < Math.abs(dy) * 1.5) return;
       if (duration > SWIPE_MAX_DURATION) return;
-      if (dy > 0) this.loadNewSeed();
+      if (dx > 0) this.loadNewSeed();
       else this.goToPreviousSeed();
     },
     onWheel(event) {
@@ -280,7 +301,7 @@ export default {
       </div>
       <p v-if="!graphMode" class="subtitle">
         Starting from “{{ currentSeedTitle }}”. Click a node to open it on Wikipedia, tap the + to expand its links.
-        Drag to reposition, pinch/scroll to zoom, swipe down for a new article, swipe up to go back.
+        Drag to reposition, pinch/scroll to zoom, swipe right for a new article, swipe left to go back.
       </p>
       <p v-if="loadingSeed" class="subtitle loading">Loading…</p>
     </header>
@@ -349,7 +370,12 @@ export default {
     <div
       id="tooltip"
       :style="{ display: tooltip.visible ? 'block' : 'none', left: tooltip.x + 'px', top: tooltip.y + 'px' }"
-    >{{ tooltip.text }}</div>
+    >
+      <div class="t-title">{{ tooltip.title }}</div>
+      <img v-if="tooltip.thumbnail" :src="tooltip.thumbnail" :alt="tooltip.title" class="t-thumb">
+      <div v-if="tooltip.loading" class="t-meta">Loading…</div>
+      <div v-else-if="tooltip.extract" class="t-extract">{{ tooltip.extract }}</div>
+    </div>
   </div>
 </template>
 
@@ -402,6 +428,22 @@ export default {
 }
 #tooltip {
   transform: translate(-50%, -100%);
+  width: 220px;
+}
+#tooltip .t-thumb {
+  width: 100%;
+  max-height: 110px;
+  object-fit: cover;
+  border-radius: 4px;
+  display: block;
+  margin: 4px 0;
+}
+#tooltip .t-extract {
+  font-size: 0.75rem;
+  line-height: 1.3;
+  color: var(--text-secondary, #52514e);
+  max-height: 4.6em;
+  overflow: hidden;
 }
 .graph-svg {
   width: 100%;
