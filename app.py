@@ -1,13 +1,18 @@
+import random
 from datetime import date, timedelta
+from urllib.parse import quote
 
 import requests
 from flask import Flask
+from flask import jsonify
 from flask import render_template
+from flask import request
 
 from vite import vite_asset_tags
 
 WIKIPEDIA_RANDOM_SUMMARY_URL = 'https://en.wikipedia.org/api/rest_v1/page/random/summary'
 WIKIPEDIA_SUMMARY_URL = 'https://en.wikipedia.org/api/rest_v1/page/summary/{title}'
+WIKIPEDIA_ACTION_API_URL = 'https://en.wikipedia.org/w/api.php'
 WIKIPEDIA_TOP_VIEWED_URL = (
     'https://wikimedia.org/api/rest_v1/metrics/pageviews/top/'
     'en.wikipedia/all-access/{year}/{month}/{day}'
@@ -16,15 +21,75 @@ WIKIPEDIA_HEADERS = {'User-Agent': 'data-viz-app/1.0 (mateoej12@gmail.com)'}
 EXCLUDED_TITLES = {'Main_Page', 'Special:Search'}
 BUBBLE_COUNT = 12
 
+TOPIC_CATEGORIES = {
+    'art': 'Category:Art',
+    'physics': 'Category:Physics',
+    'computer-science': 'Category:Computer science',
+    'history': 'Category:History',
+}
+_topic_category_pool_cache = {}
+
 app = Flask(__name__)
-app.jinja_env.globals['vite_asset'] = lambda entry: vite_asset_tags(entry, app.debug)
+app.jinja_env.globals['vite_asset'] = lambda entry: vite_asset_tags(entry, app.debug, request.host)
+
+
+def fetch_category_members(category, member_type):
+    response = requests.get(WIKIPEDIA_ACTION_API_URL, headers=WIKIPEDIA_HEADERS, params={
+        'action': 'query',
+        'list': 'categorymembers',
+        'cmtitle': category,
+        'cmtype': member_type,
+        'cmnamespace': 0 if member_type == 'page' else None,
+        'cmlimit': 500,
+        'format': 'json',
+    })
+    response.raise_for_status()
+    return response.json()['query']['categorymembers']
+
+
+def get_topic_category_pool(topic):
+    root_category = TOPIC_CATEGORIES[topic]
+    if topic not in _topic_category_pool_cache:
+        subcats = fetch_category_members(root_category, 'subcat')
+        _topic_category_pool_cache[topic] = [root_category] + [c['title'] for c in subcats]
+    return _topic_category_pool_cache[topic]
+
+
+def fetch_random_article(topic=None):
+    if topic not in TOPIC_CATEGORIES:
+        response = requests.get(WIKIPEDIA_RANDOM_SUMMARY_URL, headers=WIKIPEDIA_HEADERS)
+        response.raise_for_status()
+        return response.json()
+
+    pool = list(get_topic_category_pool(topic))
+    random.shuffle(pool)
+    for category in pool:
+        members = fetch_category_members(category, 'page')
+        if members:
+            title = random.choice(members)['title']
+            summary_response = requests.get(
+                WIKIPEDIA_SUMMARY_URL.format(title=quote(title.replace(' ', '_'))),
+                headers=WIKIPEDIA_HEADERS,
+            )
+            if summary_response.ok:
+                return summary_response.json()
+
+    # No category in the pool yielded an article; fall back to unrestricted random.
+    response = requests.get(WIKIPEDIA_RANDOM_SUMMARY_URL, headers=WIKIPEDIA_HEADERS)
+    response.raise_for_status()
+    return response.json()
+
 
 @app.route('/')
 def hello_world():
-    response = requests.get(WIKIPEDIA_RANDOM_SUMMARY_URL, headers=WIKIPEDIA_HEADERS)
-    response.raise_for_status()
-    article = response.json()
-    return render_template('home.html', person='Luna', article=article)
+    article = fetch_random_article()
+    return render_template('home.html', article=article, topics=TOPIC_CATEGORIES)
+
+
+@app.route('/api/random-article')
+def api_random_article():
+    topic = request.args.get('topic') or None
+    return jsonify(fetch_random_article(topic))
 
 
 @app.route('/bubbles')
@@ -61,4 +126,4 @@ def bubbles():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=8081)
+    app.run(debug=True, port=8081, host='0.0.0.0')

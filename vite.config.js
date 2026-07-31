@@ -7,6 +7,8 @@ export default defineConfig(({ command }) => ({
   server: {
     port: 8080,
     strictPort: true,
+    host: '0.0.0.0',
+    cors: true,
   },
   build: {
     manifest: true,
@@ -15,6 +17,7 @@ export default defineConfig(({ command }) => ({
     rollupOptions: {
       input: {
         bubbles: 'src/entries/bubbles.js',
+        home: 'src/entries/home.js',
       },
     },
   },
