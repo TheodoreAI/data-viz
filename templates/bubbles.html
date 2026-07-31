@@ -3,6 +3,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
+{% include '_navbar.html' %}
+
 <div id="app"></div>
 
 <script id="chart-data" type="application/json">{{ {'articles': articles, 'date': date} | tojson }}</script>

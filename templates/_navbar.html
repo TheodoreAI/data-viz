@@ -1,0 +1,4 @@
+<nav class="navbar">
+  <a href="{{ url_for('hello_world') }}" class="{{ 'active' if request.path == url_for('hello_world') }}">Home</a>
+  <a href="{{ url_for('bubbles') }}" class="{{ 'active' if request.path == url_for('bubbles') }}">Bubbles</a>
+</nav>
