@@ -128,7 +128,7 @@ export default {
 
 <style scoped>
 .feed-root {
-  height: 100dvh;
+  height: calc(100dvh - var(--navbar-height, 44px));
   display: flex;
   flex-direction: column;
   overflow: hidden;
