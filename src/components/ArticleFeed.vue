@@ -3,7 +3,7 @@ export default {
   name: 'ArticleFeed',
   props: {
     initialArticle: { type: Object, required: true },
-
+    topics: { type: Array, default: () => [] },
   },
   data() {
     return {
@@ -11,6 +11,7 @@ export default {
       currentIndex: 0,
       loading: false,
       direction: 'up',
+      selectedTopic: '',
     };
   },
   computed: {
@@ -53,20 +54,34 @@ export default {
         this.currentIndex += 1;
         return;
       }
-      this.loading = true;
-      try {
-        const response = await fetch('/api/random-article');
-        const article = await response.json();
-        this.history.push(article);
-        this.currentIndex += 1;
-      } finally {
-        this.loading = false;
-      }
+      await this.appendRandomArticle();
     },
     goBack() {
       if (!this.canGoBack) return;
       this.direction = 'down';
       this.currentIndex -= 1;
+    },
+    async appendRandomArticle() {
+      this.loading = true;
+      try {
+        const url = this.selectedTopic
+          ? `/api/random-article?topic=${encodeURIComponent(this.selectedTopic)}`
+          : '/api/random-article';
+        const response = await fetch(url);
+        const article = await response.json();
+        this.history.push(article);
+        this.currentIndex = this.history.length - 1;
+      } finally {
+        this.loading = false;
+      }
+    },
+    async selectTopic(topic) {
+      if (this.loading || topic === this.selectedTopic) return;
+      this.selectedTopic = topic;
+      this.direction = 'up';
+      this.history = [];
+      this.currentIndex = -1;
+      await this.appendRandomArticle();
     },
   },
 };
@@ -77,9 +92,25 @@ export default {
     <header class="feed-header">
       <h1>Hello!</h1>
       <p class="subtitle">Swipe up for a new article, down to go back.</p>
+      <div class="topic-row">
+        <button
+          class="topic-pill"
+          :class="{ active: selectedTopic === '' }"
+          :disabled="loading"
+          @click="selectTopic('')"
+        >All</button>
+        <button
+          v-for="topic in topics"
+          :key="topic"
+          class="topic-pill"
+          :class="{ active: selectedTopic === topic }"
+          :disabled="loading"
+          @click="selectTopic(topic)"
+        >{{ topic }}</button>
+      </div>
     </header>
 
-    <Transition :name="direction === 'up' ? 'slide-up' : 'slide-down'" mode="out-in">
+    <Transition v-if="currentArticle" :name="direction === 'up' ? 'slide-up' : 'slide-down'" mode="out-in">
       <article :key="currentIndex" class="feed-card">
         <div v-if="currentArticle.thumbnail" class="feed-image">
           <img :src="currentArticle.thumbnail.source" :alt="currentArticle.title">
@@ -106,6 +137,33 @@ export default {
 .feed-header {
   flex: none;
   padding: 1rem 1.25rem 0.5rem;
+}
+.topic-row {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  margin-top: 0.6rem;
+  padding-bottom: 0.2rem;
+}
+.topic-pill {
+  flex: none;
+  border: 1px solid var(--gridline, #e1e0d9);
+  background: transparent;
+  color: var(--text-secondary, #52514e);
+  border-radius: 999px;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.78rem;
+  text-transform: capitalize;
+  cursor: pointer;
+}
+.topic-pill.active {
+  background: var(--series-1, #2a78d6);
+  border-color: var(--series-1, #2a78d6);
+  color: #fff;
+}
+.topic-pill:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 .feed-header h1 {
   margin: 0;

@@ -5,5 +5,5 @@
 
 <div id="app"></div>
 
-<script id="feed-data" type="application/json">{{ {'article': article} | tojson }}</script>
+<script id="feed-data" type="application/json">{{ {'article': article, 'topics': topics.keys() | list} | tojson }}</script>
 {{ vite_asset('home') }}
