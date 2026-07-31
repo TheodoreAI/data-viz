@@ -152,9 +152,31 @@ export default {
         y: rect.top + window.scrollY + (this.zoom.y + node.y * this.zoom.k) * scaleY,
       };
     },
+    getCachedSummary(title) {
+      if (this.summaryCache[title]) return this.summaryCache[title];
+      try {
+        const stored = localStorage.getItem(`article-summary:${title}`);
+        if (stored) {
+          const data = JSON.parse(stored);
+          this.summaryCache[title] = data;
+          return data;
+        }
+      } catch {
+        // localStorage unavailable (private mode, quota, etc) — fall back to network.
+      }
+      return null;
+    },
+    setCachedSummary(title, data) {
+      this.summaryCache[title] = data;
+      try {
+        localStorage.setItem(`article-summary:${title}`, JSON.stringify(data));
+      } catch {
+        // ignore quota/availability errors, in-memory cache still works
+      }
+    },
     async showTooltip(node) {
       this.hoveredId = node.id;
-      const cached = this.summaryCache[node.id];
+      const cached = this.getCachedSummary(node.id);
       this.positionTooltip(node, {
         title: node.id,
         extract: cached ? cached.extract : '',
@@ -165,7 +187,7 @@ export default {
       try {
         const response = await fetch(`/api/article-summary?title=${encodeURIComponent(node.id)}`);
         const data = await response.json();
-        this.summaryCache[node.id] = data;
+        this.setCachedSummary(node.id, data);
         if (this.hoveredId === node.id) {
           this.positionTooltip(node, { title: data.title, extract: data.extract, thumbnail: data.thumbnail, loading: false });
         }
@@ -175,8 +197,7 @@ export default {
     },
     positionTooltip(node, content) {
       const pos = this.nodeScreenPosition(node);
-      const radius = this.nodeRadius(node);
-      this.tooltip = { visible: true, x: pos.x, y: pos.y - radius - 8, ...content };
+      this.tooltip = { visible: true, x: pos.x, y: pos.y, ...content };
     },
     hideTooltip() {
       this.tooltip.visible = false;
@@ -427,7 +448,7 @@ export default {
   margin-top: -0.5rem;
 }
 #tooltip {
-  transform: translate(-50%, -100%);
+  transform: translate(-50%, -50%);
   width: 220px;
 }
 #tooltip .t-thumb {
