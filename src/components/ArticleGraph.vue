@@ -203,9 +203,18 @@ export default {
       this.tooltip.visible = false;
       this.hoveredId = null;
     },
-    openArticle(node) {
-      const url = `https://en.wikipedia.org/wiki/${encodeURIComponent(node.id.replace(/ /g, '_'))}`;
-      window.location.href = url;
+    wikipediaUrl(title) {
+      return `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g, '_'))}`;
+    },
+    async selectAsCenter(node) {
+      if (this.loadingSeed || node.id === this.currentSeedTitle) return;
+      this.loadingSeed = true;
+      try {
+        this.history.push(this.currentSeedTitle);
+        await this.rebuildGraph(node.id);
+      } finally {
+        this.loadingSeed = false;
+      }
     },
     registerPointer(event) {
       this.activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
@@ -355,7 +364,7 @@ export default {
           @mouseenter="showTooltip(node)"
           @touchstart="showTooltip(node)"
           @mouseleave="hideTooltip"
-          @click="openArticle(node)"
+          @click="selectAsCenter(node)"
         >
           <circle :r="nodeRadius(node)" />
           <g
@@ -392,7 +401,15 @@ export default {
       id="tooltip"
       :style="{ display: tooltip.visible ? 'block' : 'none', left: tooltip.x + 'px', top: tooltip.y + 'px' }"
     >
-      <div class="t-title">{{ tooltip.title }}</div>
+      <a
+        v-if="tooltip.title"
+        class="t-title"
+        :href="wikipediaUrl(tooltip.title)"
+        target="_blank"
+        rel="noopener"
+        @click.stop
+        @pointerdown.stop
+      >{{ tooltip.title }}</a>
       <img v-if="tooltip.thumbnail" :src="tooltip.thumbnail" :alt="tooltip.title" class="t-thumb">
       <div v-if="tooltip.loading" class="t-meta">Loading…</div>
       <div v-else-if="tooltip.extract" class="t-extract">{{ tooltip.extract }}</div>
@@ -450,6 +467,15 @@ export default {
 #tooltip {
   transform: translate(-50%, -50%);
   width: 220px;
+}
+#tooltip .t-title {
+  pointer-events: auto;
+  color: var(--series-1, #2a78d6);
+  text-decoration: none;
+  cursor: pointer;
+}
+#tooltip .t-title:hover {
+  text-decoration: underline;
 }
 #tooltip .t-thumb {
   width: 100%;
