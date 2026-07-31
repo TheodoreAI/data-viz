@@ -10,6 +10,18 @@ html, body {
 body {
     font-family: "Linux Libertine", serif;
     margin: 0;
+    background: #fcfcfb;
+    color: #0b0b0b;
+}
+@media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) body {
+        background: #1a1a19;
+        color: #ffffff;
+    }
+}
+:root[data-theme="dark"] body {
+    background: #1a1a19;
+    color: #ffffff;
 }
 
 .navbar {
@@ -31,16 +43,34 @@ body {
 .navbar a.active {
     color: #2a78d6;
 }
+.theme-toggle {
+    margin-left: auto;
+    background: none;
+    border: none;
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0.25rem 0.4rem;
+}
 @media (prefers-color-scheme: dark) {
-    .navbar {
+    :root:where(:not([data-theme="light"])) .navbar {
         border-bottom-color: #2c2c2a;
     }
-    .navbar a {
+    :root:where(:not([data-theme="light"])) .navbar a {
         color: #c3c2b7;
     }
-    .navbar a.active {
+    :root:where(:not([data-theme="light"])) .navbar a.active {
         color: #3987e5;
     }
+}
+:root[data-theme="dark"] .navbar {
+    border-bottom-color: #2c2c2a;
+}
+:root[data-theme="dark"] .navbar a {
+    color: #c3c2b7;
+}
+:root[data-theme="dark"] .navbar a.active {
+    color: #3987e5;
 }
 
 
@@ -54,12 +84,16 @@ body {
     font-family: "Times New Roman";
 }
 @media (prefers-color-scheme: dark) {
-    .footer {
+    :root:where(:not([data-theme="light"])) .footer {
         border-top-color: #2c2c2a;
         color: #36b7c3;
     }
 }
-.viz-root {
+:root[data-theme="dark"] .footer {
+    border-top-color: #2c2c2a;
+    color: #36b7c3;
+}
+:root {
   color-scheme: light;
   --surface-1:      #fcfcfb;
   --text-primary:   #0b0b0b;
@@ -70,7 +104,7 @@ body {
   --series-1-fill:  rgba(42, 120, 214, 0.28);
 }
 @media (prefers-color-scheme: dark) {
-  :root:where(:not([data-theme="light"])) .viz-root {
+  :root:where(:not([data-theme="light"])) {
     color-scheme: dark;
     --surface-1:      #1a1a19;
     --text-primary:   #ffffff;
@@ -81,7 +115,7 @@ body {
     --series-1-fill:  rgba(57, 135, 229, 0.28);
   }
 }
-:root[data-theme="dark"] .viz-root {
+:root[data-theme="dark"] {
   color-scheme: dark;
   --surface-1:      #1a1a19;
   --text-primary:   #ffffff;
