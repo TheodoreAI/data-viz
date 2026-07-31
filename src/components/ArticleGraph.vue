@@ -22,7 +22,7 @@ export default {
     return {
       nodes: [],
       links: [],
-      tooltip: { visible: false, x: 0, y: 0, title: '', extract: '', thumbnail: null, loading: false },
+      tooltip: { visible: false, title: '', extract: '', thumbnail: null, loading: false },
       zoom: defaultZoom(),
       dragNode: null,
       panning: false,
@@ -143,15 +143,6 @@ export default {
       this.populateGraph(title, data.links);
       this.buildSimulation();
     },
-    nodeScreenPosition(node) {
-      const rect = this.$refs.svg.getBoundingClientRect();
-      const scaleX = rect.width / WIDTH;
-      const scaleY = rect.height / HEIGHT;
-      return {
-        x: rect.left + window.scrollX + (this.zoom.x + node.x * this.zoom.k) * scaleX,
-        y: rect.top + window.scrollY + (this.zoom.y + node.y * this.zoom.k) * scaleY,
-      };
-    },
     getCachedSummary(title) {
       if (this.summaryCache[title]) return this.summaryCache[title];
       try {
@@ -177,27 +168,24 @@ export default {
     async showTooltip(node) {
       this.hoveredId = node.id;
       const cached = this.getCachedSummary(node.id);
-      this.positionTooltip(node, {
+      this.tooltip = {
+        visible: true,
         title: node.id,
         extract: cached ? cached.extract : '',
         thumbnail: cached ? cached.thumbnail : null,
         loading: !cached,
-      });
+      };
       if (cached) return;
       try {
         const response = await fetch(`/api/article-summary?title=${encodeURIComponent(node.id)}`);
         const data = await response.json();
         this.setCachedSummary(node.id, data);
         if (this.hoveredId === node.id) {
-          this.positionTooltip(node, { title: data.title, extract: data.extract, thumbnail: data.thumbnail, loading: false });
+          this.tooltip = { visible: true, title: data.title, extract: data.extract, thumbnail: data.thumbnail, loading: false };
         }
       } catch {
         if (this.hoveredId === node.id) this.tooltip.loading = false;
       }
-    },
-    positionTooltip(node, content) {
-      const pos = this.nodeScreenPosition(node);
-      this.tooltip = { visible: true, x: pos.x, y: pos.y, ...content };
     },
     hideTooltip() {
       this.tooltip.visible = false;
@@ -399,7 +387,7 @@ export default {
 
     <div
       id="tooltip"
-      :style="{ display: tooltip.visible ? 'block' : 'none', left: tooltip.x + 'px', top: tooltip.y + 'px' }"
+      :style="{ display: tooltip.visible ? 'block' : 'none' }"
     >
       <a
         v-if="tooltip.title"
@@ -465,8 +453,12 @@ export default {
   margin-top: -0.5rem;
 }
 #tooltip {
+  position: fixed;
+  left: 50%;
+  top: 50%;
   transform: translate(-50%, -50%);
   width: 220px;
+  z-index: 20;
 }
 #tooltip .t-title {
   pointer-events: auto;
