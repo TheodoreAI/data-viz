@@ -14,7 +14,7 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app.py vite.py ./
+COPY *.py ./
 COPY templates ./templates
 COPY static ./static
 COPY --from=frontend /app/static/dist ./static/dist

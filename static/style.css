@@ -24,6 +24,14 @@ body {
     color: #ffffff;
 }
 
+body.graph-fullscreen {
+    overflow: hidden;
+}
+body.graph-fullscreen .navbar,
+body.graph-fullscreen .footer {
+    display: none;
+}
+
 .navbar {
     height: var(--navbar-height);
     display: flex;

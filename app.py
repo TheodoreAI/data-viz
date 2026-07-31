@@ -21,6 +21,7 @@ WIKIPEDIA_TOP_VIEWED_URL = (
 WIKIPEDIA_HEADERS = {'User-Agent': 'data-viz-app/1.0 (mateoej12@gmail.com)'}
 EXCLUDED_TITLES = {'Main_Page', 'Special:Search'}
 BUBBLE_COUNT = 12
+GRAPH_LINKS_LIMIT = 24
 
 TOPIC_CATEGORIES = {
     'art': 'Category:Art',
@@ -81,6 +82,23 @@ def fetch_random_article(topic=None):
     return response.json()
 
 
+def fetch_article_links(title, limit=GRAPH_LINKS_LIMIT):
+    response = requests.get(WIKIPEDIA_ACTION_API_URL, headers=WIKIPEDIA_HEADERS, params={
+        'action': 'query',
+        'prop': 'links',
+        'titles': title,
+        'plnamespace': 0,
+        'pllimit': 500,
+        'format': 'json',
+    })
+    response.raise_for_status()
+    pages = response.json()['query']['pages']
+    page = next(iter(pages.values()), {})
+    links = [link['title'] for link in page.get('links', [])]
+    random.shuffle(links)
+    return links[:limit]
+
+
 @app.route('/')
 def hello_world():
     article = fetch_random_article()
@@ -103,6 +121,20 @@ def art():
 def api_art_feed():
     offset = request.args.get('offset', 0, type=int)
     return jsonify(fetch_art_feed_page(offset=offset))
+
+
+@app.route('/graph')
+def graph():
+    article = fetch_random_article()
+    title = article['title']
+    links = fetch_article_links(title)
+    return render_template('graph.html', title=title, links=links)
+
+
+@app.route('/api/article-links')
+def api_article_links():
+    title = request.args.get('title', '')
+    return jsonify({'title': title, 'links': fetch_article_links(title)})
 
 
 @app.route('/bubbles')
