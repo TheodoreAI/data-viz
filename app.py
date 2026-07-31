@@ -2,6 +2,7 @@ from datetime import date, timedelta
 
 import requests
 from flask import Flask
+from flask import jsonify
 from flask import render_template
 from flask import request
 
@@ -20,12 +21,21 @@ BUBBLE_COUNT = 12
 app = Flask(__name__)
 app.jinja_env.globals['vite_asset'] = lambda entry: vite_asset_tags(entry, app.debug, request.host)
 
-@app.route('/')
-def hello_world():
+def fetch_random_article():
     response = requests.get(WIKIPEDIA_RANDOM_SUMMARY_URL, headers=WIKIPEDIA_HEADERS)
     response.raise_for_status()
-    article = response.json()
+    return response.json()
+
+
+@app.route('/')
+def hello_world():
+    article = fetch_random_article()
     return render_template('home.html', person='Luna', article=article)
+
+
+@app.route('/api/random-article')
+def api_random_article():
+    return jsonify(fetch_random_article())
 
 
 @app.route('/bubbles')

@@ -16,6 +16,7 @@ export default defineConfig(({ command }) => ({
     rollupOptions: {
       input: {
         bubbles: 'src/entries/bubbles.js',
+        home: 'src/entries/home.js',
       },
     },
   },
