@@ -7,5 +7,7 @@
 
 <div id="app"></div>
 
+{% include '_footer.html' %}
+
 <script id="chart-data" type="application/json">{{ {'articles': articles, 'date': date} | tojson }}</script>
 {{ vite_asset('bubbles') }}
