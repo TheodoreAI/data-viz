@@ -22,7 +22,7 @@ export default {
     return {
       nodes: [],
       links: [],
-      tooltip: { visible: false, x: 0, y: 0, text: '' },
+      tooltip: { visible: false, x: 0, y: 0, title: '', extract: '', thumbnail: null, loading: false },
       zoom: defaultZoom(),
       dragNode: null,
       panning: false,
@@ -43,6 +43,7 @@ export default {
     this.activePointers = new Map();
     this.pinch = null;
     this.swipeStart = null;
+    this.summaryCache = {};
     this.populateGraph(this.seedTitle, this.seedLinks);
   },
   mounted() {
@@ -151,19 +152,69 @@ export default {
         y: rect.top + window.scrollY + (this.zoom.y + node.y * this.zoom.k) * scaleY,
       };
     },
-    showTooltip(node) {
-      const pos = this.nodeScreenPosition(node);
-      const radius = this.nodeRadius(node);
-      this.tooltip = { visible: true, x: pos.x, y: pos.y - radius - 8, text: node.id };
+    getCachedSummary(title) {
+      if (this.summaryCache[title]) return this.summaryCache[title];
+      try {
+        const stored = localStorage.getItem(`article-summary:${title}`);
+        if (stored) {
+          const data = JSON.parse(stored);
+          this.summaryCache[title] = data;
+          return data;
+        }
+      } catch {
+        // localStorage unavailable (private mode, quota, etc) — fall back to network.
+      }
+      return null;
+    },
+    setCachedSummary(title, data) {
+      this.summaryCache[title] = data;
+      try {
+        localStorage.setItem(`article-summary:${title}`, JSON.stringify(data));
+      } catch {
+        // ignore quota/availability errors, in-memory cache still works
+      }
+    },
+    async showTooltip(node) {
       this.hoveredId = node.id;
+      const cached = this.getCachedSummary(node.id);
+      this.positionTooltip(node, {
+        title: node.id,
+        extract: cached ? cached.extract : '',
+        thumbnail: cached ? cached.thumbnail : null,
+        loading: !cached,
+      });
+      if (cached) return;
+      try {
+        const response = await fetch(`/api/article-summary?title=${encodeURIComponent(node.id)}`);
+        const data = await response.json();
+        this.setCachedSummary(node.id, data);
+        if (this.hoveredId === node.id) {
+          this.positionTooltip(node, { title: data.title, extract: data.extract, thumbnail: data.thumbnail, loading: false });
+        }
+      } catch {
+        if (this.hoveredId === node.id) this.tooltip.loading = false;
+      }
+    },
+    positionTooltip(node, content) {
+      const pos = this.nodeScreenPosition(node);
+      this.tooltip = { visible: true, x: pos.x, y: pos.y, ...content };
     },
     hideTooltip() {
       this.tooltip.visible = false;
       this.hoveredId = null;
     },
-    openArticle(node) {
-      const url = `https://en.wikipedia.org/wiki/${encodeURIComponent(node.id.replace(/ /g, '_'))}`;
-      window.location.href = url;
+    wikipediaUrl(title) {
+      return `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g, '_'))}`;
+    },
+    async selectAsCenter(node) {
+      if (this.loadingSeed || node.id === this.currentSeedTitle) return;
+      this.loadingSeed = true;
+      try {
+        this.history.push(this.currentSeedTitle);
+        await this.rebuildGraph(node.id);
+      } finally {
+        this.loadingSeed = false;
+      }
     },
     registerPointer(event) {
       this.activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
@@ -239,10 +290,10 @@ export default {
       const dy = event.clientY - this.swipeStart.y;
       const duration = Date.now() - this.swipeStart.time;
       this.swipeStart = null;
-      if (Math.abs(dy) < SWIPE_MIN_DISTANCE) return;
-      if (Math.abs(dy) < Math.abs(dx) * 1.5) return;
+      if (Math.abs(dx) < SWIPE_MIN_DISTANCE) return;
+      if (Math.abs(dx) < Math.abs(dy) * 1.5) return;
       if (duration > SWIPE_MAX_DURATION) return;
-      if (dy > 0) this.loadNewSeed();
+      if (dx > 0) this.loadNewSeed();
       else this.goToPreviousSeed();
     },
     onWheel(event) {
@@ -280,7 +331,7 @@ export default {
       </div>
       <p v-if="!graphMode" class="subtitle">
         Starting from “{{ currentSeedTitle }}”. Click a node to open it on Wikipedia, tap the + to expand its links.
-        Drag to reposition, pinch/scroll to zoom, swipe down for a new article, swipe up to go back.
+        Drag to reposition, pinch/scroll to zoom, swipe right for a new article, swipe left to go back.
       </p>
       <p v-if="loadingSeed" class="subtitle loading">Loading…</p>
     </header>
@@ -313,7 +364,7 @@ export default {
           @mouseenter="showTooltip(node)"
           @touchstart="showTooltip(node)"
           @mouseleave="hideTooltip"
-          @click="openArticle(node)"
+          @click="selectAsCenter(node)"
         >
           <circle :r="nodeRadius(node)" />
           <g
@@ -349,7 +400,20 @@ export default {
     <div
       id="tooltip"
       :style="{ display: tooltip.visible ? 'block' : 'none', left: tooltip.x + 'px', top: tooltip.y + 'px' }"
-    >{{ tooltip.text }}</div>
+    >
+      <a
+        v-if="tooltip.title"
+        class="t-title"
+        :href="wikipediaUrl(tooltip.title)"
+        target="_blank"
+        rel="noopener"
+        @click.stop
+        @pointerdown.stop
+      >{{ tooltip.title }}</a>
+      <img v-if="tooltip.thumbnail" :src="tooltip.thumbnail" :alt="tooltip.title" class="t-thumb">
+      <div v-if="tooltip.loading" class="t-meta">Loading…</div>
+      <div v-else-if="tooltip.extract" class="t-extract">{{ tooltip.extract }}</div>
+    </div>
   </div>
 </template>
 
@@ -401,7 +465,32 @@ export default {
   margin-top: -0.5rem;
 }
 #tooltip {
-  transform: translate(-50%, -100%);
+  transform: translate(-50%, -50%);
+  width: 220px;
+}
+#tooltip .t-title {
+  pointer-events: auto;
+  color: var(--series-1, #2a78d6);
+  text-decoration: none;
+  cursor: pointer;
+}
+#tooltip .t-title:hover {
+  text-decoration: underline;
+}
+#tooltip .t-thumb {
+  width: 100%;
+  max-height: 110px;
+  object-fit: cover;
+  border-radius: 4px;
+  display: block;
+  margin: 4px 0;
+}
+#tooltip .t-extract {
+  font-size: 0.75rem;
+  line-height: 1.3;
+  color: var(--text-secondary, #52514e);
+  max-height: 4.6em;
+  overflow: hidden;
 }
 .graph-svg {
   width: 100%;

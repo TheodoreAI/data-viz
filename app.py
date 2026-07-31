@@ -137,6 +137,23 @@ def api_article_links():
     return jsonify({'title': title, 'links': fetch_article_links(title)})
 
 
+@app.route('/api/article-summary')
+def api_article_summary():
+    title = request.args.get('title', '')
+    response = requests.get(
+        WIKIPEDIA_SUMMARY_URL.format(title=quote(title.replace(' ', '_'))),
+        headers=WIKIPEDIA_HEADERS,
+    )
+    if not response.ok:
+        return jsonify({'title': title, 'extract': '', 'thumbnail': None})
+    summary = response.json()
+    return jsonify({
+        'title': summary.get('title', title),
+        'extract': summary.get('extract', ''),
+        'thumbnail': summary.get('thumbnail', {}).get('source'),
+    })
+
+
 @app.route('/bubbles')
 def bubbles():
     yesterday = date.today() - timedelta(days=1)
