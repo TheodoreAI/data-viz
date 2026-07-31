@@ -4,6 +4,8 @@ import requests
 from flask import Flask
 from flask import render_template
 
+from vite import vite_asset_tags
+
 WIKIPEDIA_RANDOM_SUMMARY_URL = 'https://en.wikipedia.org/api/rest_v1/page/random/summary'
 WIKIPEDIA_SUMMARY_URL = 'https://en.wikipedia.org/api/rest_v1/page/summary/{title}'
 WIKIPEDIA_TOP_VIEWED_URL = (
@@ -15,6 +17,7 @@ EXCLUDED_TITLES = {'Main_Page', 'Special:Search'}
 BUBBLE_COUNT = 12
 
 app = Flask(__name__)
+app.jinja_env.globals['vite_asset'] = lambda entry: vite_asset_tags(entry, app.debug)
 
 @app.route('/')
 def hello_world():
