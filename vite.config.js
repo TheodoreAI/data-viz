@@ -8,6 +8,7 @@ export default defineConfig(({ command }) => ({
     port: 8080,
     strictPort: true,
     host: '0.0.0.0',
+    cors: true,
   },
   build: {
     manifest: true,
