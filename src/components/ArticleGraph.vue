@@ -4,6 +4,9 @@ import { forceSimulation, forceLink, forceManyBody, forceCenter, forceCollide } 
 const WIDTH = 800;
 const HEIGHT = 600;
 
+const SWIPE_MIN_DISTANCE = 60;
+const SWIPE_MAX_DURATION = 700;
+
 export default {
   name: 'ArticleGraph',
   props: {
@@ -20,6 +23,9 @@ export default {
       panning: false,
       expandingId: null,
       hoveredId: null,
+      currentSeedTitle: this.seedTitle,
+      history: [],
+      loadingSeed: false,
     };
   },
   computed: {
@@ -28,20 +34,13 @@ export default {
     },
   },
   created() {
-    this.addArticleNode(this.seedTitle, WIDTH / 2, HEIGHT / 2, true);
-    this.seedLinks.forEach((title, i) => {
-      const angle = (i / this.seedLinks.length) * Math.PI * 2;
-      this.addArticleNode(title, WIDTH / 2 + Math.cos(angle) * 40, HEIGHT / 2 + Math.sin(angle) * 40);
-      this.links.push({ source: this.seedTitle, target: title });
-    });
+    this.activePointers = new Map();
+    this.pinch = null;
+    this.swipeStart = null;
+    this.populateGraph(this.seedTitle, this.seedLinks);
   },
   mounted() {
-    this.simulation = forceSimulation(this.nodes)
-      .force('link', forceLink(this.links).id(d => d.id).distance(90))
-      .force('charge', forceManyBody().strength(-160))
-      .force('center', forceCenter(WIDTH / 2, HEIGHT / 2))
-      .force('collide', forceCollide(26));
-
+    this.buildSimulation();
     window.addEventListener('pointermove', this.onPointerMove);
     window.addEventListener('pointerup', this.onPointerUp);
   },
@@ -51,6 +50,22 @@ export default {
     window.removeEventListener('pointerup', this.onPointerUp);
   },
   methods: {
+    populateGraph(title, linkTitles) {
+      this.addArticleNode(title, WIDTH / 2, HEIGHT / 2, true);
+      linkTitles.forEach((linkTitle, i) => {
+        const angle = (i / linkTitles.length) * Math.PI * 2;
+        this.addArticleNode(linkTitle, WIDTH / 2 + Math.cos(angle) * 40, HEIGHT / 2 + Math.sin(angle) * 40);
+        this.links.push({ source: title, target: linkTitle });
+      });
+    },
+    buildSimulation() {
+      if (this.simulation) this.simulation.stop();
+      this.simulation = forceSimulation(this.nodes)
+        .force('link', forceLink(this.links).id(d => d.id).distance(90))
+        .force('charge', forceManyBody().strength(-160))
+        .force('center', forceCenter(WIDTH / 2, HEIGHT / 2))
+        .force('collide', forceCollide(26));
+    },
     addArticleNode(title, x, y, isCenter = false) {
       if (this.nodes.some(n => n.id === title)) return;
       this.nodes.push({ id: title, isCenter, x, y, vx: 0, vy: 0, expanded: isCenter });
@@ -84,6 +99,38 @@ export default {
         this.expandingId = null;
       }
     },
+    async loadNewSeed() {
+      if (this.loadingSeed) return;
+      this.loadingSeed = true;
+      try {
+        this.history.push(this.currentSeedTitle);
+        const randomResponse = await fetch('/api/random-article');
+        const article = await randomResponse.json();
+        await this.rebuildGraph(article.title);
+      } finally {
+        this.loadingSeed = false;
+      }
+    },
+    async goToPreviousSeed() {
+      if (this.loadingSeed || this.history.length === 0) return;
+      this.loadingSeed = true;
+      try {
+        const title = this.history.pop();
+        await this.rebuildGraph(title);
+      } finally {
+        this.loadingSeed = false;
+      }
+    },
+    async rebuildGraph(title) {
+      const response = await fetch(`/api/article-links?title=${encodeURIComponent(title)}`);
+      const data = await response.json();
+      this.nodes = [];
+      this.links = [];
+      this.zoom = { x: 0, y: 0, k: 1 };
+      this.currentSeedTitle = title;
+      this.populateGraph(title, data.links);
+      this.buildSimulation();
+    },
     showTooltip(event, node) {
       const point = event.touches ? event.touches[0] : event;
       this.tooltip = { visible: true, x: point.pageX + 14, y: point.pageY - 10, text: node.id };
@@ -97,16 +144,48 @@ export default {
       const url = `https://en.wikipedia.org/wiki/${encodeURIComponent(node.id.replace(/ /g, '_'))}`;
       window.open(url, '_blank');
     },
+    registerPointer(event) {
+      this.activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    },
+    pointerDistance() {
+      const points = [...this.activePointers.values()];
+      return Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
+    },
+    startPinch() {
+      this.dragNode = null;
+      this.panning = false;
+      this.swipeStart = null;
+      this.pinch = { startDist: this.pointerDistance(), startK: this.zoom.k };
+    },
     onNodePointerDown(event, node) {
+      this.registerPointer(event);
+      if (this.activePointers.size >= 2) {
+        this.startPinch();
+        return;
+      }
       event.stopPropagation();
       this.dragNode = node;
       this.simulation.alphaTarget(0.3).restart();
     },
     onBackgroundPointerDown(event) {
+      this.registerPointer(event);
+      if (this.activePointers.size >= 2) {
+        this.startPinch();
+        return;
+      }
       this.panning = true;
+      this.swipeStart = { x: event.clientX, y: event.clientY, time: Date.now() };
       this.panStart = { x: event.clientX, y: event.clientY, zx: this.zoom.x, zy: this.zoom.y };
     },
     onPointerMove(event) {
+      if (this.activePointers.has(event.pointerId)) {
+        this.activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      }
+      if (this.pinch && this.activePointers.size >= 2) {
+        const ratio = this.pointerDistance() / this.pinch.startDist;
+        this.zoom.k = Math.min(3, Math.max(0.3, this.pinch.startK * ratio));
+        return;
+      }
       if (this.dragNode) {
         const rect = this.$refs.svg.getBoundingClientRect();
         this.dragNode.fx = (event.clientX - rect.left - this.zoom.x) / this.zoom.k;
@@ -116,14 +195,34 @@ export default {
         this.zoom.y = this.panStart.zy + (event.clientY - this.panStart.y);
       }
     },
-    onPointerUp() {
+    onPointerUp(event) {
+      this.activePointers.delete(event.pointerId);
+      if (this.pinch) {
+        if (this.activePointers.size < 2) this.pinch = null;
+        return;
+      }
       if (this.dragNode) {
         this.dragNode.fx = null;
         this.dragNode.fy = null;
         this.simulation.alphaTarget(0);
         this.dragNode = null;
       }
-      this.panning = false;
+      if (this.panning) {
+        this.panning = false;
+        this.detectSwipe(event);
+      }
+    },
+    detectSwipe(event) {
+      if (!this.swipeStart) return;
+      const dx = event.clientX - this.swipeStart.x;
+      const dy = event.clientY - this.swipeStart.y;
+      const duration = Date.now() - this.swipeStart.time;
+      this.swipeStart = null;
+      if (Math.abs(dy) < SWIPE_MIN_DISTANCE) return;
+      if (Math.abs(dy) < Math.abs(dx) * 1.5) return;
+      if (duration > SWIPE_MAX_DURATION) return;
+      if (dy > 0) this.loadNewSeed();
+      else this.goToPreviousSeed();
     },
     onWheel(event) {
       event.preventDefault();
@@ -138,7 +237,11 @@ export default {
   <div class="graph-root">
     <header class="graph-header">
       <h1>Article Link Graph</h1>
-      <p class="subtitle">Starting from “{{ seedTitle }}”. Click a node to open it on Wikipedia, tap the + to expand its links. Drag to reposition, scroll to zoom.</p>
+      <p class="subtitle">
+        Starting from “{{ currentSeedTitle }}”. Click a node to open it on Wikipedia, tap the + to expand its links.
+        Drag to reposition, pinch/scroll to zoom, swipe down for a new article, swipe up to go back.
+      </p>
+      <p v-if="loadingSeed" class="subtitle loading">Loading…</p>
     </header>
 
     <svg
@@ -185,12 +288,12 @@ export default {
           </g>
         </g>
         <text
-          v-if="nodeById(seedTitle)"
+          v-if="nodeById(currentSeedTitle)"
           class="graph-center-label"
-          :x="nodeById(seedTitle).x"
-          :y="nodeById(seedTitle).y - 20"
+          :x="nodeById(currentSeedTitle).x"
+          :y="nodeById(currentSeedTitle).y - 20"
           text-anchor="middle"
-        >{{ seedTitle }}</text>
+        >{{ currentSeedTitle }}</text>
       </g>
     </svg>
 
@@ -215,6 +318,10 @@ export default {
   color: var(--text-secondary, #52514e);
   font-size: 0.8rem;
   margin: 0 0 1rem;
+}
+.subtitle.loading {
+  color: var(--series-1, #2a78d6);
+  margin-top: -0.5rem;
 }
 .graph-svg {
   width: 100%;
