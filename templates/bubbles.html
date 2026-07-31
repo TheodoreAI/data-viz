@@ -1,0 +1,14 @@
+<!doctype html>
+<title>Wikipedia Bubble Chart</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+<div class="viz-root">
+  <h1>Most-viewed Wikipedia articles — {{ date }}</h1>
+  <p class="subtitle">Bubble size and y-position both encode daily pageviews; x-position is article length (characters in summary).</p>
+
+  <svg id="chart" width="720" height="420" viewBox="0 0 720 420"></svg>
+  <div id="tooltip"></div>
+</div>
+
+<script id="chart-data" type="application/json">{{ articles | tojson }}</script>
+<script src="{{ url_for('static', filename='js/bubbles.js') }}"></script>
