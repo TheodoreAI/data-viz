@@ -6,6 +6,11 @@ const HEIGHT = 600;
 
 const SWIPE_MIN_DISTANCE = 60;
 const SWIPE_MAX_DURATION = 700;
+const DEFAULT_ZOOM_K = 1.9;
+
+function defaultZoom() {
+  return { x: (WIDTH / 2) * (1 - DEFAULT_ZOOM_K), y: (HEIGHT / 2) * (1 - DEFAULT_ZOOM_K), k: DEFAULT_ZOOM_K };
+}
 
 export default {
   name: 'ArticleGraph',
@@ -18,7 +23,7 @@ export default {
       nodes: [],
       links: [],
       tooltip: { visible: false, x: 0, y: 0, text: '' },
-      zoom: { x: 0, y: 0, k: 1 },
+      zoom: defaultZoom(),
       dragNode: null,
       panning: false,
       expandingId: null,
@@ -26,6 +31,7 @@ export default {
       currentSeedTitle: this.seedTitle,
       history: [],
       loadingSeed: false,
+      graphMode: false,
     };
   },
   computed: {
@@ -48,8 +54,13 @@ export default {
     if (this.simulation) this.simulation.stop();
     window.removeEventListener('pointermove', this.onPointerMove);
     window.removeEventListener('pointerup', this.onPointerUp);
+    document.body.classList.remove('graph-fullscreen');
   },
   methods: {
+    toggleGraphMode() {
+      this.graphMode = !this.graphMode;
+      document.body.classList.toggle('graph-fullscreen', this.graphMode);
+    },
     populateGraph(title, linkTitles) {
       this.addArticleNode(title, WIDTH / 2, HEIGHT / 2, true);
       linkTitles.forEach((linkTitle, i) => {
@@ -126,7 +137,7 @@ export default {
       const data = await response.json();
       this.nodes = [];
       this.links = [];
-      this.zoom = { x: 0, y: 0, k: 1 };
+      this.zoom = defaultZoom();
       this.currentSeedTitle = title;
       this.populateGraph(title, data.links);
       this.buildSimulation();
@@ -183,7 +194,7 @@ export default {
       }
       if (this.pinch && this.activePointers.size >= 2) {
         const ratio = this.pointerDistance() / this.pinch.startDist;
-        this.zoom.k = Math.min(3, Math.max(0.3, this.pinch.startK * ratio));
+        this.applyZoom(this.pinch.startK * ratio);
         return;
       }
       if (this.dragNode) {
@@ -226,31 +237,52 @@ export default {
     },
     onWheel(event) {
       event.preventDefault();
-      const next = Math.min(3, Math.max(0.3, this.zoom.k * (event.deltaY > 0 ? 0.9 : 1.1)));
-      this.zoom.k = next;
+      this.applyZoom(this.zoom.k * (event.deltaY > 0 ? 0.9 : 1.1));
+    },
+    applyZoom(newK, anchor = { x: WIDTH / 2, y: HEIGHT / 2 }) {
+      const clamped = Math.min(3, Math.max(0.3, newK));
+      const ratio = clamped / this.zoom.k;
+      this.zoom.x = anchor.x - (anchor.x - this.zoom.x) * ratio;
+      this.zoom.y = anchor.y - (anchor.y - this.zoom.y) * ratio;
+      this.zoom.k = clamped;
+    },
+    zoomIn() {
+      this.applyZoom(this.zoom.k * 1.25);
+    },
+    zoomOut() {
+      this.applyZoom(this.zoom.k * 0.8);
+    },
+    resetZoom() {
+      this.zoom = defaultZoom();
     },
   },
 };
 </script>
 
 <template>
-  <div class="graph-root">
+  <div class="graph-root" :class="{ fullscreen: graphMode }">
     <header class="graph-header">
-      <h1>Article Link Graph</h1>
-      <p class="subtitle">
+      <div class="graph-header-row">
+        <h1>Article Link Graph</h1>
+        <button class="mode-toggle" type="button" @click="toggleGraphMode">
+          {{ graphMode ? '✕ Exit graph mode' : '⛶ Graph mode' }}
+        </button>
+      </div>
+      <p v-if="!graphMode" class="subtitle">
         Starting from “{{ currentSeedTitle }}”. Click a node to open it on Wikipedia, tap the + to expand its links.
         Drag to reposition, pinch/scroll to zoom, swipe down for a new article, swipe up to go back.
       </p>
       <p v-if="loadingSeed" class="subtitle loading">Loading…</p>
     </header>
 
-    <svg
-      ref="svg"
-      class="graph-svg"
-      viewBox="0 0 800 600"
-      @pointerdown="onBackgroundPointerDown"
-      @wheel="onWheel"
-    >
+    <div class="graph-canvas">
+      <svg
+        ref="svg"
+        class="graph-svg"
+        viewBox="0 0 800 600"
+        @pointerdown="onBackgroundPointerDown"
+        @wheel="onWheel"
+      >
       <g :transform="transform">
         <line
           v-for="(link, i) in links"
@@ -295,7 +327,14 @@ export default {
           text-anchor="middle"
         >{{ currentSeedTitle }}</text>
       </g>
-    </svg>
+      </svg>
+
+      <div v-if="graphMode" class="zoom-controls">
+        <button type="button" aria-label="Zoom in" @click="zoomIn">+</button>
+        <button type="button" aria-label="Reset zoom" @click="resetZoom">⟳</button>
+        <button type="button" aria-label="Zoom out" @click="zoomOut">−</button>
+      </div>
+    </div>
 
     <div
       id="tooltip"
@@ -310,9 +349,37 @@ export default {
   margin: 0 auto;
   padding: 1.5rem 1.25rem;
 }
+.graph-root.fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  max-width: none;
+  margin: 0;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-1, #fcfcfb);
+}
+.graph-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
 .graph-header h1 {
   margin: 0 0 0.1rem;
   font-size: 1.1rem;
+}
+.mode-toggle {
+  height: 2.5rem;
+  flex: none;
+  background: transparent;
+  border: 1px solid var(--gridline, #e1e0d9);
+  color: var(--text-secondary, #52514e);
+  border-radius: 999px;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.75rem;
+  cursor: pointer;
 }
 .subtitle {
   color: var(--text-secondary, #52514e);
@@ -331,6 +398,46 @@ export default {
   border: 1px solid var(--gridline, #e1e0d9);
   border-radius: 6px;
   cursor: grab;
+}
+.fullscreen .graph-header {
+  flex: none;
+}
+.fullscreen .graph-svg {
+  flex: 1;
+  height: auto;
+  border: none;
+  border-radius: 0;
+}
+.graph-canvas {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.zoom-controls {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  z-index: 5;
+}
+.zoom-controls button {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  border: 1px solid var(--gridline, #e1e0d9);
+  background: var(--surface-1, #fcfcfb);
+  color: var(--text-primary, #0b0b0b);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+.zoom-controls button:hover {
+  border-color: var(--series-1, #2a78d6);
 }
 .graph-edge {
   stroke: var(--gridline, #e1e0d9);

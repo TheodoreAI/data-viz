@@ -21,7 +21,7 @@ WIKIPEDIA_TOP_VIEWED_URL = (
 WIKIPEDIA_HEADERS = {'User-Agent': 'data-viz-app/1.0 (mateoej12@gmail.com)'}
 EXCLUDED_TITLES = {'Main_Page', 'Special:Search'}
 BUBBLE_COUNT = 12
-GRAPH_LINKS_LIMIT = 24
+GRAPH_LINKS_LIMIT = 36
 
 TOPIC_CATEGORIES = {
     'art': 'Category:Art',
