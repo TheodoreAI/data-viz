@@ -163,7 +163,7 @@ export default {
     },
     openArticle(node) {
       const url = `https://en.wikipedia.org/wiki/${encodeURIComponent(node.id.replace(/ /g, '_'))}`;
-      window.open(url, '_blank');
+      window.location.href = url;
     },
     registerPointer(event) {
       this.activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
