@@ -1,4 +1,6 @@
 <nav class="navbar">
   <a href="{{ url_for('hello_world') }}" class="{{ 'active' if request.path == url_for('hello_world') }}">Home</a>
   <a href="{{ url_for('bubbles') }}" class="{{ 'active' if request.path == url_for('bubbles') }}">Bubbles</a>
+  <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle dark/light theme">🌙</button>
 </nav>
+<script src="{{ url_for('static', filename='js/theme.js') }}"></script>
