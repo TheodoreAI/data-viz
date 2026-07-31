@@ -1,8 +1,9 @@
 <!doctype html>
 <title>Hello from Flask</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
 <div id="app"></div>
 
-<script id="feed-data" type="application/json">{{ {'article': article, 'person': person} | tojson }}</script>
+<script id="feed-data" type="application/json">{{ {'article': article} | tojson }}</script>
 {{ vite_asset('home') }}

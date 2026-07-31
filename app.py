@@ -30,7 +30,7 @@ def fetch_random_article():
 @app.route('/')
 def hello_world():
     article = fetch_random_article()
-    return render_template('home.html', person='Luna', article=article)
+    return render_template('home.html', article=article)
 
 
 @app.route('/api/random-article')

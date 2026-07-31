@@ -3,7 +3,7 @@ export default {
   name: 'ArticleFeed',
   props: {
     initialArticle: { type: Object, required: true },
-    personName: { type: String, required: true },
+
   },
   data() {
     return {
@@ -74,14 +74,20 @@ export default {
 
 <template>
   <div class="feed-root">
-    <h1>Hello {{ personName }}!</h1>
-    <p class="subtitle">Scroll or swipe up for a new random article, down to go back.</p>
+    <header class="feed-header">
+      <h1>Hello!</h1>
+      <p class="subtitle">Swipe up for a new article, down to go back.</p>
+    </header>
 
     <Transition :name="direction === 'up' ? 'slide-up' : 'slide-down'" mode="out-in">
       <article :key="currentIndex" class="feed-card">
-        <h2><a :href="currentArticle.content_urls.desktop.page" target="_blank">{{ currentArticle.title }}</a></h2>
-        <img v-if="currentArticle.thumbnail" :src="currentArticle.thumbnail.source" :alt="currentArticle.title">
-        <p>{{ currentArticle.extract }}</p>
+        <div v-if="currentArticle.thumbnail" class="feed-image">
+          <img :src="currentArticle.thumbnail.source" :alt="currentArticle.title">
+        </div>
+        <div class="feed-body">
+          <h2><a :href="currentArticle.content_urls.desktop.page" target="_blank">{{ currentArticle.title }}</a></h2>
+          <p>{{ currentArticle.extract }}</p>
+        </div>
       </article>
     </Transition>
 
@@ -91,23 +97,54 @@ export default {
 
 <style scoped>
 .feed-root {
-  max-width: 640px;
-  margin: 0 auto;
-  padding: 1.5rem;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+.feed-header {
+  flex: none;
+  padding: 1rem 1.25rem 0.5rem;
+}
+.feed-header h1 {
+  margin: 0;
+  font-size: 1.1rem;
 }
 .subtitle {
   color: var(--text-secondary, #52514e);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
+  margin: 0.15rem 0 0;
 }
-.feed-card img {
-  max-width: 100%;
-  border-radius: 6px;
-  margin: 0.75rem 0;
+.feed-card {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.feed-image {
+  flex: none;
+  max-height: 40vh;
+  overflow: hidden;
+}
+.feed-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.feed-body {
+  padding: 1rem 1.25rem 2rem;
+}
+.feed-body h2 {
+  margin: 0 0 0.5rem;
 }
 .feed-loading {
+  flex: none;
   text-align: center;
   color: var(--text-secondary, #52514e);
-  padding: 1rem;
+  padding: 0.75rem;
 }
 
 .slide-up-enter-active, .slide-up-leave-active,
@@ -118,4 +155,22 @@ export default {
 .slide-up-leave-to { transform: translateY(-24px); opacity: 0; }
 .slide-down-enter-from { transform: translateY(-24px); opacity: 0; }
 .slide-down-leave-to { transform: translateY(24px); opacity: 0; }
+
+@media (min-width: 641px) {
+  .feed-root {
+    height: auto;
+    min-height: 100dvh;
+    max-width: 640px;
+    margin: 0 auto;
+    overflow: visible;
+  }
+  .feed-card {
+    overflow-y: visible;
+  }
+  .feed-image {
+    max-height: 320px;
+    border-radius: 6px;
+    margin-top: 0.5rem;
+  }
+}
 </style>
