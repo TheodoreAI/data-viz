@@ -9,6 +9,7 @@ from flask import render_template
 from flask import request
 
 from vite import vite_asset_tags
+from wikidata import fetch_art_feed_page
 
 WIKIPEDIA_RANDOM_SUMMARY_URL = 'https://en.wikipedia.org/api/rest_v1/page/random/summary'
 WIKIPEDIA_SUMMARY_URL = 'https://en.wikipedia.org/api/rest_v1/page/summary/{title}'
@@ -90,6 +91,18 @@ def hello_world():
 def api_random_article():
     topic = request.args.get('topic') or None
     return jsonify(fetch_random_article(topic))
+
+
+@app.route('/art')
+def art():
+    paintings = fetch_art_feed_page(offset=0)
+    return render_template('art.html', paintings=paintings)
+
+
+@app.route('/api/art-feed')
+def api_art_feed():
+    offset = request.args.get('offset', 0, type=int)
+    return jsonify(fetch_art_feed_page(offset=offset))
 
 
 @app.route('/bubbles')

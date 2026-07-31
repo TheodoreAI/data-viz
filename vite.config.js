@@ -18,6 +18,7 @@ export default defineConfig(({ command }) => ({
       input: {
         bubbles: 'src/entries/bubbles.js',
         home: 'src/entries/home.js',
+        art: 'src/entries/art.js',
       },
     },
   },
