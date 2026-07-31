@@ -43,6 +43,22 @@ body {
     }
 }
 
+
+.footer {
+    text-align: center;
+    padding: 1rem;
+    font-size: 0.9rem;
+    color: #898781;
+    border-top: 1px solid #e1e0d9;
+    font-style: italic;
+    font-family: "Times New Roman";
+}
+@media (prefers-color-scheme: dark) {
+    .footer {
+        border-top-color: #2c2c2a;
+        color: #36b7c3;
+    }
+}
 .viz-root {
   color-scheme: light;
   --surface-1:      #fcfcfb;
@@ -90,6 +106,15 @@ body {
   font-size: 11px;
 }
 .viz-root .gridline { stroke: var(--gridline); stroke-width: 1; }
+.chart-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.chart-scroll svg {
+  display: block;
+  flex-shrink: 0;
+}
 .viz-root .bubble {
   fill: var(--series-1-fill);
   stroke: var(--series-1);

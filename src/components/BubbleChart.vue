@@ -9,8 +9,8 @@ export default {
   },
   data() {
     return {
-      margin: { top: 20, right: 20, bottom: 40, left: 60 },
-      width: 720 - 60 - 20,
+      margin: { top: 20, right: 20, bottom: 40, left: 70 },
+      width: 720 - 70 - 20,
       height: 420 - 20 - 40,
       tooltip: {
         visible: false,
@@ -77,57 +77,59 @@ export default {
       Bubble size and y-position both encode daily pageviews; x-position is article length (characters in summary).
     </p>
 
-    <svg width="720" height="420" viewBox="0 0 720 420">
-      <line
-        v-for="tick in yTicks"
-        :key="'gy' + tick"
-        class="gridline"
-        :x1="margin.left"
-        :x2="margin.left + width"
-        :y1="yScale(tick)"
-        :y2="yScale(tick)"
-      />
-      <text
-        v-for="tick in yTicks"
-        :key="'ly' + tick"
-        class="axis-label"
-        :x="margin.left - 8"
-        :y="yScale(tick) + 4"
-        text-anchor="end"
-      >{{ tick.toLocaleString() }}</text>
+    <div class="chart-scroll">
+      <svg width="720" height="420" viewBox="0 0 720 420">
+        <line
+          v-for="tick in yTicks"
+          :key="'gy' + tick"
+          class="gridline"
+          :x1="margin.left"
+          :x2="margin.left + width"
+          :y1="yScale(tick)"
+          :y2="yScale(tick)"
+        />
+        <text
+          v-for="tick in yTicks"
+          :key="'ly' + tick"
+          class="axis-label"
+          :x="margin.left - 8"
+          :y="yScale(tick) + 4"
+          text-anchor="end"
+        >{{ tick.toLocaleString() }}</text>
 
-      <text
-        v-for="tick in xTicks"
-        :key="'lx' + tick"
-        class="axis-label"
-        :x="xScale(tick)"
-        :y="margin.top + height + 20"
-        text-anchor="middle"
-      >{{ tick }}</text>
+        <text
+          v-for="tick in xTicks"
+          :key="'lx' + tick"
+          class="axis-label"
+          :x="xScale(tick)"
+          :y="margin.top + height + 20"
+          text-anchor="middle"
+        >{{ tick }}</text>
 
-      <text class="axis-label" :x="margin.left + width / 2" y="410" text-anchor="middle">
-        Summary length (characters)
-      </text>
-      <text
-        class="axis-label"
-        transform="rotate(-90)"
-        :x="-(margin.top + height / 2)"
-        y="16"
-        text-anchor="middle"
-      >Pageviews</text>
+        <text class="axis-label" :x="margin.left + width / 2" y="410" text-anchor="middle">
+          Summary length (characters)
+        </text>
+        <text
+          class="axis-label"
+          transform="rotate(-90)"
+          :x="-(margin.top + height / 2)"
+          y="14"
+          text-anchor="middle"
+        >Pageviews</text>
 
-      <circle
-        v-for="b in bubbles"
-        :key="b.title"
-        class="bubble"
-        :cx="b.cx"
-        :cy="b.cy"
-        :r="b.r"
-        @mousemove="onHover($event, b)"
-        @mouseleave="hideTooltip"
-        @click="openArticle(b)"
-      />
-    </svg>
+        <circle
+          v-for="b in bubbles"
+          :key="b.title"
+          class="bubble"
+          :cx="b.cx"
+          :cy="b.cy"
+          :r="b.r"
+          @mousemove="onHover($event, b)"
+          @mouseleave="hideTooltip"
+          @click="openArticle(b)"
+        />
+      </svg>
+    </div>
 
     <div
       id="tooltip"
