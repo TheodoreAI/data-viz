@@ -19,6 +19,7 @@ export default defineConfig(({ command }) => ({
         bubbles: 'src/entries/bubbles.js',
         home: 'src/entries/home.js',
         art: 'src/entries/art.js',
+        graph: 'src/entries/graph.js',
       },
     },
   },
