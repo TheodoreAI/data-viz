@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from markupsafe import Markup
 
-VITE_DEV_SERVER = 'http://localhost:5173'
+VITE_DEV_SERVER = 'http://localhost:8080'
 MANIFEST_PATH = Path(__file__).parent / 'static' / 'dist' / '.vite' / 'manifest.json'
 
 
