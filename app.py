@@ -3,6 +3,7 @@ from datetime import date, timedelta
 import requests
 from flask import Flask
 from flask import render_template
+from flask import request
 
 from vite import vite_asset_tags
 
@@ -17,7 +18,7 @@ EXCLUDED_TITLES = {'Main_Page', 'Special:Search'}
 BUBBLE_COUNT = 12
 
 app = Flask(__name__)
-app.jinja_env.globals['vite_asset'] = lambda entry: vite_asset_tags(entry, app.debug)
+app.jinja_env.globals['vite_asset'] = lambda entry: vite_asset_tags(entry, app.debug, request.host)
 
 @app.route('/')
 def hello_world():
@@ -61,4 +62,4 @@ def bubbles():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=8081)
+    app.run(debug=True, port=8081, host='0.0.0.0')
