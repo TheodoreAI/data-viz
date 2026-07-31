@@ -93,7 +93,7 @@ body {
     border-top-color: #2c2c2a;
     color: #36b7c3;
 }
-.viz-root {
+:root {
   color-scheme: light;
   --surface-1:      #fcfcfb;
   --text-primary:   #0b0b0b;
@@ -104,7 +104,7 @@ body {
   --series-1-fill:  rgba(42, 120, 214, 0.28);
 }
 @media (prefers-color-scheme: dark) {
-  :root:where(:not([data-theme="light"])) .viz-root {
+  :root:where(:not([data-theme="light"])) {
     color-scheme: dark;
     --surface-1:      #1a1a19;
     --text-primary:   #ffffff;
@@ -115,7 +115,7 @@ body {
     --series-1-fill:  rgba(57, 135, 229, 0.28);
   }
 }
-:root[data-theme="dark"] .viz-root {
+:root[data-theme="dark"] {
   color-scheme: dark;
   --surface-1:      #1a1a19;
   --text-primary:   #ffffff;
