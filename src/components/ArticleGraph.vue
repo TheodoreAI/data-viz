@@ -75,7 +75,7 @@ export default {
         .force('link', forceLink(this.links).id(d => d.id).distance(90))
         .force('charge', forceManyBody().strength(-160))
         .force('center', forceCenter(WIDTH / 2, HEIGHT / 2))
-        .force('collide', forceCollide(26));
+        .force('collide', forceCollide(36));
     },
     addArticleNode(title, x, y, isCenter = false) {
       if (this.nodes.some(n => n.id === title)) return;
@@ -85,7 +85,7 @@ export default {
       return this.nodes.find(n => n.id === id);
     },
     nodeRadius(node) {
-      const base = node.isCenter ? 14 : 9;
+      const base = node.isCenter ? 20 : 13;
       return this.hoveredId === node.id ? base * 1.35 : base;
     },
     async expandNode(node) {
@@ -142,9 +142,19 @@ export default {
       this.populateGraph(title, data.links);
       this.buildSimulation();
     },
-    showTooltip(event, node) {
-      const point = event.touches ? event.touches[0] : event;
-      this.tooltip = { visible: true, x: point.pageX + 14, y: point.pageY - 10, text: node.id };
+    nodeScreenPosition(node) {
+      const rect = this.$refs.svg.getBoundingClientRect();
+      const scaleX = rect.width / WIDTH;
+      const scaleY = rect.height / HEIGHT;
+      return {
+        x: rect.left + window.scrollX + (this.zoom.x + node.x * this.zoom.k) * scaleX,
+        y: rect.top + window.scrollY + (this.zoom.y + node.y * this.zoom.k) * scaleY,
+      };
+    },
+    showTooltip(node) {
+      const pos = this.nodeScreenPosition(node);
+      const radius = this.nodeRadius(node);
+      this.tooltip = { visible: true, x: pos.x, y: pos.y - radius - 8, text: node.id };
       this.hoveredId = node.id;
     },
     hideTooltip() {
@@ -300,8 +310,8 @@ export default {
           :class="{ center: node.isCenter, expanding: expandingId === node.id }"
           :transform="`translate(${node.x}, ${node.y})`"
           @pointerdown="onNodePointerDown($event, node)"
-          @mousemove="showTooltip($event, node)"
-          @touchstart="showTooltip($event, node)"
+          @mouseenter="showTooltip(node)"
+          @touchstart="showTooltip(node)"
           @mouseleave="hideTooltip"
           @click="openArticle(node)"
         >
@@ -312,11 +322,11 @@ export default {
             :transform="`translate(${nodeRadius(node) * 0.75}, ${nodeRadius(node) * 0.75})`"
             @click.stop="expandNode(node)"
             @pointerdown.stop
-            @touchstart.stop="showTooltip($event, node)"
+            @touchstart.stop="showTooltip(node)"
           >
-            <circle r="7" />
-            <line x1="-3.5" y1="0" x2="3.5" y2="0" />
-            <line x1="0" y1="-3.5" x2="0" y2="3.5" />
+            <circle r="9" />
+            <line x1="-4.5" y1="0" x2="4.5" y2="0" />
+            <line x1="0" y1="-4.5" x2="0" y2="4.5" />
           </g>
         </g>
         <text
@@ -389,6 +399,9 @@ export default {
 .subtitle.loading {
   color: var(--series-1, #2a78d6);
   margin-top: -0.5rem;
+}
+#tooltip {
+  transform: translate(-50%, -100%);
 }
 .graph-svg {
   width: 100%;
