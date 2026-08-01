@@ -47,9 +47,13 @@ body.graph-fullscreen .footer {
     text-decoration: none;
     font-size: 1.1rem;
     font-weight: 500;
+    border-bottom: 2px solid transparent;
+    padding-bottom: 2px;
 }
 .navbar a.active {
     color: #2f6690;
+    font-weight: 700;
+    border-bottom-color: #2f6690;
 }
 .theme-toggle {
     margin-left: auto;
@@ -69,6 +73,8 @@ body.graph-fullscreen .footer {
     }
     :root:where(:not([data-theme="light"])) .navbar a.active {
         color: #5b9bc9;
+        font-weight: 700;
+        border-bottom-color: #5b9bc9;
     }
 }
 :root[data-theme="dark"] .navbar {
@@ -78,6 +84,8 @@ body.graph-fullscreen .footer {
     color: #b9ac8c;
 }
 :root[data-theme="dark"] .navbar a.active {
+    font-weight: 700;
+    border-bottom-color: #5b9bc9;
     color: #5b9bc9;
 }
 
@@ -143,6 +151,27 @@ body.graph-fullscreen .footer {
 }
 .viz-root h1 { font-size: 1.1rem; margin: 0 0 0.1rem; }
 .viz-root .subtitle { color: var(--text-secondary); font-size: 0.85rem; margin: 0 0 1rem; }
+.viz-root .viz-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.viz-root .table-toggle {
+  flex: none;
+  background: transparent;
+  border: 1px solid var(--gridline);
+  color: var(--text-secondary);
+  border-radius: 999px;
+  padding: 0.3rem 0.8rem;
+  font-family: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.viz-root .table-toggle:hover {
+  border-color: var(--series-1);
+  color: var(--series-1);
+}
 .viz-root .axis-label {
   fill: var(--muted);
   font-size: 11px;
@@ -162,7 +191,26 @@ body.graph-fullscreen .footer {
   stroke: var(--series-1);
   stroke-width: 2;
 }
+.viz-root a:hover .bubble,
 .viz-root .bubble:hover { fill: var(--series-1); cursor: pointer; }
+.viz-root .data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.viz-root .data-table th,
+.viz-root .data-table td {
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--gridline);
+}
+.viz-root .data-table th {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+.viz-root .data-table a {
+  color: var(--series-1);
+}
 #tooltip {
   position: absolute;
   display: none;
