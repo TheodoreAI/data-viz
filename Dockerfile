@@ -15,11 +15,13 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY *.py ./
+COPY migrations ./migrations
 COPY templates ./templates
 COPY static ./static
 COPY --from=frontend /app/static/dist ./static/dist
 
 ENV PYTHONUNBUFFERED=1
+ENV FLASK_APP=app.py
 EXPOSE 8081
 
-CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-8081} app:app"]
+CMD ["sh", "-c", "flask db upgrade && gunicorn --bind 0.0.0.0:${PORT:-8081} app:app"]

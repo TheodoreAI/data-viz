@@ -16,6 +16,7 @@ from flask_jwt_extended import jwt_required
 from flask_jwt_extended import set_access_cookies
 from flask_jwt_extended import unset_jwt_cookies
 from flask_jwt_extended import verify_jwt_in_request
+from flask_migrate import Migrate
 
 from auth import authenticate_user
 from auth import change_password
@@ -79,10 +80,8 @@ app.config['JWT_COOKIE_CSRF_PROTECT'] = True
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=7)
 
 db.init_app(app)
+migrate = Migrate(app, db)
 jwt = JWTManager(app)
-
-with app.app_context():
-    db.create_all()
 
 
 @app.context_processor
