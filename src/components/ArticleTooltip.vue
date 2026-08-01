@@ -64,7 +64,8 @@ export default {
 }
 .t-close {
   position: absolute;
-  top: 1rem;
+  /* lets place it at the bottom */
+  bottom: 1rem;
   right: 1rem;
   width: 2.5rem;
   height: 2.5rem;

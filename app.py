@@ -128,7 +128,7 @@ def graph():
     article = fetch_random_article()
     title = article['title']
     links = fetch_article_links(title)
-    return render_template('graph.html', title=title, links=links)
+    return render_template('graph.html', title=title, links=links, topics=TOPIC_CATEGORIES)
 
 
 @app.route('/api/article-links')

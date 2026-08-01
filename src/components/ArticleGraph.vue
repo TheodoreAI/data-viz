@@ -2,15 +2,16 @@
 import { forceSimulation, forceLink, forceManyBody, forceCenter, forceCollide } from 'd3';
 import ArticleTooltip from './ArticleTooltip.vue';
 
-const WIDTH = 800;
-const HEIGHT = 600;
+const BASE_WIDTH = 800;
+const BASE_HEIGHT = 600;
+const MAX_NODES = 150;
 
 const SWIPE_MIN_DISTANCE = 60;
 const SWIPE_MAX_DURATION = 700;
 const DEFAULT_ZOOM_K = 1.9;
 
-function defaultZoom() {
-  return { x: (WIDTH / 2) * (1 - DEFAULT_ZOOM_K), y: (HEIGHT / 2) * (1 - DEFAULT_ZOOM_K), k: DEFAULT_ZOOM_K };
+function computeDefaultZoom(width, height) {
+  return { x: (width / 2) * (1 - DEFAULT_ZOOM_K), y: (height / 2) * (1 - DEFAULT_ZOOM_K), k: DEFAULT_ZOOM_K };
 }
 
 export default {
@@ -19,13 +20,16 @@ export default {
   props: {
     seedTitle: { type: String, required: true },
     seedLinks: { type: Array, required: true },
+    topics: { type: Array, default: () => [] },
   },
   data() {
     return {
       nodes: [],
       links: [],
+      canvasWidth: BASE_WIDTH,
+      canvasHeight: BASE_HEIGHT,
       tooltip: { visible: false, title: '', extract: '', thumbnail: null, loading: false },
-      zoom: defaultZoom(),
+      zoom: computeDefaultZoom(BASE_WIDTH, BASE_HEIGHT),
       dragNode: null,
       panning: false,
       expandingId: null,
@@ -34,11 +38,18 @@ export default {
       history: [],
       loadingSeed: false,
       graphMode: false,
+      selectedTopic: '',
     };
   },
   computed: {
     transform() {
       return `translate(${this.zoom.x}, ${this.zoom.y}) scale(${this.zoom.k})`;
+    },
+    atNodeLimit() {
+      return this.nodes.length >= MAX_NODES;
+    },
+    maxNodes() {
+      return MAX_NODES;
     },
   },
   created() {
@@ -65,20 +76,26 @@ export default {
       this.graphMode = !this.graphMode;
       document.body.classList.toggle('graph-fullscreen', this.graphMode);
     },
+    updateCanvasSize() {
+      const scale = Math.max(1, Math.sqrt(this.nodes.length / 25));
+      this.canvasWidth = Math.round(BASE_WIDTH * scale);
+      this.canvasHeight = Math.round(BASE_HEIGHT * scale);
+    },
     populateGraph(title, linkTitles) {
-      this.addArticleNode(title, WIDTH / 2, HEIGHT / 2, true);
+      this.addArticleNode(title, this.canvasWidth / 2, this.canvasHeight / 2, true);
       linkTitles.forEach((linkTitle, i) => {
         const angle = (i / linkTitles.length) * Math.PI * 2;
-        this.addArticleNode(linkTitle, WIDTH / 2 + Math.cos(angle) * 40, HEIGHT / 2 + Math.sin(angle) * 40);
+        this.addArticleNode(linkTitle, this.canvasWidth / 2 + Math.cos(angle) * 40, this.canvasHeight / 2 + Math.sin(angle) * 40);
         this.links.push({ source: title, target: linkTitle });
       });
+      this.updateCanvasSize();
     },
     buildSimulation() {
       if (this.simulation) this.simulation.stop();
       this.simulation = forceSimulation(this.nodes)
         .force('link', forceLink(this.links).id(d => d.id).distance(90))
         .force('charge', forceManyBody().strength(-160))
-        .force('center', forceCenter(WIDTH / 2, HEIGHT / 2))
+        .force('center', forceCenter(this.canvasWidth / 2, this.canvasHeight / 2))
         .force('collide', forceCollide(36));
     },
     addArticleNode(title, x, y, isCenter = false) {
@@ -93,13 +110,14 @@ export default {
       return this.hoveredId === node.id ? base * 1.35 : base;
     },
     async expandNode(node) {
-      if (node.expanded || this.expandingId) return;
+      if (node.expanded || this.expandingId || this.nodes.length >= MAX_NODES) return;
       this.expandingId = node.id;
       try {
         const response = await fetch(`/api/article-links?title=${encodeURIComponent(node.id)}`);
         const data = await response.json();
         node.expanded = true;
         data.links.forEach((title, i) => {
+          if (this.nodes.length >= MAX_NODES) return;
           const angle = (i / data.links.length) * Math.PI * 2;
           this.addArticleNode(title, node.x + Math.cos(angle) * 60, node.y + Math.sin(angle) * 60);
           const alreadyLinked = this.links.some(
@@ -107,19 +125,39 @@ export default {
           );
           if (!alreadyLinked) this.links.push({ source: node.id, target: title });
         });
+        this.updateCanvasSize();
         this.simulation.nodes(this.nodes);
         this.simulation.force('link', forceLink(this.links).id(d => d.id).distance(90));
+        this.simulation.force('center', forceCenter(this.canvasWidth / 2, this.canvasHeight / 2));
         this.simulation.alpha(0.7).restart();
       } finally {
         this.expandingId = null;
       }
+    },
+    randomArticleUrl() {
+      return this.selectedTopic
+        ? `/api/random-article?topic=${encodeURIComponent(this.selectedTopic)}`
+        : '/api/random-article';
     },
     async loadNewSeed() {
       if (this.loadingSeed) return;
       this.loadingSeed = true;
       try {
         this.history.push(this.currentSeedTitle);
-        const randomResponse = await fetch('/api/random-article');
+        const randomResponse = await fetch(this.randomArticleUrl());
+        const article = await randomResponse.json();
+        await this.rebuildGraph(article.title);
+      } finally {
+        this.loadingSeed = false;
+      }
+    },
+    async selectTopic(topic) {
+      if (this.loadingSeed || topic === this.selectedTopic) return;
+      this.selectedTopic = topic;
+      this.loadingSeed = true;
+      try {
+        this.history.push(this.currentSeedTitle);
+        const randomResponse = await fetch(this.randomArticleUrl());
         const article = await randomResponse.json();
         await this.rebuildGraph(article.title);
       } finally {
@@ -141,9 +179,11 @@ export default {
       const data = await response.json();
       this.nodes = [];
       this.links = [];
-      this.zoom = defaultZoom();
+      this.canvasWidth = BASE_WIDTH;
+      this.canvasHeight = BASE_HEIGHT;
       this.currentSeedTitle = title;
       this.populateGraph(title, data.links);
+      this.zoom = computeDefaultZoom(this.canvasWidth, this.canvasHeight);
       this.buildSimulation();
     },
     getCachedSummary(title) {
@@ -194,10 +234,6 @@ export default {
       this.hideTimer = null;
       this.tooltip.visible = false;
       this.hoveredId = null;
-    },
-    scheduleHideTooltip() {
-      this.cancelHideTooltip();
-      this.hideTimer = setTimeout(() => this.hideTooltip(), 150);
     },
     cancelHideTooltip() {
       if (this.hideTimer) {
@@ -299,11 +335,12 @@ export default {
       event.preventDefault();
       this.applyZoom(this.zoom.k * (event.deltaY > 0 ? 0.9 : 1.1));
     },
-    applyZoom(newK, anchor = { x: WIDTH / 2, y: HEIGHT / 2 }) {
+    applyZoom(newK, anchor = null) {
+      const a = anchor || { x: this.canvasWidth / 2, y: this.canvasHeight / 2 };
       const clamped = Math.min(3, Math.max(0.3, newK));
       const ratio = clamped / this.zoom.k;
-      this.zoom.x = anchor.x - (anchor.x - this.zoom.x) * ratio;
-      this.zoom.y = anchor.y - (anchor.y - this.zoom.y) * ratio;
+      this.zoom.x = a.x - (a.x - this.zoom.x) * ratio;
+      this.zoom.y = a.y - (a.y - this.zoom.y) * ratio;
       this.zoom.k = clamped;
     },
     zoomIn() {
@@ -313,7 +350,7 @@ export default {
       this.applyZoom(this.zoom.k * 0.8);
     },
     resetZoom() {
-      this.zoom = defaultZoom();
+      this.zoom = computeDefaultZoom(this.canvasWidth, this.canvasHeight);
     },
   },
 };
@@ -332,14 +369,31 @@ export default {
         Starting from “{{ currentSeedTitle }}”. Click a node to open it on Wikipedia, tap the + to expand its links.
         Drag to reposition, pinch/scroll to zoom, swipe right for a new article, swipe left to go back.
       </p>
+      <div v-if="!graphMode" class="topic-row">
+        <button
+          class="topic-pill"
+          :class="{ active: selectedTopic === '' }"
+          :disabled="loadingSeed"
+          @click="selectTopic('')"
+        >Random</button>
+        <button
+          v-for="topic in topics"
+          :key="topic"
+          class="topic-pill"
+          :class="{ active: selectedTopic === topic }"
+          :disabled="loadingSeed"
+          @click="selectTopic(topic)"
+        >{{ topic }}</button>
+      </div>
       <p v-if="loadingSeed" class="subtitle loading">Loading…</p>
+      <p v-else-if="atNodeLimit && !graphMode" class="subtitle loading">Node limit reached ({{ maxNodes }}) — swipe for a new article to keep exploring.</p>
     </header>
 
     <div class="graph-canvas">
       <svg
         ref="svg"
         class="graph-svg"
-        viewBox="0 0 800 600"
+        :viewBox="`0 0 ${canvasWidth} ${canvasHeight}`"
         @pointerdown="onBackgroundPointerDown"
         @wheel="onWheel"
       >
@@ -360,14 +414,12 @@ export default {
           :class="{ center: node.isCenter, expanding: expandingId === node.id }"
           :transform="`translate(${node.x}, ${node.y})`"
           @pointerdown="onNodePointerDown($event, node)"
-          @mouseenter="showTooltip(node)"
           @touchstart="showTooltip(node)"
-          @mouseleave="scheduleHideTooltip"
           @click="selectAsCenter(node)"
         >
           <circle :r="nodeRadius(node)" />
           <g
-            v-if="!node.expanded && hoveredId === node.id"
+            v-if="!node.expanded && hoveredId === node.id && !atNodeLimit"
             class="expand-badge"
             :transform="`translate(${nodeRadius(node) * 0.75}, ${nodeRadius(node) * 0.75})`"
             @click.stop="expandNode(node)"
@@ -478,6 +530,39 @@ export default {
 .subtitle.loading::after {
   content: '_';
   animation: crt-blink 1s steps(1) infinite;
+}
+.topic-row {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  margin: 0 0 1rem;
+  padding-bottom: 0.2rem;
+}
+.topic-pill {
+  flex: none;
+  border: 1px solid var(--crt-green-dim);
+  background: var(--crt-bg);
+  color: var(--crt-green-soft);
+  border-radius: 2px;
+  padding: 0.3rem 0.8rem;
+  font-family: inherit;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+.topic-pill.active {
+  background: var(--crt-green);
+  border-color: var(--crt-green);
+  color: var(--crt-bg);
+  text-shadow: none;
+}
+.topic-pill:hover {
+  border-color: var(--crt-green);
+}
+.topic-pill:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 .graph-svg {
   width: 100%;
