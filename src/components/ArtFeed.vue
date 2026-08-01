@@ -15,7 +15,7 @@ export default {
       paintings: this.initialPaintings,
       offset: this.initialPaintings.length,
       selectedMovement: '',
-      sortMode: 'shuffled',
+      sortMode: 'oldest',
       loading: false,
       exhausted: false,
       error: false,
@@ -28,6 +28,9 @@ export default {
     displayedPaintings() {
       if (this.sortMode === 'newest') {
         return [...this.paintings].sort((a, b) => (b.year ?? -Infinity) - (a.year ?? -Infinity));
+      }
+      if (this.sortMode === 'oldest') {
+        return [...this.paintings].sort((a, b) => (a.year ?? Infinity) - (b.year ?? Infinity));
       }
       return this.paintings;
     },
@@ -44,6 +47,15 @@ export default {
   methods: {
     paintingKey(painting) {
       return `${painting.title}::${painting.artist}`;
+    },
+    shuffle() {
+      const shuffled = [...this.paintings];
+      for (let i = shuffled.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      this.paintings = shuffled;
+      this.sortMode = 'shuffled';
     },
     async saveItem(painting) {
       const key = this.paintingKey(painting);
@@ -162,7 +174,7 @@ export default {
   <div class="art-feed">
     <header class="art-header">
       <h1>Art Movements</h1>
-      <p class="subtitle">Shuffled paintings — pick a movement or browse them all.</p>
+      <p class="subtitle">Paintings in chronological order — pick a movement, shuffle, or flip the direction.</p>
       <div class="topic-row">
         <button
           class="topic-pill"
@@ -183,15 +195,21 @@ export default {
         <button
           type="button"
           class="topic-pill"
-          :class="{ active: sortMode === 'shuffled' }"
-          @click="sortMode = 'shuffled'"
-        >Shuffled</button>
+          :class="{ active: sortMode === 'oldest' }"
+          @click="sortMode = 'oldest'"
+        >Oldest first</button>
         <button
           type="button"
           class="topic-pill"
           :class="{ active: sortMode === 'newest' }"
           @click="sortMode = 'newest'"
         >Newest first</button>
+        <button
+          type="button"
+          class="topic-pill"
+          :class="{ active: sortMode === 'shuffled' }"
+          @click="shuffle"
+        >Shuffle</button>
       </div>
     </header>
 
