@@ -13,6 +13,7 @@ export default {
   data() {
     return {
       loadingNodeId: null,
+      errorNodeId: null,
       showList: false,
       announcement: '',
       listNodes: [],
@@ -66,9 +67,13 @@ export default {
     async fetchLinksFor(title) {
       if (this.linksCache[title]) return this.linksCache[title];
       const response = await fetch(`/api/article-links?title=${encodeURIComponent(title)}`);
+      if (!response.ok) throw new Error(`Request failed: ${response.status}`);
       const data = await response.json();
       this.linksCache[title] = data.links;
       return data.links;
+    },
+    wikipediaUrl(title) {
+      return `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g, '_'))}`;
     },
     async expandNode(node) {
       if (node.isCenter) {
@@ -77,6 +82,7 @@ export default {
       }
       if (this.loadingNodeId) return;
       this.loadingNodeId = node.id;
+      this.errorNodeId = null;
       this.announcement = `Loading links for ${node.id}…`;
       try {
         const linkTitles = await this.fetchLinksFor(node.id);
@@ -96,6 +102,9 @@ export default {
         this.graph.graphData({ nodes, links });
         this.listNodes = nodes;
         this.announcement = `Added ${added} new link${added === 1 ? '' : 's'} from ${node.id}.`;
+      } catch {
+        this.errorNodeId = node.id;
+        this.announcement = `Couldn't load links for ${node.id}. Try again.`;
       } finally {
         this.loadingNodeId = null;
       }
@@ -106,9 +115,13 @@ export default {
 
 <template>
   <div class="graph-3d-wrapper">
-    <button type="button" class="list-toggle" @click="showList = !showList">
-      {{ showList ? '🧊 Show 3D view' : '☰ Show as list' }}
-    </button>
+    <button
+      type="button"
+      class="list-toggle"
+      :title="showList ? 'Switch to the 3D view' : 'Switch to a keyboard-accessible list view'"
+      :aria-label="showList ? 'Switch to the 3D view' : 'Switch to a keyboard-accessible list view'"
+      @click="showList = !showList"
+    >{{ showList ? '🧊 Show 3D view' : '☰ Show as list' }}</button>
 
     <div
       v-show="!showList"
@@ -121,17 +134,32 @@ export default {
     <div v-if="showList" class="graph-3d-list">
       <ul>
         <li v-for="node in listNodes" :key="node.id">
-          <button v-if="node.isCenter" type="button" class="node-row center" disabled>
-            {{ node.id }} (current)
-          </button>
-          <button v-else type="button" class="node-row" @click="expandNode(node)">
+          <span v-if="node.isCenter" class="node-row center">{{ node.id }} (current)</span>
+          <button
+            v-else
+            type="button"
+            class="node-row"
+            :class="{ errored: errorNodeId === node.id }"
+            :title="`Expand links from ${node.id}`"
+            @click="expandNode(node)"
+          >
             {{ node.id }}
             <span v-if="loadingNodeId === node.id"> — loading…</span>
+            <span v-else-if="errorNodeId === node.id"> — couldn't load, tap to retry</span>
           </button>
+          <a
+            class="wiki-link"
+            :href="wikipediaUrl(node.id)"
+            target="_blank"
+            rel="noopener"
+            :title="`Read ${node.id} on Wikipedia`"
+            :aria-label="`Read ${node.id} on Wikipedia`"
+          >Read ↗</a>
           <button
             v-if="!node.isCenter"
             type="button"
             class="recenter-button"
+            title="Make this the graph's center article"
             @click="$emit('select', node.id)"
           >Recenter</button>
         </li>
@@ -197,6 +225,19 @@ export default {
   color: var(--gold, #b8935a);
   font-weight: 700;
   cursor: default;
+}
+.node-row.errored {
+  color: #b0413e;
+}
+.wiki-link {
+  flex: none;
+  color: var(--blue, #2f6690);
+  font-size: 0.75rem;
+  text-decoration: none;
+  padding: 0.2rem 0.4rem;
+}
+.wiki-link:hover {
+  text-decoration: underline;
 }
 .recenter-button {
   flex: none;
