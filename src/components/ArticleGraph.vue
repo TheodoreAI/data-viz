@@ -9,10 +9,7 @@ const MAX_NODES = 1500;
 const SWIPE_MIN_DISTANCE = 60;
 const SWIPE_MAX_DURATION = 700;
 const DEFAULT_ZOOM_K = 1.9;
-const LONG_PRESS_MS = 500;
-const DOUBLE_TAP_MS = 300;
 const TAP_MOVE_THRESHOLD = 8;
-const TAP_LABEL_MS = 2000;
 
 function computeDefaultZoom(width, height) {
   return { x: (width / 2) * (1 - DEFAULT_ZOOM_K), y: (height / 2) * (1 - DEFAULT_ZOOM_K), k: DEFAULT_ZOOM_K };
@@ -49,6 +46,7 @@ export default {
       searchQuery: '',
       searchResults: [],
       searchOpen: false,
+      helpOpen: false,
     };
   },
   computed: {
@@ -68,11 +66,8 @@ export default {
     this.swipeStart = null;
     this.summaryCache = {};
     this.pendingTouchNode = null;
-    this.longPressTimer = null;
     this.touchStartPos = null;
     this.touchMoved = false;
-    this.lastTap = { nodeId: null, time: 0 };
-    this.labelTimer = null;
     this.populateGraph(this.seedTitle, this.seedLinks);
   },
   mounted() {
@@ -84,8 +79,6 @@ export default {
   beforeUnmount() {
     if (this.simulation) this.simulation.stop();
     if (this.hideTimer) clearTimeout(this.hideTimer);
-    if (this.longPressTimer) clearTimeout(this.longPressTimer);
-    if (this.labelTimer) clearTimeout(this.labelTimer);
     if (this.searchTimer) clearTimeout(this.searchTimer);
     window.removeEventListener('pointermove', this.onPointerMove);
     window.removeEventListener('pointerup', this.onPointerUp);
@@ -332,8 +325,8 @@ export default {
     onNodeHoverEnd() {
       if (!this.tooltip.visible) this.hoveredId = null;
     },
-    hoverLabel(node) {
-      return node.id.length > 28 ? `${node.id.slice(0, 27)}…` : node.id;
+    nodeLabel(node) {
+      return node.id.length > 24 ? `${node.id.slice(0, 23)}…` : node.id;
     },
     cancelHideTooltip() {
       if (this.hideTimer) {
@@ -386,11 +379,6 @@ export default {
         this.touchMoved = false;
         this.touchStartPos = { x: event.clientX, y: event.clientY };
         this.pendingTouchNode = node;
-        this.longPressTimer = setTimeout(() => {
-          this.longPressTimer = null;
-          this.pendingTouchNode = null;
-          this.selectAsCenter(node);
-        }, LONG_PRESS_MS);
         return;
       }
 
@@ -409,26 +397,6 @@ export default {
       this.swipeStart = { x: event.clientX, y: event.clientY, time: Date.now() };
       this.panStart = { x: event.clientX, y: event.clientY, zx: this.zoom.x, zy: this.zoom.y };
     },
-    handleNodeTap(node) {
-      const now = Date.now();
-      const isDoubleTap = this.lastTap.nodeId === node.id && now - this.lastTap.time < DOUBLE_TAP_MS;
-      if (isDoubleTap) {
-        this.lastTap = { nodeId: null, time: 0 };
-        if (this.labelTimer) {
-          clearTimeout(this.labelTimer);
-          this.labelTimer = null;
-        }
-        this.showTooltip(node);
-        return;
-      }
-      this.lastTap = { nodeId: node.id, time: now };
-      this.onNodeHoverStart(node);
-      if (this.labelTimer) clearTimeout(this.labelTimer);
-      this.labelTimer = setTimeout(() => {
-        this.labelTimer = null;
-        if (this.hoveredId === node.id) this.onNodeHoverEnd();
-      }, TAP_LABEL_MS);
-    },
     onPointerMove(event) {
       if (this.activePointers.has(event.pointerId)) {
         this.activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
@@ -444,10 +412,6 @@ export default {
         if (Math.hypot(dx, dy) > TAP_MOVE_THRESHOLD) {
           this.touchMoved = true;
           this.smoothPan = false;
-          if (this.longPressTimer) {
-            clearTimeout(this.longPressTimer);
-            this.longPressTimer = null;
-          }
           this.dragNode = this.pendingTouchNode;
           this.pendingTouchNode = null;
           this.simulation.alphaTarget(0.3).restart();
@@ -471,13 +435,9 @@ export default {
         return;
       }
       if (this.pendingTouchNode) {
-        if (this.longPressTimer) {
-          clearTimeout(this.longPressTimer);
-          this.longPressTimer = null;
-        }
         const node = this.pendingTouchNode;
         this.pendingTouchNode = null;
-        if (!this.touchMoved) this.handleNodeTap(node);
+        if (!this.touchMoved) this.selectAsCenter(node);
       }
       if (this.dragNode) {
         this.dragNode.fx = null;
@@ -541,7 +501,7 @@ export default {
         </button>
       </div>
       <p v-if="!graphMode" class="subtitle">
-        Starting from “{{ currentSeedTitle }}”. Click a node to open it on Wikipedia, tap the + to expand its links.
+        Starting from “{{ currentSeedTitle }}”. Click a node to recenter on it, + to expand its links, ⓘ for a summary.
         Drag to reposition, pinch/scroll to zoom, swipe right for a new article, swipe left to go back.
       </p>
       <div v-if="!graphMode" class="search-row">
@@ -611,21 +571,30 @@ export default {
         >
           <circle :r="nodeRadius(node)" />
           <text
-            v-if="hoveredId === node.id"
+            v-if="!node.isCenter"
             class="node-hover-label"
             text-anchor="middle"
-            dominant-baseline="central"
-          >{{ hoverLabel(node) }}</text>
+            :y="nodeRadius(node) + 13"
+          >{{ nodeLabel(node) }}</text>
           <g
-            v-if="!node.expanded && hoveredId === node.id && !atNodeLimit"
+            v-if="!node.expanded && !atNodeLimit"
             class="expand-badge"
-            :transform="`translate(${nodeRadius(node) * 0.75}, ${nodeRadius(node) * 0.75})`"
+            :transform="`translate(${-nodeRadius(node) * 0.75}, ${nodeRadius(node) * 0.75})`"
             @click.stop="expandNode(node)"
             @pointerdown.stop
           >
             <circle r="12" />
             <line x1="-6" y1="0" x2="6" y2="0" />
             <line x1="0" y1="-6" x2="0" y2="6" />
+          </g>
+          <g
+            class="info-badge"
+            :transform="`translate(${nodeRadius(node) * 0.75}, ${nodeRadius(node) * 0.75})`"
+            @click.stop="showTooltip(node)"
+            @pointerdown.stop
+          >
+            <circle r="12" />
+            <text text-anchor="middle" dominant-baseline="central">i</text>
           </g>
         </g>
         <text
@@ -643,6 +612,26 @@ export default {
         <button type="button" aria-label="Zoom in" @click="zoomIn">+</button>
         <button type="button" aria-label="Reset zoom" @click="resetZoom">⟳</button>
         <button type="button" aria-label="Zoom out" @click="zoomOut">−</button>
+      </div>
+
+      <button
+        v-if="graphMode"
+        type="button"
+        class="help-toggle"
+        aria-label="Show controls help"
+        @click="helpOpen = !helpOpen"
+      >?</button>
+      <div v-if="graphMode && helpOpen" class="help-panel">
+        <button type="button" class="help-close" aria-label="Close help" @click="helpOpen = false">✕</button>
+        <ul>
+          <li><strong>Tap a node</strong> — recenter the graph on it</li>
+          <li><strong>+</strong> — expand that node's links</li>
+          <li><strong>ⓘ</strong> — view its summary</li>
+          <li><strong>Drag a node</strong> — reposition it</li>
+          <li><strong>Pinch / scroll</strong> — zoom</li>
+          <li><strong>Drag background</strong> — pan</li>
+          <li><strong>Swipe right / left</strong> — new article / go back</li>
+        </ul>
       </div>
     </div>
 
@@ -878,6 +867,64 @@ export default {
   border-color: var(--blue);
   box-shadow: 0 0 10px var(--blue-faint);
 }
+.help-toggle {
+  position: absolute;
+  left: 1rem;
+  bottom: 1rem;
+  z-index: 5;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  border: 1px solid var(--olive);
+  background: var(--surface);
+  color: var(--blue);
+  font-family: "Palatino Linotype", "Palatino", Georgia, serif;
+  font-weight: 700;
+  font-size: 1.1rem;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(63, 51, 38, 0.25);
+}
+.help-toggle:hover {
+  border-color: var(--blue);
+  box-shadow: 0 0 10px var(--blue-faint);
+}
+.help-panel {
+  position: absolute;
+  left: 1rem;
+  bottom: calc(1rem + 3rem);
+  z-index: 6;
+  width: 240px;
+  max-width: calc(100% - 2rem);
+  background: var(--surface);
+  border: 1px solid var(--olive);
+  border-radius: 4px;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 4px 12px rgba(63, 51, 38, 0.25);
+}
+.help-close {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  background: none;
+  border: none;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.help-panel ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.help-panel li {
+  font-size: 0.8rem;
+  color: var(--ink);
+  line-height: 1.5;
+  padding-right: 1rem;
+}
+.help-panel li strong {
+  color: var(--blue);
+}
 .camera-animated {
   transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -912,6 +959,20 @@ export default {
 .expand-badge line {
   stroke: var(--surface);
   stroke-width: 1.5;
+  pointer-events: none;
+}
+.info-badge circle {
+  fill: var(--blue);
+  stroke: var(--surface);
+  stroke-width: 1.5;
+  cursor: pointer;
+}
+.info-badge text {
+  fill: var(--surface);
+  font-family: "Palatino Linotype", "Palatino", Georgia, serif;
+  font-style: italic;
+  font-weight: 700;
+  font-size: 13px;
   pointer-events: none;
 }
 .graph-center-label {
