@@ -23,6 +23,7 @@ from auth import change_password
 from auth import delete_account
 from auth import register_user
 from auth import update_bio
+from auth import update_display_name
 from models import User
 from models import db
 from vite import vite_asset_tags
@@ -234,9 +235,14 @@ def api_profile():
 
     if request.method == 'PATCH':
         data = request.get_json(silent=True) or {}
-        errors = update_bio(user, (data.get('bio') or '').strip())
-        if errors:
-            return jsonify({'errors': errors}), 400
+        if 'bio' in data:
+            errors = update_bio(user, (data.get('bio') or '').strip())
+            if errors:
+                return jsonify({'errors': errors}), 400
+        if 'displayName' in data:
+            errors = update_display_name(user, (data.get('displayName') or '').strip())
+            if errors:
+                return jsonify({'errors': errors}), 400
 
     return jsonify(user.to_dict())
 

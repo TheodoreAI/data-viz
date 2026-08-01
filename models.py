@@ -12,6 +12,7 @@ class User(db.Model):
     email = db.Column(db.String(255), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
     bio = db.Column(db.String(280), nullable=False, default='')
+    display_name = db.Column(db.String(64), nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     last_login_at = db.Column(db.DateTime, nullable=True)
 
@@ -27,6 +28,7 @@ class User(db.Model):
             'username': self.username,
             'email': self.email,
             'bio': self.bio,
+            'displayName': self.display_name,
             'avatarUrl': f'https://api.dicebear.com/9.x/identicon/svg?seed={self.username}',
             'createdAt': self.created_at.isoformat() if self.created_at else None,
             'lastLoginAt': self.last_login_at.isoformat() if self.last_login_at else None,

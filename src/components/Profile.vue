@@ -24,6 +24,11 @@ export default {
       bioErrors: {},
       savingBio: false,
       bioMax: BIO_MAX_LENGTH,
+
+      editingDisplayName: false,
+      displayNameDraft: '',
+      displayNameErrors: {},
+      savingDisplayName: false,
       changingPassword: false,
       currentPassword: '',
       newPassword: '',
@@ -94,6 +99,41 @@ export default {
         this.bioErrors = { bio: "Couldn't reach the server. Check your connection and try again." };
       } finally {
         this.savingBio = false;
+      }
+    },
+    startEditingDisplayName() {
+      this.displayNameDraft = this.user.displayName || '';
+      this.displayNameErrors = {};
+      this.editingDisplayName = true;
+    },
+    cancelEditingDisplayName() {
+      this.editingDisplayName = false;
+    },
+    async saveDisplayName() {
+      if (this.savingDisplayName) return;
+      this.savingDisplayName = true;
+      this.displayNameErrors = {};
+      try {
+        const response = await fetch('/api/profile', {
+          method: 'PATCH',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': readCookie('csrf_access_token'),
+          },
+          body: JSON.stringify({ displayName: this.displayNameDraft }),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          this.displayNameErrors = data.errors || { displayName: 'Something went wrong. Please try again.' };
+          return;
+        }
+        this.user = data;
+        this.editingDisplayName = false;
+      } catch {
+        this.displayNameErrors = { displayName: "Couldn't reach the server. Check your connection and try again." };
+      } finally {
+        this.savingDisplayName = false;
       }
     },
     async logout() {
@@ -204,10 +244,36 @@ export default {
       <div class="profile-header">
         <img class="avatar" :src="user.avatarUrl" :alt="`${user.username}'s avatar`" width="72" height="72">
         <div>
-          <h1>{{ user.username }}</h1>
+          <h1>{{ user.displayName || user.username }}</h1>
+          <p v-if="user.displayName" class="username-sub">@{{ user.username }}</p>
           <p class="email">{{ user.email }}</p>
         </div>
       </div>
+
+      <div v-if="!editingDisplayName" class="display-name-row">
+        <button type="button" class="edit-button" @click="startEditingDisplayName">
+          {{ user.displayName ? 'Edit display name' : 'Set a display name' }}
+        </button>
+      </div>
+      <form v-else class="settings-form" @submit.prevent="saveDisplayName" novalidate>
+        <p v-if="displayNameErrors.displayName" class="form-error" role="alert">{{ displayNameErrors.displayName }}</p>
+        <label class="field">
+          <span>Display name</span>
+          <input
+            v-model="displayNameDraft"
+            type="text"
+            maxlength="64"
+            placeholder="How should we show your name?"
+            :aria-invalid="!!displayNameErrors.displayName"
+          >
+        </label>
+        <div class="bio-actions">
+          <button type="submit" class="save-button" :disabled="savingDisplayName">
+            {{ savingDisplayName ? 'Saving…' : 'Save' }}
+          </button>
+          <button type="button" class="cancel-button" :disabled="savingDisplayName" @click="cancelEditingDisplayName">Cancel</button>
+        </div>
+      </form>
 
       <p v-if="memberSince" class="meta">Member since {{ memberSince }}</p>
       <p v-if="lastLogin" class="meta">Last login {{ lastLogin }}</p>
@@ -349,10 +415,18 @@ h1 {
   font-size: 1.3rem;
   margin: 0;
 }
+.username-sub {
+  color: var(--text-secondary, #6b5d47);
+  font-size: 0.8rem;
+  margin: 0.1rem 0 0;
+}
 .email {
   color: var(--text-secondary, #6b5d47);
   font-size: 0.9rem;
   margin: 0.15rem 0 0;
+}
+.display-name-row {
+  margin-bottom: 1rem;
 }
 .meta {
   color: var(--text-secondary, #6b5d47);
