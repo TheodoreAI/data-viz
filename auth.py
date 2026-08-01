@@ -1,5 +1,7 @@
 import re
 
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
+
 from models import User, db
 
 USERNAME_PATTERN = re.compile(r'^[a-zA-Z0-9_]{3,32}$')
@@ -7,6 +9,8 @@ EMAIL_PATTERN = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
 MIN_PASSWORD_LENGTH = 8
 MAX_BIO_LENGTH = 280
 MAX_DISPLAY_NAME_LENGTH = 64
+RESET_TOKEN_SALT = 'password-reset'
+RESET_TOKEN_MAX_AGE_SECONDS = 3600
 
 
 def validate_registration(username, email, password):
@@ -84,5 +88,39 @@ def delete_account(user, password):
     if not user.check_password(password):
         return {'password': 'Incorrect password.'}
     db.session.delete(user)
+    db.session.commit()
+    return {}
+
+
+def _reset_token_serializer(secret_key):
+    return URLSafeTimedSerializer(secret_key, salt=RESET_TOKEN_SALT)
+
+
+def generate_reset_token(secret_key, user):
+    """Signed, expiring, DB-free reset token. Embeds a password-hash fragment
+    so it's automatically invalidated the moment the password changes."""
+    serializer = _reset_token_serializer(secret_key)
+    return serializer.dumps({'user_id': user.id, 'pw': user.password_hash[-16:]})
+
+
+def verify_reset_token(secret_key, token):
+    """Returns the User the token was issued for, or None if invalid/expired/stale."""
+    serializer = _reset_token_serializer(secret_key)
+    try:
+        data = serializer.loads(token, max_age=RESET_TOKEN_MAX_AGE_SECONDS)
+    except (BadSignature, SignatureExpired):
+        return None
+
+    user = db.session.get(User, data.get('user_id'))
+    if not user or user.password_hash[-16:] != data.get('pw'):
+        return None
+    return user
+
+
+def reset_password(user, new_password):
+    """Returns errors dict; {} on success. Updates and commits in place."""
+    if not new_password or len(new_password) < MIN_PASSWORD_LENGTH:
+        return {'newPassword': f'Password must be at least {MIN_PASSWORD_LENGTH} characters.'}
+    user.set_password(new_password)
     db.session.commit()
     return {}

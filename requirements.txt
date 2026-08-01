@@ -2,6 +2,8 @@ flask
 flask-sqlalchemy
 flask-jwt-extended
 flask-migrate
+flask-limiter
+flask-mail
 python-dotenv
 psycopg2-binary
 requests

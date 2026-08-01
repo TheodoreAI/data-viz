@@ -1,32 +1,32 @@
 <script>
 export default {
-  name: 'Login',
+  name: 'ForgotPassword',
   data() {
     return {
-      identifier: '',
-      password: '',
-      errors: {},
+      email: '',
       submitting: false,
+      submitted: false,
+      errors: {},
     };
   },
   methods: {
     async submit() {
       if (this.submitting) return;
-      this.errors = {};
       this.submitting = true;
+      this.errors = {};
       try {
-        const response = await fetch('/api/login', {
+        const response = await fetch('/api/forgot-password', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'same-origin',
-          body: JSON.stringify({ identifier: this.identifier, password: this.password }),
+          body: JSON.stringify({ email: this.email }),
         });
-        const data = await response.json();
         if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
           this.errors = data.errors || { form: 'Something went wrong. Please try again.' };
           return;
         }
-        window.location.href = '/profile';
+        this.submitted = true;
       } catch {
         this.errors = { form: "Couldn't reach the server. Check your connection and try again." };
       } finally {
@@ -39,38 +39,30 @@ export default {
 
 <template>
   <div class="auth-page">
-    <h1>Log in</h1>
-    <form class="auth-form" @submit.prevent="submit" novalidate>
+    <h1>Forgot your password?</h1>
+    <template v-if="submitted">
+      <p class="confirmation">
+        If an account exists for that email, we've sent a link to reset your password.
+      </p>
+    </template>
+    <form v-else class="auth-form" @submit.prevent="submit" novalidate>
       <p v-if="errors.form" class="form-error" role="alert">{{ errors.form }}</p>
-
+      <p class="hint">Enter your account email and we'll send you a link to reset your password.</p>
       <label class="field">
-        <span>Username or email</span>
+        <span>Email</span>
         <input
-          v-model="identifier"
-          type="text"
-          name="identifier"
-          autocomplete="username"
+          v-model="email"
+          type="email"
+          name="email"
+          autocomplete="email"
           required
         >
       </label>
-
-      <label class="field">
-        <span>Password</span>
-        <input
-          v-model="password"
-          type="password"
-          name="password"
-          autocomplete="current-password"
-          required
-        >
-      </label>
-
       <button type="submit" class="submit-button" :disabled="submitting">
-        {{ submitting ? 'Logging in…' : 'Log in' }}
+        {{ submitting ? 'Sending…' : 'Send reset link' }}
       </button>
     </form>
-    <p class="auth-switch"><a href="/forgot-password">Forgot your password?</a></p>
-    <p class="auth-switch">Need an account? <a href="/register">Register</a></p>
+    <p class="auth-switch"><a href="/login">Back to log in</a></p>
   </div>
 </template>
 
@@ -83,6 +75,19 @@ export default {
 h1 {
   font-size: 1.3rem;
   margin: 0 0 1.25rem;
+}
+.hint {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #6b5d47);
+  margin: 0 0 0.25rem;
+}
+.confirmation {
+  font-size: 0.9rem;
+  color: var(--text-primary, inherit);
+  background: rgba(58, 122, 78, 0.12);
+  border: 1px solid rgba(58, 122, 78, 0.4);
+  border-radius: 4px;
+  padding: 0.75rem 0.9rem;
 }
 .auth-form {
   display: flex;
