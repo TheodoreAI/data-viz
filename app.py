@@ -1,5 +1,6 @@
 import os
 import random
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta, timezone
 from urllib.parse import quote
 
@@ -367,8 +368,13 @@ def api_random_article():
 
 @app.route('/art')
 def art():
-    movements = fetch_art_movements()
-    paintings = fetch_art_feed_page(offset=0)
+    # These are independent Wikidata SPARQL calls that can each take several
+    # seconds on a cold cache — run them concurrently instead of back to back.
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        movements_future = executor.submit(fetch_art_movements)
+        paintings_future = executor.submit(fetch_art_feed_page, offset=0)
+        movements = movements_future.result()
+        paintings = paintings_future.result()
     return render_template('art.html', paintings=paintings, movements=movements)
 
 

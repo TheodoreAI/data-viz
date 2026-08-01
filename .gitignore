@@ -6,3 +6,4 @@ static/dist/
 *.db
 instance/
 .env
+.wikidata_cache/
