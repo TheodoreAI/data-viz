@@ -1,16 +1,31 @@
+import os
 import random
 from datetime import date, timedelta
 from urllib.parse import quote
 
 import requests
+from dotenv import load_dotenv
 from flask import Flask
 from flask import jsonify
 from flask import render_template
 from flask import request
+from flask_jwt_extended import JWTManager
+from flask_jwt_extended import create_access_token
+from flask_jwt_extended import get_jwt_identity
+from flask_jwt_extended import jwt_required
+from flask_jwt_extended import set_access_cookies
+from flask_jwt_extended import unset_jwt_cookies
+from flask_jwt_extended import verify_jwt_in_request
 
+from auth import authenticate_user
+from auth import register_user
+from models import User
+from models import db
 from vite import vite_asset_tags
 from wikidata import fetch_art_feed_page
 from wikidata import fetch_art_movements
+
+load_dotenv()
 
 WIKIPEDIA_RANDOM_SUMMARY_URL = 'https://en.wikipedia.org/api/rest_v1/page/random/summary'
 WIKIPEDIA_SUMMARY_URL = 'https://en.wikipedia.org/api/rest_v1/page/summary/{title}'
@@ -34,6 +49,50 @@ _topic_category_pool_cache = {}
 
 app = Flask(__name__)
 app.jinja_env.globals['vite_asset'] = lambda entry: vite_asset_tags(entry, app.debug, request.host)
+
+DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///data-viz.db')
+if DATABASE_URL.startswith('postgres://'):
+    # Render's connection strings use the legacy 'postgres://' scheme, which
+    # SQLAlchemy 1.4+ no longer accepts.
+    DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Remember to clean this up before deploying
+# to production;
+# this is just for development convenience.
+JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY')
+if not JWT_SECRET_KEY:
+    JWT_SECRET_KEY = 'dev-only-insecure-secret-change-me-before-deploying-anywhere-real'
+    print(
+        'WARNING: JWT_SECRET_KEY is not set; using an insecure '
+        'development default. Set JWT_SECRET_KEY in production.'
+    )
+app.config['JWT_SECRET_KEY'] = JWT_SECRET_KEY
+app.config['JWT_TOKEN_LOCATION'] = ['cookies']
+app.config['JWT_COOKIE_SECURE'] = not app.debug
+app.config['JWT_COOKIE_SAMESITE'] = 'Lax'
+app.config['JWT_COOKIE_CSRF_PROTECT'] = True
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=7)
+
+db.init_app(app)
+jwt = JWTManager(app)
+
+with app.app_context():
+    db.create_all()
+
+
+@app.context_processor
+def inject_current_user():
+    current_user = None
+    try:
+        verify_jwt_in_request(optional=True)
+        identity = get_jwt_identity()
+        if identity:
+            current_user = db.session.get(User, int(identity))
+    except Exception:
+        current_user = None
+    return {'current_user': current_user}
 
 
 def fetch_category_members(category, member_type):
@@ -104,6 +163,70 @@ def fetch_article_links(title, limit=GRAPH_LINKS_LIMIT):
 def hello_world():
     article = fetch_random_article()
     return render_template('home.html', article=article, topics=TOPIC_CATEGORIES)
+
+
+@app.route('/register')
+def register_page():
+    return render_template('register.html')
+
+
+@app.route('/login')
+def login_page():
+    return render_template('login.html')
+
+
+@app.route('/profile')
+def profile_page():
+    return render_template('profile.html')
+
+
+@app.route('/api/register', methods=['POST'])
+def api_register():
+    data = request.get_json(silent=True) or {}
+    username = (data.get('username') or '').strip()
+    email = (data.get('email') or '').strip().lower()
+    password = data.get('password') or ''
+
+    user, errors = register_user(username, email, password)
+    if errors:
+        return jsonify({'errors': errors}), 400
+
+    access_token = create_access_token(identity=str(user.id))
+    response = jsonify({'user': user.to_dict()})
+    set_access_cookies(response, access_token)
+    return response, 201
+
+
+@app.route('/api/login', methods=['POST'])
+def api_login():
+    data = request.get_json(silent=True) or {}
+    identifier = (data.get('identifier') or '').strip()
+    password = data.get('password') or ''
+
+    user = authenticate_user(identifier, password)
+    if not user:
+        return jsonify({'errors': {'form': 'Incorrect username/email or password.'}}), 401
+
+    access_token = create_access_token(identity=str(user.id))
+    response = jsonify({'user': user.to_dict()})
+    set_access_cookies(response, access_token)
+    return response
+
+
+@app.route('/api/logout', methods=['POST'])
+def api_logout():
+    response = jsonify({'ok': True})
+    unset_jwt_cookies(response)
+    return response
+
+
+@app.route('/api/profile')
+@jwt_required()
+def api_profile():
+    user = db.session.get(User, int(get_jwt_identity()))
+    if not user:
+        return jsonify({'error': 'Not found'}), 404
+    return jsonify(user.to_dict())
 
 
 @app.route('/api/random-article')
