@@ -16,14 +16,20 @@ from flask_jwt_extended import jwt_required
 from flask_jwt_extended import set_access_cookies
 from flask_jwt_extended import unset_jwt_cookies
 from flask_jwt_extended import verify_jwt_in_request
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from flask_migrate import Migrate
 
 from auth import authenticate_user
 from auth import change_password
 from auth import delete_account
+from auth import generate_reset_token
 from auth import register_user
+from auth import reset_password as apply_password_reset
 from auth import update_bio
 from auth import update_display_name
+from auth import verify_reset_token
+from email_utils import send_password_reset_email
 from models import User
 from models import db
 from vite import vite_asset_tags
@@ -83,6 +89,7 @@ app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=7)
 db.init_app(app)
 migrate = Migrate(app, db)
 jwt = JWTManager(app)
+limiter = Limiter(get_remote_address, app=app, default_limits=[])
 
 
 @app.context_processor
@@ -183,7 +190,18 @@ def profile_page():
     return render_template('profile.html')
 
 
+@app.route('/forgot-password')
+def forgot_password_page():
+    return render_template('forgot_password.html')
+
+
+@app.route('/reset-password')
+def reset_password_page():
+    return render_template('reset_password.html')
+
+
 @app.route('/api/register', methods=['POST'])
+@limiter.limit('10 per hour')
 def api_register():
     data = request.get_json(silent=True) or {}
     username = (data.get('username') or '').strip()
@@ -201,6 +219,7 @@ def api_register():
 
 
 @app.route('/api/login', methods=['POST'])
+@limiter.limit('10 per minute')
 def api_login():
     data = request.get_json(silent=True) or {}
     identifier = (data.get('identifier') or '').strip()
@@ -217,6 +236,40 @@ def api_login():
     response = jsonify({'user': user.to_dict()})
     set_access_cookies(response, access_token)
     return response
+
+
+@app.route('/api/forgot-password', methods=['POST'])
+@limiter.limit('5 per hour')
+def api_forgot_password():
+    data = request.get_json(silent=True) or {}
+    email = (data.get('email') or '').strip().lower()
+
+    user = User.query.filter_by(email=email).first()
+    if user:
+        token = generate_reset_token(app.config['JWT_SECRET_KEY'], user)
+        reset_url = f"{request.host_url.rstrip('/')}/reset-password?token={token}"
+        send_password_reset_email(user, reset_url)
+
+    # Always the same response, whether or not that email is registered,
+    # so this endpoint can't be used to discover which emails have accounts.
+    return jsonify({'ok': True})
+
+
+@app.route('/api/reset-password', methods=['POST'])
+@limiter.limit('10 per hour')
+def api_reset_password():
+    data = request.get_json(silent=True) or {}
+    token = data.get('token') or ''
+    new_password = data.get('newPassword') or ''
+
+    user = verify_reset_token(app.config['JWT_SECRET_KEY'], token)
+    if not user:
+        return jsonify({'errors': {'form': 'This reset link is invalid or has expired.'}}), 400
+
+    errors = apply_password_reset(user, new_password)
+    if errors:
+        return jsonify({'errors': errors}), 400
+    return jsonify({'ok': True})
 
 
 @app.route('/api/logout', methods=['POST'])
@@ -249,6 +302,7 @@ def api_profile():
 
 @app.route('/api/profile/password', methods=['POST'])
 @jwt_required()
+@limiter.limit('10 per hour')
 def api_change_password():
     user = db.session.get(User, int(get_jwt_identity()))
     if not user:
@@ -267,6 +321,7 @@ def api_change_password():
 
 @app.route('/api/account', methods=['DELETE'])
 @jwt_required()
+@limiter.limit('10 per hour')
 def api_delete_account():
     user = db.session.get(User, int(get_jwt_identity()))
     if not user:
