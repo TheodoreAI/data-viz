@@ -13,6 +13,8 @@ export default {
       loading: false,
       exhausted: false,
       error: false,
+      viewCounts: {},
+      copiedKey: '',
     };
   },
   mounted() {
@@ -20,11 +22,57 @@ export default {
       if (entries[0].isIntersecting) this.loadMore();
     }, { rootMargin: '600px' });
     this.observer.observe(this.$refs.sentinel);
+    this.paintings.forEach((painting) => this.seedViewCount(painting));
+    this.jitterInterval = setInterval(this.jitterViewCounts, 12000);
   },
   beforeUnmount() {
     if (this.observer) this.observer.disconnect();
+    if (this.jitterInterval) clearInterval(this.jitterInterval);
   },
   methods: {
+    paintingKey(painting) {
+      return `${painting.title}::${painting.artist}`;
+    },
+    hashSeed(str) {
+      let hash = 0;
+      for (let i = 0; i < str.length; i += 1) {
+        hash = (hash * 31 + str.charCodeAt(i)) | 0;
+      }
+      return Math.abs(hash);
+    },
+    seedViewCount(painting) {
+      const key = this.paintingKey(painting);
+      if (this.viewCounts[key] != null) return;
+      const seed = this.hashSeed(key);
+      this.viewCounts[key] = 2 + (seed % 30);
+    },
+    jitterViewCounts() {
+      Object.keys(this.viewCounts).forEach((key) => {
+        const delta = Math.floor(Math.random() * 5) - 2;
+        this.viewCounts[key] = Math.max(1, this.viewCounts[key] + delta);
+      });
+    },
+    async share(painting) {
+      const url = this.sourceUrl(painting.image);
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: painting.title, url });
+        } catch {
+          // user cancelled the native share sheet — nothing to do
+        }
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(url);
+        const key = this.paintingKey(painting);
+        this.copiedKey = key;
+        setTimeout(() => {
+          if (this.copiedKey === key) this.copiedKey = '';
+        }, 1600);
+      } catch {
+        window.open(url, '_blank', 'noopener');
+      }
+    },
     formatYear(year) {
       if (year == null) return '';
       return year < 0 ? `${Math.abs(year)} BCE` : `${year}`;
@@ -51,6 +99,7 @@ export default {
         if (page.length === 0) {
           this.exhausted = true;
         } else {
+          page.forEach((painting) => this.seedViewCount(painting));
           this.paintings = this.paintings.concat(page);
           this.offset += page.length;
         }
@@ -121,6 +170,12 @@ export default {
             <template v-if="lifespan(painting)"> ({{ lifespan(painting) }})</template>
           </p>
           <p class="art-year" v-if="painting.year != null">{{ formatYear(painting.year) }} · {{ painting.movement }}</p>
+          <div class="art-footer">
+            <span class="viewing-badge" aria-hidden="true">👀 {{ viewCounts[paintingKey(painting)] }} viewing</span>
+            <button type="button" class="share-button" @click="share(painting)">
+              {{ copiedKey === paintingKey(painting) ? 'Link copied' : 'Share' }}
+            </button>
+          </div>
         </div>
       </article>
     </div>
@@ -243,6 +298,28 @@ export default {
   cursor: pointer;
 }
 .retry-button:hover {
+  border-color: var(--series-1, #2a78d6);
+}
+.art-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+}
+.viewing-badge {
+  font-size: 0.72rem;
+  color: var(--text-secondary, #52514e);
+}
+.share-button {
+  background: transparent;
+  border: 1px solid var(--gridline, #e1e0d9);
+  color: var(--series-1, #2a78d6);
+  border-radius: 999px;
+  padding: 0.2rem 0.7rem;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+.share-button:hover {
   border-color: var(--series-1, #2a78d6);
 }
 </style>
