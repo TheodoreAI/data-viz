@@ -9,6 +9,10 @@ const MAX_NODES = 150;
 const SWIPE_MIN_DISTANCE = 60;
 const SWIPE_MAX_DURATION = 700;
 const DEFAULT_ZOOM_K = 1.9;
+const LONG_PRESS_MS = 500;
+const DOUBLE_TAP_MS = 300;
+const TAP_MOVE_THRESHOLD = 8;
+const TAP_LABEL_MS = 2000;
 
 function computeDefaultZoom(width, height) {
   return { x: (width / 2) * (1 - DEFAULT_ZOOM_K), y: (height / 2) * (1 - DEFAULT_ZOOM_K), k: DEFAULT_ZOOM_K };
@@ -26,6 +30,8 @@ export default {
     return {
       nodes: [],
       links: [],
+      baseWidth: BASE_WIDTH,
+      baseHeight: BASE_HEIGHT,
       canvasWidth: BASE_WIDTH,
       canvasHeight: BASE_HEIGHT,
       tooltip: { visible: false, title: '', extract: '', thumbnail: null, loading: false },
@@ -39,6 +45,7 @@ export default {
       loadingSeed: false,
       graphMode: false,
       selectedTopic: '',
+      smoothPan: false,
     };
   },
   computed: {
@@ -57,9 +64,16 @@ export default {
     this.pinch = null;
     this.swipeStart = null;
     this.summaryCache = {};
+    this.pendingTouchNode = null;
+    this.longPressTimer = null;
+    this.touchStartPos = null;
+    this.touchMoved = false;
+    this.lastTap = { nodeId: null, time: 0 };
+    this.labelTimer = null;
     this.populateGraph(this.seedTitle, this.seedLinks);
   },
   mounted() {
+    this.syncAspectRatio();
     this.buildSimulation();
     window.addEventListener('pointermove', this.onPointerMove);
     window.addEventListener('pointerup', this.onPointerUp);
@@ -67,6 +81,8 @@ export default {
   beforeUnmount() {
     if (this.simulation) this.simulation.stop();
     if (this.hideTimer) clearTimeout(this.hideTimer);
+    if (this.longPressTimer) clearTimeout(this.longPressTimer);
+    if (this.labelTimer) clearTimeout(this.labelTimer);
     window.removeEventListener('pointermove', this.onPointerMove);
     window.removeEventListener('pointerup', this.onPointerUp);
     document.body.classList.remove('graph-fullscreen');
@@ -75,17 +91,51 @@ export default {
     toggleGraphMode() {
       this.graphMode = !this.graphMode;
       document.body.classList.toggle('graph-fullscreen', this.graphMode);
+      this.$nextTick(() => this.syncAspectRatio());
+    },
+    syncAspectRatio() {
+      const rect = this.$refs.svg.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      const aspect = rect.width / rect.height;
+      const baseArea = BASE_WIDTH * BASE_HEIGHT;
+      const newBaseWidth = Math.round(Math.sqrt(baseArea * aspect));
+      const newBaseHeight = Math.round(Math.sqrt(baseArea / aspect));
+      if (!newBaseWidth || !newBaseHeight || newBaseWidth === this.baseWidth) return;
+      const scaleX = newBaseWidth / this.baseWidth;
+      const scaleY = newBaseHeight / this.baseHeight;
+      this.nodes.forEach(node => {
+        node.x *= scaleX;
+        node.y *= scaleY;
+      });
+      this.baseWidth = newBaseWidth;
+      this.baseHeight = newBaseHeight;
+      this.canvasWidth = Math.round(this.canvasWidth * scaleX);
+      this.canvasHeight = Math.round(this.canvasHeight * scaleY);
+      this.zoom = computeDefaultZoom(this.canvasWidth, this.canvasHeight);
+      if (this.simulation) this.simulation.force('center', forceCenter(this.canvasWidth / 2, this.canvasHeight / 2));
     },
     updateCanvasSize() {
+      const oldWidth = this.canvasWidth;
       const scale = Math.max(1, Math.sqrt(this.nodes.length / 25));
-      this.canvasWidth = Math.round(BASE_WIDTH * scale);
-      this.canvasHeight = Math.round(BASE_HEIGHT * scale);
+      const newWidth = Math.round(this.baseWidth * scale);
+      const newHeight = Math.round(this.baseHeight * scale);
+      if (newWidth === oldWidth) return;
+      const growth = newWidth / oldWidth;
+      this.canvasWidth = newWidth;
+      this.canvasHeight = newHeight;
+      this.smoothPan = true;
+      this.applyZoom(this.zoom.k / growth);
     },
     populateGraph(title, linkTitles) {
       this.addArticleNode(title, this.canvasWidth / 2, this.canvasHeight / 2, true);
+      const spreadRadius = Math.min(this.canvasWidth, this.canvasHeight) * 0.35;
       linkTitles.forEach((linkTitle, i) => {
         const angle = (i / linkTitles.length) * Math.PI * 2;
-        this.addArticleNode(linkTitle, this.canvasWidth / 2 + Math.cos(angle) * 40, this.canvasHeight / 2 + Math.sin(angle) * 40);
+        this.addArticleNode(
+          linkTitle,
+          this.canvasWidth / 2 + Math.cos(angle) * spreadRadius,
+          this.canvasHeight / 2 + Math.sin(angle) * spreadRadius
+        );
         this.links.push({ source: title, target: linkTitle });
       });
       this.updateCanvasSize();
@@ -96,7 +146,7 @@ export default {
         .force('link', forceLink(this.links).id(d => d.id).distance(90))
         .force('charge', forceManyBody().strength(-160))
         .force('center', forceCenter(this.canvasWidth / 2, this.canvasHeight / 2))
-        .force('collide', forceCollide(36));
+        .force('collide', forceCollide(48));
     },
     addArticleNode(title, x, y, isCenter = false) {
       if (this.nodes.some(n => n.id === title)) return;
@@ -106,7 +156,7 @@ export default {
       return this.nodes.find(n => n.id === id);
     },
     nodeRadius(node) {
-      const base = node.isCenter ? 20 : 13;
+      const base = node.isCenter ? 28 : 19;
       return this.hoveredId === node.id ? base * 1.35 : base;
     },
     async expandNode(node) {
@@ -119,7 +169,7 @@ export default {
         data.links.forEach((title, i) => {
           if (this.nodes.length >= MAX_NODES) return;
           const angle = (i / data.links.length) * Math.PI * 2;
-          this.addArticleNode(title, node.x + Math.cos(angle) * 60, node.y + Math.sin(angle) * 60);
+          this.addArticleNode(title, node.x + Math.cos(angle) * 90, node.y + Math.sin(angle) * 90);
           const alreadyLinked = this.links.some(
             l => (l.source.id ?? l.source) === node.id && (l.target.id ?? l.target) === title
           );
@@ -129,7 +179,7 @@ export default {
         this.simulation.nodes(this.nodes);
         this.simulation.force('link', forceLink(this.links).id(d => d.id).distance(90));
         this.simulation.force('center', forceCenter(this.canvasWidth / 2, this.canvasHeight / 2));
-        this.simulation.alpha(0.7).restart();
+        this.simulation.alpha(0.35).restart();
       } finally {
         this.expandingId = null;
       }
@@ -179,10 +229,11 @@ export default {
       const data = await response.json();
       this.nodes = [];
       this.links = [];
-      this.canvasWidth = BASE_WIDTH;
-      this.canvasHeight = BASE_HEIGHT;
+      this.canvasWidth = this.baseWidth;
+      this.canvasHeight = this.baseHeight;
       this.currentSeedTitle = title;
       this.populateGraph(title, data.links);
+      this.smoothPan = true;
       this.zoom = computeDefaultZoom(this.canvasWidth, this.canvasHeight);
       this.buildSimulation();
     },
@@ -268,6 +319,7 @@ export default {
       return Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
     },
     startPinch() {
+      this.smoothPan = false;
       this.dragNode = null;
       this.panning = false;
       this.swipeStart = null;
@@ -280,6 +332,21 @@ export default {
         return;
       }
       event.stopPropagation();
+
+      if (event.pointerType === 'touch') {
+        event.preventDefault();
+        this.touchMoved = false;
+        this.touchStartPos = { x: event.clientX, y: event.clientY };
+        this.pendingTouchNode = node;
+        this.longPressTimer = setTimeout(() => {
+          this.longPressTimer = null;
+          this.pendingTouchNode = null;
+          this.selectAsCenter(node);
+        }, LONG_PRESS_MS);
+        return;
+      }
+
+      this.smoothPan = false;
       this.dragNode = node;
       this.simulation.alphaTarget(0.3).restart();
     },
@@ -289,9 +356,30 @@ export default {
         this.startPinch();
         return;
       }
+      this.smoothPan = false;
       this.panning = true;
       this.swipeStart = { x: event.clientX, y: event.clientY, time: Date.now() };
       this.panStart = { x: event.clientX, y: event.clientY, zx: this.zoom.x, zy: this.zoom.y };
+    },
+    handleNodeTap(node) {
+      const now = Date.now();
+      const isDoubleTap = this.lastTap.nodeId === node.id && now - this.lastTap.time < DOUBLE_TAP_MS;
+      if (isDoubleTap) {
+        this.lastTap = { nodeId: null, time: 0 };
+        if (this.labelTimer) {
+          clearTimeout(this.labelTimer);
+          this.labelTimer = null;
+        }
+        this.showTooltip(node);
+        return;
+      }
+      this.lastTap = { nodeId: node.id, time: now };
+      this.onNodeHoverStart(node);
+      if (this.labelTimer) clearTimeout(this.labelTimer);
+      this.labelTimer = setTimeout(() => {
+        this.labelTimer = null;
+        if (this.hoveredId === node.id) this.onNodeHoverEnd();
+      }, TAP_LABEL_MS);
     },
     onPointerMove(event) {
       if (this.activePointers.has(event.pointerId)) {
@@ -301,6 +389,23 @@ export default {
         const ratio = this.pointerDistance() / this.pinch.startDist;
         this.applyZoom(this.pinch.startK * ratio);
         return;
+      }
+      if (this.pendingTouchNode && !this.dragNode) {
+        const dx = event.clientX - this.touchStartPos.x;
+        const dy = event.clientY - this.touchStartPos.y;
+        if (Math.hypot(dx, dy) > TAP_MOVE_THRESHOLD) {
+          this.touchMoved = true;
+          this.smoothPan = false;
+          if (this.longPressTimer) {
+            clearTimeout(this.longPressTimer);
+            this.longPressTimer = null;
+          }
+          this.dragNode = this.pendingTouchNode;
+          this.pendingTouchNode = null;
+          this.simulation.alphaTarget(0.3).restart();
+        } else {
+          return;
+        }
       }
       if (this.dragNode) {
         const rect = this.$refs.svg.getBoundingClientRect();
@@ -316,6 +421,15 @@ export default {
       if (this.pinch) {
         if (this.activePointers.size < 2) this.pinch = null;
         return;
+      }
+      if (this.pendingTouchNode) {
+        if (this.longPressTimer) {
+          clearTimeout(this.longPressTimer);
+          this.longPressTimer = null;
+        }
+        const node = this.pendingTouchNode;
+        this.pendingTouchNode = null;
+        if (!this.touchMoved) this.handleNodeTap(node);
       }
       if (this.dragNode) {
         this.dragNode.fx = null;
@@ -342,6 +456,7 @@ export default {
     },
     onWheel(event) {
       event.preventDefault();
+      this.smoothPan = false;
       this.applyZoom(this.zoom.k * (event.deltaY > 0 ? 0.9 : 1.1));
     },
     applyZoom(newK, anchor = null) {
@@ -353,12 +468,15 @@ export default {
       this.zoom.k = clamped;
     },
     zoomIn() {
+      this.smoothPan = true;
       this.applyZoom(this.zoom.k * 1.25);
     },
     zoomOut() {
+      this.smoothPan = true;
       this.applyZoom(this.zoom.k * 0.8);
     },
     resetZoom() {
+      this.smoothPan = true;
       this.zoom = computeDefaultZoom(this.canvasWidth, this.canvasHeight);
     },
   },
@@ -406,7 +524,7 @@ export default {
         @pointerdown="onBackgroundPointerDown"
         @wheel="onWheel"
       >
-      <g :transform="transform">
+      <g :transform="transform" :class="{ 'camera-animated': smoothPan }">
         <line
           v-for="(link, i) in links"
           :key="'l' + i"
@@ -425,7 +543,6 @@ export default {
           @pointerdown="onNodePointerDown($event, node)"
           @mouseenter="onNodeHoverStart(node)"
           @mouseleave="onNodeHoverEnd"
-          @touchstart="showTooltip(node)"
           @click="selectAsCenter(node)"
         >
           <circle :r="nodeRadius(node)" />
@@ -441,11 +558,10 @@ export default {
             :transform="`translate(${nodeRadius(node) * 0.75}, ${nodeRadius(node) * 0.75})`"
             @click.stop="expandNode(node)"
             @pointerdown.stop
-            @touchstart.stop="showTooltip(node)"
           >
-            <circle r="9" />
-            <line x1="-4.5" y1="0" x2="4.5" y2="0" />
-            <line x1="0" y1="-4.5" x2="0" y2="4.5" />
+            <circle r="12" />
+            <line x1="-6" y1="0" x2="6" y2="0" />
+            <line x1="0" y1="-6" x2="0" y2="6" />
           </g>
         </g>
         <text
@@ -481,16 +597,20 @@ export default {
 
 <style scoped>
 .graph-root {
-  --crt-bg: #04140a;
-  --crt-green: #33ff66;
-  --crt-green-soft: #8dffb0;
-  --crt-green-dim: #1a8f3f;
-  --crt-green-faint: rgba(51, 255, 102, 0.25);
+  --surface: #f3e9d2;
+  --surface-deep: #e9dbb6;
+  --ink: #3f3326;
+  --ink-soft: #6b5d47;
+  --blue: #2f6690;
+  --blue-faint: rgba(47, 102, 144, 0.22);
+  --olive: #74804a;
+  --olive-soft: rgba(116, 128, 74, 0.35);
+  --gold: #b8935a;
   max-width: 900px;
   margin: 0 auto;
   padding: 1.5rem 1.25rem;
-  background: var(--crt-bg);
-  font-family: "Courier New", Courier, monospace;
+  background: var(--surface);
+  font-family: "Palatino Linotype", "Palatino", Georgia, serif;
 }
 .graph-root.fullscreen {
   position: fixed;
@@ -511,17 +631,16 @@ export default {
 .graph-header h1 {
   margin: 0 0 0.1rem;
   font-size: 1.3rem;
-  color: var(--crt-green);
+  color: var(--blue);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  text-shadow: 0 0 6px var(--crt-green-faint);
 }
 .mode-toggle {
   height: 2.75rem;
   flex: none;
-  background: var(--crt-bg);
-  border: 1px solid var(--crt-green-dim);
-  color: var(--crt-green);
+  background: var(--surface);
+  border: 1px solid var(--olive);
+  color: var(--blue);
   border-radius: 2px;
   padding: 0.3rem 0.9rem;
   font-family: inherit;
@@ -531,22 +650,22 @@ export default {
   cursor: pointer;
 }
 .mode-toggle:hover {
-  border-color: var(--crt-green);
-  box-shadow: 0 0 8px var(--crt-green-faint);
+  border-color: var(--blue);
+  box-shadow: 0 0 8px var(--blue-faint);
 }
 .subtitle {
-  color: var(--crt-green-soft);
+  color: var(--ink-soft);
   font-size: 0.9rem;
   margin: 0 0 1rem;
   line-height: 1.4;
 }
 .subtitle.loading {
-  color: var(--crt-green);
+  color: var(--blue);
   margin-top: -0.5rem;
 }
 .subtitle.loading::after {
-  content: '_';
-  animation: crt-blink 1s steps(1) infinite;
+  content: '…';
+  animation: gentle-blink 1.2s steps(1) infinite;
 }
 .topic-row {
   display: flex;
@@ -557,9 +676,9 @@ export default {
 }
 .topic-pill {
   flex: none;
-  border: 1px solid var(--crt-green-dim);
-  background: var(--crt-bg);
-  color: var(--crt-green-soft);
+  border: 1px solid var(--olive);
+  background: var(--surface);
+  color: var(--ink-soft);
   border-radius: 2px;
   padding: 0.3rem 0.8rem;
   font-family: inherit;
@@ -569,13 +688,12 @@ export default {
   cursor: pointer;
 }
 .topic-pill.active {
-  background: var(--crt-green);
-  border-color: var(--crt-green);
-  color: var(--crt-bg);
-  text-shadow: none;
+  background: var(--blue);
+  border-color: var(--blue);
+  color: var(--surface);
 }
 .topic-pill:hover {
-  border-color: var(--crt-green);
+  border-color: var(--blue);
 }
 .topic-pill:disabled {
   opacity: 0.5;
@@ -585,10 +703,10 @@ export default {
   width: 100%;
   height: 70vh;
   touch-action: none;
-  background: var(--crt-bg);
-  border: 1px solid var(--crt-green-dim);
+  background: var(--surface);
+  border: 1px solid var(--olive);
   border-radius: 4px;
-  box-shadow: inset 0 0 40px rgba(51, 255, 102, 0.08);
+  box-shadow: inset 0 0 40px rgba(184, 147, 90, 0.18);
   cursor: grab;
 }
 .fullscreen .graph-header {
@@ -613,13 +731,9 @@ export default {
   inset: 0;
   pointer-events: none;
   z-index: 4;
-  background: repeating-linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0.15) 0px,
-    rgba(0, 0, 0, 0.15) 1px,
-    transparent 1px,
-    transparent 3px
-  );
+  background:
+    radial-gradient(ellipse at 20% 15%, rgba(184, 147, 90, 0.12), transparent 55%),
+    radial-gradient(ellipse at 80% 85%, rgba(116, 128, 74, 0.10), transparent 55%);
   mix-blend-mode: multiply;
 }
 .zoom-controls {
@@ -635,73 +749,81 @@ export default {
   width: 3.5rem;
   height: 3.5rem;
   border-radius: 50%;
-  border: 1px solid var(--crt-green-dim);
-  background: var(--crt-bg);
-  color: var(--crt-green);
+  border: 1px solid var(--olive);
+  background: var(--surface);
+  color: var(--blue);
   font-family: inherit;
   font-size: 1.4rem;
   line-height: 1;
   cursor: pointer;
-  box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 2px 6px rgba(63, 51, 38, 0.25);
 }
 .zoom-controls button:hover {
-  border-color: var(--crt-green);
-  box-shadow: 0 0 10px var(--crt-green-faint);
+  border-color: var(--blue);
+  box-shadow: 0 0 10px var(--blue-faint);
+}
+.camera-animated {
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .graph-edge {
-  stroke: var(--crt-green-dim);
+  stroke: var(--olive);
   stroke-width: 1.5;
-  filter: drop-shadow(0 0 2px rgba(51, 255, 102, 0.3));
 }
 .graph-node circle {
-  fill: var(--crt-bg);
-  stroke: var(--crt-green-dim);
+  fill: var(--surface);
+  stroke: var(--olive);
   stroke-width: 2;
   cursor: pointer;
   transition: r 0.15s ease, stroke 0.15s ease;
 }
 .graph-node:hover circle {
-  stroke: var(--crt-green);
-  filter: drop-shadow(0 0 6px var(--crt-green));
+  stroke: var(--blue);
 }
 .graph-node.center circle {
-  fill: var(--crt-green-dim);
-  stroke: var(--crt-green);
-  filter: drop-shadow(0 0 8px var(--crt-green));
+  fill: var(--blue);
+  stroke: var(--gold);
+  stroke-width: 3;
 }
 .graph-node.expanding circle {
   opacity: 0.5;
 }
 .expand-badge circle {
-  fill: var(--crt-green);
-  stroke: var(--crt-bg);
+  fill: var(--gold);
+  stroke: var(--surface);
   stroke-width: 1.5;
   cursor: pointer;
-  filter: drop-shadow(0 0 4px var(--crt-green));
 }
 .expand-badge line {
-  stroke: var(--crt-bg);
+  stroke: var(--surface);
   stroke-width: 1.5;
   pointer-events: none;
 }
 .graph-center-label {
-  fill: var(--crt-green);
-  font-family: "Courier New", Courier, monospace;
+  fill: var(--ink);
+  font-family: "Palatino Linotype", "Palatino", Georgia, serif;
   font-size: 15px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   pointer-events: none;
+  paint-order: stroke fill;
+  stroke: var(--surface);
+  stroke-width: 3px;
+  stroke-linejoin: round;
 }
 .node-hover-label {
-  fill: var(--crt-green);
-  font-family: "Courier New", Courier, monospace;
-  font-size: 6px;
+  fill: var(--ink);
+  font-family: "Palatino Linotype", "Palatino", Georgia, serif;
+  font-size: 9px;
   font-weight: 700;
   text-transform: uppercase;
   pointer-events: none;
+  paint-order: stroke fill;
+  stroke: var(--surface);
+  stroke-width: 3px;
+  stroke-linejoin: round;
 }
-@keyframes crt-blink {
+@keyframes gentle-blink {
   0%, 50% { opacity: 1; }
   50.01%, 100% { opacity: 0; }
 }

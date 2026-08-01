@@ -42,57 +42,58 @@ export default {
 
 <style scoped>
 .article-tooltip {
-  --crt-bg: #04140a;
-  --crt-green: #33ff66;
-  --crt-green-soft: #8dffb0;
-  --crt-green-dim: #1a8f3f;
-  --crt-green-faint: rgba(51, 255, 102, 0.25);
+  --surface: #f3e9d2;
+  --ink: #3f3326;
+  --ink-soft: #6b5d47;
+  --blue: #2f6690;
+  --blue-faint: rgba(47, 102, 144, 0.22);
+  --olive: #74804a;
+  --gold: #b8935a;
   position: fixed;
   inset: 0;
   width: 100vw;
   height: 100dvh;
   box-sizing: border-box;
   z-index: 2000;
-  background: var(--crt-bg);
-  box-shadow: inset 0 0 40px var(--crt-green-faint);
+  background: var(--surface);
+  box-shadow: inset 0 0 40px rgba(184, 147, 90, 0.18);
   display: flex;
   flex-direction: column;
   justify-content: center;
   padding: 2rem;
-  font-family: "Courier New", Courier, monospace;
+  font-family: "Palatino Linotype", "Palatino", Georgia, serif;
+  color: var(--ink);
   pointer-events: auto;
 }
 .t-close {
   position: absolute;
-  /* lets place it at the bottom */
   bottom: 1rem;
   right: 1rem;
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 50%;
-  border: 1px solid var(--crt-green-dim);
-  background: var(--crt-bg);
-  color: var(--crt-green);
+  border: 1px solid var(--olive);
+  background: var(--surface);
+  color: var(--blue);
   font-family: inherit;
   font-size: 1.1rem;
   line-height: 1;
   cursor: pointer;
 }
 .t-close:hover {
-  border-color: var(--crt-green);
-  box-shadow: 0 0 8px var(--crt-green-faint);
+  border-color: var(--blue);
+  box-shadow: 0 0 8px var(--blue-faint);
 }
 .t-title {
   display: block;
   pointer-events: auto;
-  color: var(--crt-green);
+  color: var(--blue);
   font-size: 1.6rem;
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  text-shadow: 0 0 8px var(--crt-green-faint);
   margin-bottom: 1rem;
 }
 .t-title:hover {
@@ -103,19 +104,19 @@ export default {
   max-height: 45vh;
   object-fit: cover;
   border-radius: 0;
-  border: 1px solid var(--crt-green-dim);
+  border: 1px solid var(--olive);
   display: block;
   margin: 0 0 1rem;
-  filter: grayscale(0.3) sepia(0.15) hue-rotate(60deg) saturate(1.4);
+  filter: sepia(0.35) saturate(1.1);
 }
 .t-meta {
   font-size: 1rem;
-  color: var(--crt-green-soft);
+  color: var(--ink-soft);
 }
 .t-extract {
   font-size: 1.05rem;
   line-height: 1.5;
-  color: var(--crt-green-soft);
+  color: var(--ink-soft);
   max-height: 40vh;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
