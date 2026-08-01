@@ -24,7 +24,6 @@ export default {
       bioErrors: {},
       savingBio: false,
       bioMax: BIO_MAX_LENGTH,
-
       changingPassword: false,
       currentPassword: '',
       newPassword: '',
@@ -32,7 +31,6 @@ export default {
       passwordErrors: {},
       passwordSuccess: false,
       savingPassword: false,
-
       deletingAccount: false,
       deletePassword: '',
       deleteErrors: {},
