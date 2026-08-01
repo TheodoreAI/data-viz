@@ -293,7 +293,7 @@ export default {
       if (!this.tooltip.visible) this.hoveredId = null;
     },
     hoverLabel(node) {
-      return node.id.length > 16 ? `${node.id.slice(0, 15)}…` : node.id;
+      return node.id.length > 28 ? `${node.id.slice(0, 27)}…` : node.id;
     },
     cancelHideTooltip() {
       if (this.hideTimer) {
