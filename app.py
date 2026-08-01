@@ -18,6 +18,7 @@ from flask_jwt_extended import unset_jwt_cookies
 from flask_jwt_extended import verify_jwt_in_request
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_mail import Mail
 from flask_migrate import Migrate
 
 from auth import authenticate_user
@@ -29,6 +30,7 @@ from auth import reset_password as apply_password_reset
 from auth import update_bio
 from auth import update_display_name
 from auth import verify_reset_token
+from email_utils import init_mail
 from email_utils import send_password_reset_email
 from models import User
 from models import db
@@ -86,8 +88,17 @@ app.config['JWT_COOKIE_SAMESITE'] = 'Lax'
 app.config['JWT_COOKIE_CSRF_PROTECT'] = True
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=7)
 
+app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_USERNAME')
+
 db.init_app(app)
 migrate = Migrate(app, db)
+mail = Mail(app)
+init_mail(mail, configured=bool(app.config['MAIL_USERNAME'] and app.config['MAIL_PASSWORD']))
 jwt = JWTManager(app)
 limiter = Limiter(get_remote_address, app=app, default_limits=[])
 
