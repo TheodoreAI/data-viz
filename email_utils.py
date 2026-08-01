@@ -1,37 +1,43 @@
-import smtplib
 import threading
-from email.mime.text import MIMEText
 
-SMTP_TIMEOUT_SECONDS = 10
+import requests
+
+RESEND_API_URL = 'https://api.resend.com/emails'
+REQUEST_TIMEOUT_SECONDS = 10
 
 _config = None
 _configured = False
 
 
 def init_mail(config, configured):
-    """Called once at app startup with the SMTP config dict (server, port,
-    username, password) and whether real credentials were provided."""
+    """Called once at app startup with the Resend config dict (api_key,
+    from_email) and whether a real API key was provided."""
     global _config, _configured
     _config = config
     _configured = configured
     if not configured:
         print(
-            'WARNING: MAIL_USERNAME/MAIL_PASSWORD are not set; password reset '
-            'links will be printed to the console instead of emailed.'
+            'WARNING: RESEND_API_KEY is not set; password reset links will '
+            'be printed to the console instead of emailed.'
         )
 
 
-def _send_smtp(to_email, subject, body):
-    message = MIMEText(body)
-    message['Subject'] = subject
-    message['From'] = _config['username']
-    message['To'] = to_email
+def _send_via_resend(to_email, subject, body):
     try:
-        with smtplib.SMTP(_config['server'], _config['port'], timeout=SMTP_TIMEOUT_SECONDS) as smtp:
-            smtp.starttls()
-            smtp.login(_config['username'], _config['password'])
-            smtp.sendmail(_config['username'], [to_email], message.as_string())
-    except Exception as error:
+        response = requests.post(
+            RESEND_API_URL,
+            headers={'Authorization': f"Bearer {_config['api_key']}"},
+            json={
+                'from': _config['from_email'],
+                'to': [to_email],
+                'subject': subject,
+                'text': body,
+            },
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+        if not response.ok:
+            print(f'[email] Resend rejected send to {to_email}: {response.status_code} {response.text}')
+    except requests.RequestException as error:
         # This runs on a background thread after the request has already
         # returned, so there's no request to fail — just log it.
         print(f'[email] failed to send to {to_email}: {error}')
@@ -50,7 +56,7 @@ def send_password_reset_email(user, reset_url):
         f'{reset_url}\n\n'
         f"If you didn't request this, you can safely ignore this email.\n"
     )
-    # Never block the request on an external SMTP call — smtplib has no
-    # connect timeout of its own by default and a slow/blocked connection
-    # can hang long enough to trip the gunicorn worker timeout.
-    threading.Thread(target=_send_smtp, args=(user.email, subject, body), daemon=True).start()
+    # Send on a background thread with a hard timeout so a slow/unreachable
+    # provider can never block the request or trip the gunicorn worker
+    # timeout — this is what actually broke with raw SMTP on Render.
+    threading.Thread(target=_send_via_resend, args=(user.email, subject, body), daemon=True).start()

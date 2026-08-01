@@ -87,18 +87,15 @@ app.config['JWT_COOKIE_SAMESITE'] = 'Lax'
 app.config['JWT_COOKIE_CSRF_PROTECT'] = True
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=7)
 
-MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
-MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
 mail_config = {
-    'server': os.environ.get('MAIL_SERVER', 'smtp.gmail.com'),
-    'port': int(os.environ.get('MAIL_PORT', 587)),
-    'username': MAIL_USERNAME,
-    'password': MAIL_PASSWORD,
+    'api_key': RESEND_API_KEY,
+    'from_email': os.environ.get('RESEND_FROM_EMAIL', 'onboarding@resend.dev'),
 }
 
 db.init_app(app)
 migrate = Migrate(app, db)
-init_mail(mail_config, configured=bool(MAIL_USERNAME and MAIL_PASSWORD))
+init_mail(mail_config, configured=bool(RESEND_API_KEY))
 jwt = JWTManager(app)
 limiter = Limiter(get_remote_address, app=app, default_limits=[])
 
