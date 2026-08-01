@@ -5,7 +5,7 @@ import ArticleTooltip from './ArticleTooltip.vue';
 
 const MAX_PIXEL_RATIO = 2;
 const CENTER_COLOR = 0xb8935a; // gold/bronze
-const NODE_COLOR = 0x74804a; // olive
+const NODE_COLOR = 0x2f6690; // blue
 
 export default {
   name: 'ArticleGraph3D',
