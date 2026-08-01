@@ -1,4 +1,9 @@
 <script>
+function readCookie(name) {
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 export default {
   name: 'ArticleFeed',
   props: {
@@ -14,6 +19,8 @@ export default {
       direction: 'up',
       selectedTopic: '',
       atStartFlash: false,
+      savedTitles: new Set(),
+      savingTitle: '',
     };
   },
   computed: {
@@ -109,6 +116,36 @@ export default {
       this.currentIndex = -1;
       await this.appendRandomArticle();
     },
+    async saveCurrentArticle() {
+      const article = this.currentArticle;
+      if (this.savingTitle || this.savedTitles.has(article.title)) return;
+      this.savingTitle = article.title;
+      try {
+        const response = await fetch('/api/saved-items', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': readCookie('csrf_access_token'),
+          },
+          body: JSON.stringify({
+            itemType: 'article',
+            title: article.title,
+            imageUrl: article.thumbnail ? article.thumbnail.source : '',
+            sourceUrl: article.content_urls.desktop.page,
+          }),
+        });
+        if (response.status === 401) {
+          window.location.href = '/login';
+          return;
+        }
+        if (response.ok) {
+          this.savedTitles.add(article.title);
+        }
+      } finally {
+        this.savingTitle = '';
+      }
+    },
   },
 };
 </script>
@@ -143,7 +180,15 @@ export default {
           <img :src="currentArticle.thumbnail.source" :alt="currentArticle.title">
         </div>
         <div class="feed-body">
-          <h2><a :href="currentArticle.content_urls.desktop.page" target="_blank">{{ currentArticle.title }}</a></h2>
+          <div class="feed-body-header">
+            <h2><a :href="currentArticle.content_urls.desktop.page" target="_blank">{{ currentArticle.title }}</a></h2>
+            <button
+              type="button"
+              class="save-button"
+              :disabled="savedTitles.has(currentArticle.title)"
+              @click="saveCurrentArticle"
+            >{{ savedTitles.has(currentArticle.title) ? 'Saved' : (savingTitle === currentArticle.title ? 'Saving…' : 'Save') }}</button>
+          </div>
           <p>{{ currentArticle.extract }}</p>
         </div>
       </article>
@@ -268,8 +313,29 @@ export default {
 .feed-body {
   padding: 1rem 1.25rem 2rem;
 }
-.feed-body h2 {
+.feed-body-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
   margin: 0 0 0.5rem;
+}
+.feed-body h2 {
+  margin: 0;
+}
+.save-button {
+  flex: none;
+  background: transparent;
+  border: 1px solid var(--gridline, #e1e0d9);
+  color: var(--series-1, #2a78d6);
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.save-button:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 .feed-loading {
   flex: none;

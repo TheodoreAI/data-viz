@@ -75,8 +75,38 @@ export default {
 
     this.loadStats();
     this.loadArticles();
+    this.loadSavedItems();
   },
   methods: {
+    async loadSavedItems() {
+      this.savedItemsLoading = true;
+      this.savedItemsError = false;
+      try {
+        const response = await fetch('/api/saved-items', { credentials: 'same-origin' });
+        if (!response.ok) throw new Error(`Request failed: ${response.status}`);
+        this.savedItems = await response.json();
+      } catch {
+        this.savedItemsError = true;
+      } finally {
+        this.savedItemsLoading = false;
+      }
+    },
+    async removeSavedItem(item) {
+      if (this.removingId) return;
+      this.removingId = item.id;
+      try {
+        const response = await fetch(`/api/saved-items/${item.id}`, {
+          method: 'DELETE',
+          credentials: 'same-origin',
+          headers: { 'X-CSRF-TOKEN': readCookie('csrf_access_token') },
+        });
+        if (response.ok) {
+          this.savedItems = this.savedItems.filter((i) => i.id !== item.id);
+        }
+      } finally {
+        this.removingId = null;
+      }
+    },
     async loadStats() {
       this.statsError = false;
       try {
@@ -147,6 +177,30 @@ export default {
           <span class="quick-link-copy">Edit your bio, password, and account</span>
         </a>
       </div>
+
+      <section class="widget">
+        <h2>Your saves</h2>
+        <p v-if="savedItemsLoading" class="status">Loading…</p>
+        <p v-else-if="savedItemsError" class="status form-error">Couldn't load your saved items.</p>
+        <p v-else-if="!savedItems.length" class="status">
+          Nothing saved yet — look for a Save button on paintings in Art or articles on Home.
+        </p>
+        <ul v-else class="saved-list">
+          <li v-for="item in savedItems" :key="item.id" class="saved-item">
+            <img v-if="item.imageUrl" :src="item.imageUrl" :alt="item.title" class="saved-thumb">
+            <div class="saved-info">
+              <a :href="item.sourceUrl" target="_blank" rel="noopener" class="saved-title">{{ item.title }}</a>
+              <span v-if="item.subtitle" class="saved-subtitle">{{ item.subtitle }}</span>
+            </div>
+            <button
+              type="button"
+              class="remove-button"
+              :disabled="removingId === item.id"
+              @click="removeSavedItem(item)"
+            >{{ removingId === item.id ? 'Removing…' : 'Remove' }}</button>
+          </li>
+        </ul>
+      </section>
 
       <section class="widget">
         <h2>App stats</h2>
@@ -348,5 +402,64 @@ h1 {
 .views-col {
   text-align: right;
   white-space: nowrap;
+}
+.saved-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.saved-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  border: 1px solid var(--gridline, #d8c9a3);
+  border-radius: 6px;
+}
+.saved-thumb {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex: none;
+  background: var(--surface-1, #fcfcfb);
+}
+.saved-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.saved-title {
+  color: var(--series-1, #2f6690);
+  text-decoration: none;
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.saved-title:hover {
+  text-decoration: underline;
+}
+.saved-subtitle {
+  font-size: 0.78rem;
+  color: var(--text-secondary, #6b5d47);
+}
+.remove-button {
+  flex: none;
+  background: transparent;
+  border: 1px solid var(--gridline, #d8c9a3);
+  color: #b0413e;
+  border-radius: 4px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.remove-button:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 </style>
