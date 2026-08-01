@@ -35,10 +35,14 @@ export default {
       .linkColor(() => 'rgba(116, 128, 74, 0.6)')
       .linkWidth(1)
       .cooldownTicks(reducedMotion ? 0 : 200)
-      .onNodeClick(node => this.expandNode(node))
-      .onNodeRightClick(node => this.showTooltip(node.id))
+      .onNodeClick(node => this.navigateToNode(node))
       .onNodeHover(node => {
         this.$refs.container.style.cursor = node ? 'pointer' : 'default';
+        if (node) {
+          this.showTooltip(node.id);
+        } else {
+          this.hideTooltip();
+        }
       });
 
     const pixelRatio = Math.min(window.devicePixelRatio || 1, MAX_PIXEL_RATIO);
@@ -129,12 +133,13 @@ export default {
     hideTooltip() {
       this.tooltip.visible = false;
     },
+    navigateToNode(node) {
+      if (node.isCenter || this.loadingNodeId) return;
+      this.hideTooltip();
+      this.$emit('select', node.id);
+    },
     async expandNode(node) {
-      if (node.isCenter) {
-        this.$emit('select', node.id);
-        return;
-      }
-      if (this.loadingNodeId) return;
+      if (node.isCenter || this.loadingNodeId) return;
       this.loadingNodeId = node.id;
       this.errorNodeId = null;
       this.announcement = `Loading links for ${node.id}…`;
@@ -182,7 +187,7 @@ export default {
       ref="container"
       class="graph-3d-container"
       role="img"
-      :aria-label="`3D force graph centered on ${seedTitle}, with ${listNodes.length - 1} linked articles. Click a node to expand its links, right-click for a summary. Use the list view for keyboard access.`"
+      :aria-label="`3D force graph centered on ${seedTitle}, with ${listNodes.length - 1} linked articles. Click a node to move there, hover for a summary. Use the list view for keyboard access.`"
     ></div>
 
     <div v-if="showList" class="graph-3d-list">
