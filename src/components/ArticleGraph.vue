@@ -4,7 +4,7 @@ import ArticleTooltip from './ArticleTooltip.vue';
 
 const BASE_WIDTH = 800;
 const BASE_HEIGHT = 600;
-const MAX_NODES = 150;
+const MAX_NODES = 1500;
 
 const SWIPE_MIN_DISTANCE = 60;
 const SWIPE_MAX_DURATION = 700;
