@@ -6,7 +6,7 @@ from urllib.parse import quote
 
 import requests
 from dotenv import load_dotenv
-from flask import Flask
+from flask import Flask, Response
 from flask import jsonify
 from flask import redirect
 from flask import render_template
@@ -106,6 +106,63 @@ jwt = JWTManager(app)
 limiter = Limiter(get_remote_address, app=app, default_limits=[])
 
 
+def build_csp_policy(dev_mode=False):
+    script_sources = ["'self'"]
+    connect_sources = ["'self'"]
+    if dev_mode:
+        script_sources.extend(["'unsafe-inline'", 'http://localhost:8080'])
+        connect_sources.extend(['http://localhost:8080', 'ws://localhost:8080'])
+
+    return (
+        f"default-src 'self'; "
+        f"script-src {' '.join(script_sources)}; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: https:; "
+        f"connect-src {' '.join(connect_sources)}; "
+        "font-src 'self' data:; "
+        "object-src 'none'; "
+        "base-uri 'self'; "
+        "frame-ancestors 'none'; "
+        "form-action 'self';"
+    )
+
+PERMISSIONS_POLICY = (
+    'camera=(), microphone=(), geolocation=(), payment=(), usb=(), '
+    'speaker=(), sync-xhr=(), interest-cohort=()'
+)
+
+
+@app.after_request
+def add_security_headers(response):
+    response.headers.setdefault('X-Frame-Options', 'DENY')
+    response.headers.setdefault('X-Content-Type-Options', 'nosniff')
+    response.headers.setdefault('Content-Security-Policy', build_csp_policy(dev_mode=app.debug))
+    response.headers.setdefault('Permissions-Policy', PERMISSIONS_POLICY)
+    response.headers.setdefault('Cross-Origin-Embedder-Policy', 'unsafe-none')
+
+    forwarded_proto = request.headers.get('X-Forwarded-Proto', request.scheme)
+    if forwarded_proto == 'https':
+        response.headers.setdefault(
+            'Strict-Transport-Security',
+            'max-age=63072000; includeSubDomains; preload'
+        )
+
+    if request.path.startswith(app.static_url_path + '/'):
+        response.headers.setdefault(
+            'Cache-Control',
+            'public, max-age=31536000, immutable'
+        )
+    else:
+        response.headers.setdefault(
+            'Cache-Control',
+            'no-store, no-cache, must-revalidate, max-age=0'
+        )
+        response.headers.setdefault('Pragma', 'no-cache')
+        response.headers.setdefault('Expires', '0')
+
+    return response
+
+
 @app.context_processor
 def inject_current_user():
     current_user = None
@@ -181,6 +238,37 @@ def fetch_article_links(title, limit=GRAPH_LINKS_LIMIT):
     links = [link['title'] for link in page.get('links', [])]
     random.shuffle(links)
     return links[:limit]
+
+
+@app.route('/robots.txt')
+def robots_txt():
+    return Response('User-agent: *\nDisallow:\n', mimetype='text/plain')
+
+
+@app.route('/sitemap.xml')
+def sitemap_xml():
+    sitemap = '''<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>{root}</loc>
+  </url>
+  <url>
+    <loc>{bubbles}</loc>
+  </url>
+  <url>
+    <loc>{graph}</loc>
+  </url>
+  <url>
+    <loc>{art}</loc>
+  </url>
+</urlset>
+'''.format(
+        root=request.url_root.rstrip('/'),
+        bubbles=f"{request.url_root.rstrip('/')}{url_for('bubbles')}",
+        graph=f"{request.url_root.rstrip('/')}{url_for('graph')}",
+        art=f"{request.url_root.rstrip('/')}{url_for('art')}",
+    )
+    return Response(sitemap, mimetype='application/xml')
 
 
 @app.route('/')
