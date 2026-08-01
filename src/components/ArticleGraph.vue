@@ -737,7 +737,7 @@ export default {
   width: 100%;
   height: 70vh;
   display: block;
-  background: var(--surface);
+  background: #0c1220;
   border: 1px solid var(--olive);
   border-radius: 4px;
 }

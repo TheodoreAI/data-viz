@@ -6,6 +6,31 @@ import ArticleTooltip from './ArticleTooltip.vue';
 const MAX_PIXEL_RATIO = 2;
 const CENTER_COLOR = 0xb8935a; // gold/bronze
 const NODE_COLOR = 0x2f6690; // blue
+const STAR_COUNT = 1800;
+const STAR_FIELD_MIN_RADIUS = 700;
+const STAR_FIELD_MAX_RADIUS = 1600;
+
+function buildStarfield() {
+  const positions = new Float32Array(STAR_COUNT * 3);
+  for (let i = 0; i < STAR_COUNT; i += 1) {
+    const radius = STAR_FIELD_MIN_RADIUS + Math.random() * (STAR_FIELD_MAX_RADIUS - STAR_FIELD_MIN_RADIUS);
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2 * Math.random() - 1);
+    positions[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
+    positions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+    positions[i * 3 + 2] = radius * Math.cos(phi);
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  const material = new THREE.PointsMaterial({
+    color: 0xf3e9d2,
+    size: 2,
+    sizeAttenuation: true,
+    transparent: true,
+    opacity: 0.85,
+  });
+  return new THREE.Points(geometry, material);
+}
 
 export default {
   name: 'ArticleGraph3D',
@@ -31,7 +56,7 @@ export default {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     this.graph = ForceGraph3D()(this.$refs.container)
-      .backgroundColor('#00000000')
+      .backgroundColor('#0c1220')
       .nodeLabel(node => node.id)
       .nodeThreeObject(node => {
         const geometry = new THREE.SphereGeometry(node.isCenter ? 9 : 6, 24, 24);
@@ -54,6 +79,7 @@ export default {
     const keyLight = new THREE.DirectionalLight(0xfff2d9, 1.1);
     keyLight.position.set(1, 1, 1);
     this.graph.scene().add(keyLight);
+    this.graph.scene().add(buildStarfield());
 
     const pixelRatio = Math.min(window.devicePixelRatio || 1, MAX_PIXEL_RATIO);
     this.graph.renderer().setPixelRatio(pixelRatio);
@@ -289,6 +315,7 @@ export default {
   height: 100%;
   overflow-y: auto;
   padding: 0.75rem;
+  background: var(--surface, #f3e9d2);
 }
 .graph-3d-list ul {
   list-style: none;
