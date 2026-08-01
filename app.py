@@ -1,6 +1,6 @@
 import os
 import random
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from urllib.parse import quote
 
 import requests
@@ -19,6 +19,7 @@ from flask_jwt_extended import verify_jwt_in_request
 
 from auth import authenticate_user
 from auth import register_user
+from auth import update_bio
 from models import User
 from models import db
 from vite import vite_asset_tags
@@ -207,6 +208,9 @@ def api_login():
     if not user:
         return jsonify({'errors': {'form': 'Incorrect username/email or password.'}}), 401
 
+    user.last_login_at = datetime.now(timezone.utc)
+    db.session.commit()
+
     access_token = create_access_token(identity=str(user.id))
     response = jsonify({'user': user.to_dict()})
     set_access_cookies(response, access_token)
@@ -220,12 +224,19 @@ def api_logout():
     return response
 
 
-@app.route('/api/profile')
+@app.route('/api/profile', methods=['GET', 'PATCH'])
 @jwt_required()
 def api_profile():
     user = db.session.get(User, int(get_jwt_identity()))
     if not user:
         return jsonify({'error': 'Not found'}), 404
+
+    if request.method == 'PATCH':
+        data = request.get_json(silent=True) or {}
+        errors = update_bio(user, (data.get('bio') or '').strip())
+        if errors:
+            return jsonify({'errors': errors}), 400
+
     return jsonify(user.to_dict())
 
 

@@ -11,7 +11,9 @@ class User(db.Model):
     username = db.Column(db.String(32), unique=True, nullable=False, index=True)
     email = db.Column(db.String(255), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
+    bio = db.Column(db.String(280), nullable=False, default='')
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    last_login_at = db.Column(db.DateTime, nullable=True)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -20,4 +22,12 @@ class User(db.Model):
         return check_password_hash(self.password_hash, password)
 
     def to_dict(self):
-        return {'id': self.id, 'username': self.username, 'email': self.email}
+        return {
+            'id': self.id,
+            'username': self.username,
+            'email': self.email,
+            'bio': self.bio,
+            'avatarUrl': f'https://api.dicebear.com/9.x/identicon/svg?seed={self.username}',
+            'createdAt': self.created_at.isoformat() if self.created_at else None,
+            'lastLoginAt': self.last_login_at.isoformat() if self.last_login_at else None,
+        }
