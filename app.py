@@ -18,6 +18,8 @@ from flask_jwt_extended import unset_jwt_cookies
 from flask_jwt_extended import verify_jwt_in_request
 
 from auth import authenticate_user
+from auth import change_password
+from auth import delete_account
 from auth import register_user
 from auth import update_bio
 from models import User
@@ -238,6 +240,41 @@ def api_profile():
             return jsonify({'errors': errors}), 400
 
     return jsonify(user.to_dict())
+
+
+@app.route('/api/profile/password', methods=['POST'])
+@jwt_required()
+def api_change_password():
+    user = db.session.get(User, int(get_jwt_identity()))
+    if not user:
+        return jsonify({'error': 'Not found'}), 404
+
+    data = request.get_json(silent=True) or {}
+    errors = change_password(
+        user,
+        data.get('currentPassword') or '',
+        data.get('newPassword') or '',
+    )
+    if errors:
+        return jsonify({'errors': errors}), 400
+    return jsonify({'ok': True})
+
+
+@app.route('/api/account', methods=['DELETE'])
+@jwt_required()
+def api_delete_account():
+    user = db.session.get(User, int(get_jwt_identity()))
+    if not user:
+        return jsonify({'error': 'Not found'}), 404
+
+    data = request.get_json(silent=True) or {}
+    errors = delete_account(user, data.get('password') or '')
+    if errors:
+        return jsonify({'errors': errors}), 400
+
+    response = jsonify({'ok': True})
+    unset_jwt_cookies(response)
+    return response
 
 
 @app.route('/api/random-article')

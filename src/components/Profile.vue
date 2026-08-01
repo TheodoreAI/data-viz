@@ -24,6 +24,19 @@ export default {
       bioErrors: {},
       savingBio: false,
       bioMax: BIO_MAX_LENGTH,
+
+      changingPassword: false,
+      currentPassword: '',
+      newPassword: '',
+      confirmNewPassword: '',
+      passwordErrors: {},
+      passwordSuccess: false,
+      savingPassword: false,
+
+      deletingAccount: false,
+      deletePassword: '',
+      deleteErrors: {},
+      deletingInFlight: false,
     };
   },
   computed: {
@@ -98,6 +111,87 @@ export default {
         window.location.href = '/login';
       }
     },
+    startChangingPassword() {
+      this.currentPassword = '';
+      this.newPassword = '';
+      this.confirmNewPassword = '';
+      this.passwordErrors = {};
+      this.passwordSuccess = false;
+      this.changingPassword = true;
+    },
+    cancelChangingPassword() {
+      this.changingPassword = false;
+    },
+    async savePassword() {
+      if (this.savingPassword) return;
+      this.passwordErrors = {};
+
+      if (this.newPassword !== this.confirmNewPassword) {
+        this.passwordErrors = { confirmNewPassword: 'New passwords do not match.' };
+        return;
+      }
+
+      this.savingPassword = true;
+      try {
+        const response = await fetch('/api/profile/password', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': readCookie('csrf_access_token'),
+          },
+          body: JSON.stringify({
+            currentPassword: this.currentPassword,
+            newPassword: this.newPassword,
+          }),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          this.passwordErrors = data.errors || { form: 'Something went wrong. Please try again.' };
+          return;
+        }
+        this.changingPassword = false;
+        this.passwordSuccess = true;
+      } catch {
+        this.passwordErrors = { form: "Couldn't reach the server. Check your connection and try again." };
+      } finally {
+        this.savingPassword = false;
+      }
+    },
+    startDeletingAccount() {
+      this.deletePassword = '';
+      this.deleteErrors = {};
+      this.deletingAccount = true;
+    },
+    cancelDeletingAccount() {
+      this.deletingAccount = false;
+    },
+    async confirmDeleteAccount() {
+      if (this.deletingInFlight) return;
+      this.deletingInFlight = true;
+      this.deleteErrors = {};
+      try {
+        const response = await fetch('/api/account', {
+          method: 'DELETE',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': readCookie('csrf_access_token'),
+          },
+          body: JSON.stringify({ password: this.deletePassword }),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          this.deleteErrors = data.errors || { form: 'Something went wrong. Please try again.' };
+          return;
+        }
+        window.location.href = '/register';
+      } catch {
+        this.deleteErrors = { form: "Couldn't reach the server. Check your connection and try again." };
+      } finally {
+        this.deletingInFlight = false;
+      }
+    },
   },
 };
 </script>
@@ -143,6 +237,89 @@ export default {
             <button type="button" class="cancel-button" :disabled="savingBio" @click="cancelEditingBio">Cancel</button>
           </div>
         </template>
+      </div>
+
+      <div class="settings-section">
+        <h2>Password</h2>
+        <p v-if="passwordSuccess && !changingPassword" class="success-message">Password updated.</p>
+        <button v-if="!changingPassword" type="button" class="edit-button" @click="startChangingPassword">
+          Change password
+        </button>
+        <form v-else class="settings-form" @submit.prevent="savePassword" novalidate>
+          <p v-if="passwordErrors.form" class="form-error" role="alert">{{ passwordErrors.form }}</p>
+
+          <label class="field">
+            <span>Current password</span>
+            <input
+              v-model="currentPassword"
+              type="password"
+              autocomplete="current-password"
+              required
+              :aria-invalid="!!passwordErrors.currentPassword"
+            >
+            <span v-if="passwordErrors.currentPassword" class="field-error" role="alert">{{ passwordErrors.currentPassword }}</span>
+          </label>
+
+          <label class="field">
+            <span>New password</span>
+            <input
+              v-model="newPassword"
+              type="password"
+              autocomplete="new-password"
+              minlength="8"
+              required
+              :aria-invalid="!!passwordErrors.newPassword"
+            >
+            <span v-if="passwordErrors.newPassword" class="field-error" role="alert">{{ passwordErrors.newPassword }}</span>
+          </label>
+
+          <label class="field">
+            <span>Confirm new password</span>
+            <input
+              v-model="confirmNewPassword"
+              type="password"
+              autocomplete="new-password"
+              required
+              :aria-invalid="!!passwordErrors.confirmNewPassword"
+            >
+            <span v-if="passwordErrors.confirmNewPassword" class="field-error" role="alert">{{ passwordErrors.confirmNewPassword }}</span>
+          </label>
+
+          <div class="bio-actions">
+            <button type="submit" class="save-button" :disabled="savingPassword">
+              {{ savingPassword ? 'Saving…' : 'Save password' }}
+            </button>
+            <button type="button" class="cancel-button" :disabled="savingPassword" @click="cancelChangingPassword">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="settings-section danger-zone">
+        <h2>Delete account</h2>
+        <p class="danger-copy">This permanently deletes your account. This can't be undone.</p>
+        <button v-if="!deletingAccount" type="button" class="danger-button" @click="startDeletingAccount">
+          Delete my account
+        </button>
+        <form v-else class="settings-form" @submit.prevent="confirmDeleteAccount" novalidate>
+          <p v-if="deleteErrors.form" class="form-error" role="alert">{{ deleteErrors.form }}</p>
+          <label class="field">
+            <span>Enter your password to confirm</span>
+            <input
+              v-model="deletePassword"
+              type="password"
+              autocomplete="current-password"
+              required
+              :aria-invalid="!!deleteErrors.password"
+            >
+            <span v-if="deleteErrors.password" class="field-error" role="alert">{{ deleteErrors.password }}</span>
+          </label>
+          <div class="bio-actions">
+            <button type="submit" class="danger-button" :disabled="deletingInFlight">
+              {{ deletingInFlight ? 'Deleting…' : 'Permanently delete account' }}
+            </button>
+            <button type="button" class="cancel-button" :disabled="deletingInFlight" @click="cancelDeletingAccount">Cancel</button>
+          </div>
+        </form>
       </div>
 
       <button type="button" class="logout-button" :disabled="loggingOut" @click="logout">
@@ -252,6 +429,77 @@ h1 {
 .save-button:disabled,
 .cancel-button:disabled,
 .logout-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.settings-section {
+  margin: 1.5rem 0;
+}
+.settings-section h2 {
+  font-size: 1rem;
+  margin: 0 0 0.5rem;
+}
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-top: 0.5rem;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+}
+.field input {
+  font-family: inherit;
+  font-size: 1rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--gridline, #d8c9a3);
+  border-radius: 4px;
+  background: var(--surface-1, #fcfcfb);
+  color: inherit;
+}
+.field input:focus {
+  outline: 2px solid var(--series-1, #2f6690);
+  outline-offset: 1px;
+}
+.field input[aria-invalid="true"] {
+  border-color: #b0413e;
+}
+.field-error {
+  color: #b0413e;
+  font-size: 0.78rem;
+}
+.success-message {
+  color: #3a7a4e;
+  font-size: 0.85rem;
+  margin: 0 0 0.5rem;
+}
+.danger-zone {
+  padding: 1rem;
+  border: 1px solid rgba(176, 65, 62, 0.4);
+  border-radius: 6px;
+}
+.danger-zone h2 {
+  color: #b0413e;
+}
+.danger-copy {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #6b5d47);
+  margin: 0 0 0.75rem;
+}
+.danger-button {
+  background: transparent;
+  border: 1px solid #b0413e;
+  color: #b0413e;
+  border-radius: 4px;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.85rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+.danger-button:disabled {
   opacity: 0.6;
   cursor: default;
 }
