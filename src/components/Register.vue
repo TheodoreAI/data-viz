@@ -9,6 +9,7 @@ export default {
       confirmPassword: '',
       errors: {},
       submitting: false,
+      showPasswords: false,
     };
   },
   methods: {
@@ -85,16 +86,24 @@ export default {
 
       <label class="field">
         <span>Password</span>
-        <input
-          v-model="password"
-          type="password"
-          name="new-password"
-          autocomplete="new-password"
-          required
-          minlength="8"
-          :aria-invalid="!!errors.password"
-          aria-describedby="password-error"
-        >
+        <div class="password-row">
+          <input
+            v-model="password"
+            :type="showPasswords ? 'text' : 'password'"
+            name="new-password"
+            autocomplete="new-password"
+            required
+            minlength="8"
+            :aria-invalid="!!errors.password"
+            aria-describedby="password-error"
+          >
+          <button
+            type="button"
+            class="toggle-password"
+            :aria-label="showPasswords ? 'Hide passwords' : 'Show passwords'"
+            @click="showPasswords = !showPasswords"
+          >{{ showPasswords ? 'Hide' : 'Show' }}</button>
+        </div>
         <span v-if="errors.password" id="password-error" class="field-error" role="alert">{{ errors.password }}</span>
       </label>
 
@@ -102,7 +111,7 @@ export default {
         <span>Confirm password</span>
         <input
           v-model="confirmPassword"
-          type="password"
+          :type="showPasswords ? 'text' : 'password'"
           name="confirm-password"
           autocomplete="new-password"
           required
@@ -156,6 +165,24 @@ h1 {
 }
 .field input[aria-invalid="true"] {
   border-color: #b0413e;
+}
+.password-row {
+  display: flex;
+  gap: 0.5rem;
+}
+.password-row input {
+  flex: 1;
+  min-width: 0;
+}
+.toggle-password {
+  flex: none;
+  background: transparent;
+  border: 1px solid var(--gridline, #d8c9a3);
+  color: var(--series-1, #2f6690);
+  border-radius: 4px;
+  padding: 0 0.75rem;
+  font-size: 0.8rem;
+  cursor: pointer;
 }
 .field-error {
   color: #b0413e;

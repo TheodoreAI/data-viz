@@ -432,6 +432,56 @@ def api_article_summary():
     })
 
 
+def fetch_top_viewed_titles(year, month, day, limit=10):
+    """Lightweight version of the /bubbles fetch — just title/views/url, no
+    per-article summary lookups, so it's fast enough for a dashboard widget."""
+    top_url = WIKIPEDIA_TOP_VIEWED_URL.format(year=year, month=f'{month:02d}', day=day)
+    response = requests.get(top_url, headers=WIKIPEDIA_HEADERS, timeout=10)
+    response.raise_for_status()
+    top_articles = response.json()['items'][0]['articles']
+
+    articles = []
+    for entry in top_articles:
+        title = entry['article']
+        if title in EXCLUDED_TITLES or title.startswith('Special:') or title.startswith('Wikipedia:'):
+            continue
+        articles.append({
+            'title': title.replace('_', ' '),
+            'views': entry['views'],
+            'url': f'https://en.wikipedia.org/wiki/{quote(title)}',
+        })
+        if len(articles) == limit:
+            break
+    return articles
+
+
+@app.route('/api/top-articles')
+def api_top_articles():
+    yesterday = date.today() - timedelta(days=1)
+    year = request.args.get('year', default=yesterday.year, type=int)
+    month = request.args.get('month', default=yesterday.month, type=int)
+    day = request.args.get('day', type=int)  # omitted -> whole-month aggregate
+
+    try:
+        articles = fetch_top_viewed_titles(year, month, f'{day:02d}' if day else 'all-days')
+    except requests.RequestException:
+        return jsonify({'error': "Couldn't load article data for that period."}), 502
+
+    return jsonify({'year': year, 'month': month, 'day': day, 'articles': articles})
+
+
+@app.route('/api/stats')
+def api_stats():
+    try:
+        art_movements = len(fetch_art_movements())
+    except requests.RequestException:
+        art_movements = None
+    return jsonify({
+        'totalUsers': User.query.count(),
+        'artMovements': art_movements,
+    })
+
+
 @app.route('/bubbles')
 def bubbles():
     yesterday = date.today() - timedelta(days=1)

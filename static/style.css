@@ -36,19 +36,24 @@ body.graph-fullscreen .footer {
     height: var(--navbar-height);
     display: flex;
     align-items: center;
+    flex-wrap: nowrap;
     gap: 1.25rem;
     padding: 0 1.25rem;
     border-bottom: 1px solid #d8c9a3;
     font-family: "Times New Roman", "Palatino Linotype", serif;
     font-style: "bold";
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 .navbar a {
+    flex: none;
     color: #6b5d47;
     text-decoration: none;
     font-size: 1.1rem;
     font-weight: 500;
     border-bottom: 2px solid transparent;
     padding-bottom: 2px;
+    white-space: nowrap;
 }
 .navbar a.active {
     color: #2f6690;
@@ -56,6 +61,7 @@ body.graph-fullscreen .footer {
     border-bottom-color: #2f6690;
 }
 .theme-toggle {
+    flex: none;
     margin-left: auto;
     background: none;
     border: none;

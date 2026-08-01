@@ -7,6 +7,7 @@ export default {
       password: '',
       errors: {},
       submitting: false,
+      showPassword: false,
     };
   },
   methods: {
@@ -56,13 +57,21 @@ export default {
 
       <label class="field">
         <span>Password</span>
-        <input
-          v-model="password"
-          type="password"
-          name="password"
-          autocomplete="current-password"
-          required
-        >
+        <div class="password-row">
+          <input
+            v-model="password"
+            :type="showPassword ? 'text' : 'password'"
+            name="password"
+            autocomplete="current-password"
+            required
+          >
+          <button
+            type="button"
+            class="toggle-password"
+            :aria-label="showPassword ? 'Hide password' : 'Show password'"
+            @click="showPassword = !showPassword"
+          >{{ showPassword ? 'Hide' : 'Show' }}</button>
+        </div>
       </label>
 
       <button type="submit" class="submit-button" :disabled="submitting">
@@ -107,6 +116,24 @@ h1 {
 .field input:focus {
   outline: 2px solid var(--series-1, #2f6690);
   outline-offset: 1px;
+}
+.password-row {
+  display: flex;
+  gap: 0.5rem;
+}
+.password-row input {
+  flex: 1;
+  min-width: 0;
+}
+.toggle-password {
+  flex: none;
+  background: transparent;
+  border: 1px solid var(--gridline, #d8c9a3);
+  color: var(--series-1, #2f6690);
+  border-radius: 4px;
+  padding: 0 0.75rem;
+  font-size: 0.8rem;
+  cursor: pointer;
 }
 .form-error {
   background: rgba(176, 65, 62, 0.12);
