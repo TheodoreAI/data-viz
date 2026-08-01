@@ -10,6 +10,7 @@ export default {
       offset: this.initialPaintings.length,
       loading: false,
       exhausted: false,
+      error: false,
     };
   },
   computed: {
@@ -42,10 +43,11 @@ export default {
       return '';
     },
     async loadMore() {
-      if (this.loading || this.exhausted) return;
+      if (this.loading || this.exhausted || this.error) return;
       this.loading = true;
       try {
         const response = await fetch(`/api/art-feed?offset=${this.offset}`);
+        if (!response.ok) throw new Error(`Request failed: ${response.status}`);
         const page = await response.json();
         if (page.length === 0) {
           this.exhausted = true;
@@ -53,8 +55,23 @@ export default {
           this.paintings = this.paintings.concat(page);
           this.offset += page.length;
         }
+      } catch {
+        this.error = true;
       } finally {
         this.loading = false;
+      }
+    },
+    retry() {
+      this.error = false;
+      this.loadMore();
+    },
+    sourceUrl(image) {
+      try {
+        const url = new URL(image);
+        const filename = decodeURIComponent(url.pathname.split('/').pop());
+        return `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(filename)}`;
+      } catch {
+        return image;
       }
     },
   },

@@ -12,6 +12,7 @@ export default {
       margin: { top: 20, right: 20, bottom: 40, left: 70 },
       width: 720 - 70 - 20,
       height: 420 - 20 - 40,
+      showTable: false,
       tooltip: {
         visible: false,
         x: 0,
@@ -50,21 +51,31 @@ export default {
         r: this.rScale(a.views),
       }));
     },
+    sortedByViews() {
+      return [...this.articles].sort((a, b) => b.views - a.views);
+    },
   },
   methods: {
-    onHover(event, article) {
+    bubbleLabel(article) {
+      return `${article.title}, ${article.views.toLocaleString()} views, ${article.extract_length} characters`;
+    },
+    showTooltipAt(x, y, article) {
       this.tooltip.visible = true;
-      this.tooltip.x = event.pageX + 14;
-      this.tooltip.y = event.pageY - 10;
+      this.tooltip.x = x + 14;
+      this.tooltip.y = y - 10;
       this.tooltip.html =
         `<div class="t-title">${article.title}</div>` +
         `<div class="t-meta">${article.views.toLocaleString()} views · ${article.extract_length} chars</div>`;
     },
+    onHover(event, article) {
+      this.showTooltipAt(event.pageX, event.pageY, article);
+    },
+    onTouch(event, article) {
+      const touch = event.touches[0];
+      this.showTooltipAt(touch.pageX, touch.pageY, article);
+    },
     hideTooltip() {
       this.tooltip.visible = false;
-    },
-    openArticle(article) {
-      window.open(article.url, '_blank');
     },
   },
 };
@@ -72,12 +83,19 @@ export default {
 
 <template>
   <div class="viz-root">
-    <h1>Most-viewed Wikipedia articles — {{ date }}</h1>
-    <p class="subtitle">
-      Bubble size and y-position both encode daily pageviews; x-position is article length (characters in summary).
-    </p>
+    <div class="viz-header">
+      <div>
+        <h1>Most-viewed Wikipedia articles — {{ date }}</h1>
+        <p class="subtitle">
+          Bubble size and y-position both encode daily pageviews; x-position is article length (characters in summary).
+        </p>
+      </div>
+      <button type="button" class="table-toggle" @click="showTable = !showTable">
+        {{ showTable ? 'View as chart' : 'View as table' }}
+      </button>
+    </div>
 
-    <div class="chart-scroll">
+    <div v-if="!showTable" class="chart-scroll">
       <svg width="720" height="420" viewBox="0 0 720 420">
         <line
           v-for="tick in yTicks"
@@ -117,19 +135,43 @@ export default {
           text-anchor="middle"
         >Pageviews</text>
 
-        <circle
+        <a
           v-for="b in bubbles"
           :key="b.title"
-          class="bubble"
-          :cx="b.cx"
-          :cy="b.cy"
-          :r="b.r"
+          :href="b.url"
+          target="_blank"
+          rel="noopener"
+          :aria-label="bubbleLabel(b)"
           @mousemove="onHover($event, b)"
+          @touchstart="onTouch($event, b)"
           @mouseleave="hideTooltip"
-          @click="openArticle(b)"
-        />
+        >
+          <circle
+            class="bubble"
+            :cx="b.cx"
+            :cy="b.cy"
+            :r="b.r"
+          />
+        </a>
       </svg>
     </div>
+
+    <table v-else class="data-table">
+      <thead>
+        <tr>
+          <th scope="col">Article</th>
+          <th scope="col">Views</th>
+          <th scope="col">Summary length</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="a in sortedByViews" :key="a.title">
+          <td><a :href="a.url" target="_blank" rel="noopener">{{ a.title }}</a></td>
+          <td>{{ a.views.toLocaleString() }}</td>
+          <td>{{ a.extract_length }}</td>
+        </tr>
+      </tbody>
+    </table>
 
     <div
       id="tooltip"
