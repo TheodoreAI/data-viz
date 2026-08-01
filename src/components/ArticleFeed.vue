@@ -13,6 +13,7 @@ export default {
       navigating: false,
       direction: 'up',
       selectedTopic: '',
+      atStartFlash: false,
     };
   },
   computed: {
@@ -75,7 +76,13 @@ export default {
       await this.appendRandomArticle();
     },
     goBack() {
-      if (!this.canGoBack) return;
+      if (!this.canGoBack) {
+        this.atStartFlash = true;
+        setTimeout(() => {
+          this.atStartFlash = false;
+        }, 900);
+        return;
+      }
       this.startNavigationCooldown();
       this.direction = 'down';
       this.currentIndex -= 1;
@@ -129,8 +136,9 @@ export default {
       </div>
     </header>
 
+    <div v-if="canGoBack" class="swipe-hint swipe-hint-up" aria-hidden="true">︿</div>
     <Transition v-if="currentArticle" :name="direction === 'up' ? 'slide-up' : 'slide-down'" mode="out-in">
-      <article :key="currentIndex" ref="cardEl" class="feed-card">
+      <article :key="currentIndex" ref="cardEl" class="feed-card" :class="{ cooling: navigating }">
         <div v-if="currentArticle.thumbnail" class="feed-image">
           <img :src="currentArticle.thumbnail.source" :alt="currentArticle.title">
         </div>
@@ -140,18 +148,62 @@ export default {
         </div>
       </article>
     </Transition>
+    <div class="swipe-hint swipe-hint-down" aria-hidden="true">﹀</div>
 
+    <div v-if="atStartFlash" class="edge-message">You're at the start</div>
     <div v-if="loading" class="feed-loading">Loading…</div>
   </div>
 </template>
 
 <style scoped>
 .feed-root {
+  position: relative;
   height: calc(100dvh - var(--navbar-height, 44px));
   display: flex;
   flex-direction: column;
   overflow: hidden;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+.swipe-hint {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  color: var(--text-secondary, #52514e);
+  opacity: 0.5;
+  font-size: 1.1rem;
+  line-height: 1;
+  pointer-events: none;
+}
+.swipe-hint-up {
+  top: calc(var(--navbar-height, 44px) + 0.25rem);
+}
+.swipe-hint-down {
+  bottom: 0.5rem;
+  animation: hint-bob 1.8s ease-in-out infinite;
+}
+@keyframes hint-bob {
+  0%, 100% { transform: translate(-50%, 0); }
+  50% { transform: translate(-50%, 4px); }
+}
+.feed-card.cooling {
+  opacity: 0.55;
+  transition: opacity 0.15s ease;
+}
+.edge-message {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 4;
+  background: var(--surface-1, #fcfcfb);
+  color: var(--text-primary, #0b0b0b);
+  border: 1px solid var(--gridline, #e1e0d9);
+  border-radius: 999px;
+  padding: 0.4rem 1rem;
+  font-size: 0.8rem;
+  box-shadow: 0 2px 8px rgba(63, 51, 38, 0.2);
+  pointer-events: none;
 }
 .feed-header {
   flex: none;
@@ -163,6 +215,8 @@ export default {
   overflow-x: auto;
   margin-top: 0.6rem;
   padding-bottom: 0.2rem;
+  mask-image: linear-gradient(to right, black calc(100% - 28px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, black calc(100% - 28px), transparent 100%);
 }
 .topic-pill {
   flex: none;

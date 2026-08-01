@@ -91,9 +91,11 @@ export default {
           <span>{{ item.painting.movement }}<template v-if="item.painting.year != null"> · {{ formatYear(item.painting.year) }}</template></span>
         </div>
         <article class="art-card">
-          <img :src="item.painting.image" :alt="item.painting.title" loading="lazy" class="art-image">
+          <a :href="sourceUrl(item.painting.image)" target="_blank" rel="noopener">
+            <img :src="item.painting.image" :alt="item.painting.title" loading="lazy" class="art-image">
+          </a>
           <div class="art-body">
-            <h2>{{ item.painting.title }}</h2>
+            <h2><a :href="sourceUrl(item.painting.image)" target="_blank" rel="noopener">{{ item.painting.title }}</a></h2>
             <p class="art-meta">
               {{ item.painting.artist }}
               <template v-if="lifespan(item.painting)"> ({{ lifespan(item.painting) }})</template>
@@ -106,6 +108,10 @@ export default {
 
     <div ref="sentinel" class="art-sentinel">
       <span v-if="loading">Loading more…</span>
+      <template v-else-if="error">
+        <span>Couldn't load more.</span>
+        <button type="button" class="retry-button" @click="retry">Retry</button>
+      </template>
       <span v-else-if="exhausted">You've reached the end.</span>
     </div>
   </div>
@@ -159,6 +165,13 @@ export default {
   font-size: 1rem;
   margin: 0.6rem 0 0.2rem;
 }
+.art-body h2 a {
+  color: inherit;
+  text-decoration: none;
+}
+.art-body h2 a:hover {
+  text-decoration: underline;
+}
 .art-meta {
   margin: 0;
   font-size: 0.85rem;
@@ -174,5 +187,18 @@ export default {
   color: var(--text-secondary, #52514e);
   font-size: 0.8rem;
   padding: 1.5rem 0;
+}
+.retry-button {
+  margin-left: 0.6rem;
+  background: transparent;
+  border: 1px solid var(--gridline, #e1e0d9);
+  color: var(--series-1, #2a78d6);
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.retry-button:hover {
+  border-color: var(--series-1, #2a78d6);
 }
 </style>
