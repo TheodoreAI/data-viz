@@ -1,5 +1,6 @@
 <script>
 import { forceSimulation, forceLink, forceManyBody, forceCenter, forceCollide } from 'd3';
+import ArticleTooltip from './ArticleTooltip.vue';
 
 const WIDTH = 800;
 const HEIGHT = 600;
@@ -14,6 +15,7 @@ function defaultZoom() {
 
 export default {
   name: 'ArticleGraph',
+  components: { ArticleTooltip },
   props: {
     seedTitle: { type: String, required: true },
     seedLinks: { type: Array, required: true },
@@ -53,6 +55,7 @@ export default {
   },
   beforeUnmount() {
     if (this.simulation) this.simulation.stop();
+    if (this.hideTimer) clearTimeout(this.hideTimer);
     window.removeEventListener('pointermove', this.onPointerMove);
     window.removeEventListener('pointerup', this.onPointerUp);
     document.body.classList.remove('graph-fullscreen');
@@ -188,11 +191,19 @@ export default {
       }
     },
     hideTooltip() {
+      this.hideTimer = null;
       this.tooltip.visible = false;
       this.hoveredId = null;
     },
-    wikipediaUrl(title) {
-      return `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g, '_'))}`;
+    scheduleHideTooltip() {
+      this.cancelHideTooltip();
+      this.hideTimer = setTimeout(() => this.hideTooltip(), 150);
+    },
+    cancelHideTooltip() {
+      if (this.hideTimer) {
+        clearTimeout(this.hideTimer);
+        this.hideTimer = null;
+      }
     },
     async selectAsCenter(node) {
       if (this.loadingSeed || node.id === this.currentSeedTitle) return;
@@ -351,7 +362,7 @@ export default {
           @pointerdown="onNodePointerDown($event, node)"
           @mouseenter="showTooltip(node)"
           @touchstart="showTooltip(node)"
-          @mouseleave="hideTooltip"
+          @mouseleave="scheduleHideTooltip"
           @click="selectAsCenter(node)"
         >
           <circle :r="nodeRadius(node)" />
@@ -377,6 +388,7 @@ export default {
         >{{ currentSeedTitle }}</text>
       </g>
       </svg>
+      <div class="scanlines" aria-hidden="true"></div>
 
       <div v-if="graphMode" class="zoom-controls">
         <button type="button" aria-label="Zoom in" @click="zoomIn">+</button>
@@ -385,31 +397,31 @@ export default {
       </div>
     </div>
 
-    <div
-      id="tooltip"
-      :style="{ display: tooltip.visible ? 'block' : 'none' }"
-    >
-      <a
-        v-if="tooltip.title"
-        class="t-title"
-        :href="wikipediaUrl(tooltip.title)"
-        target="_blank"
-        rel="noopener"
-        @click.stop
-        @pointerdown.stop
-      >{{ tooltip.title }}</a>
-      <img v-if="tooltip.thumbnail" :src="tooltip.thumbnail" :alt="tooltip.title" class="t-thumb">
-      <div v-if="tooltip.loading" class="t-meta">Loading…</div>
-      <div v-else-if="tooltip.extract" class="t-extract">{{ tooltip.extract }}</div>
-    </div>
+    <ArticleTooltip
+      :visible="tooltip.visible"
+      :title="tooltip.title"
+      :extract="tooltip.extract"
+      :thumbnail="tooltip.thumbnail"
+      :loading="tooltip.loading"
+      @hover-start="cancelHideTooltip"
+      @hover-end="hideTooltip"
+      @close="hideTooltip"
+    />
   </div>
 </template>
 
 <style scoped>
 .graph-root {
+  --crt-bg: #04140a;
+  --crt-green: #33ff66;
+  --crt-green-soft: #8dffb0;
+  --crt-green-dim: #1a8f3f;
+  --crt-green-faint: rgba(51, 255, 102, 0.25);
   max-width: 900px;
   margin: 0 auto;
   padding: 1.5rem 1.25rem;
+  background: var(--crt-bg);
+  font-family: "Courier New", Courier, monospace;
 }
 .graph-root.fullscreen {
   position: fixed;
@@ -420,7 +432,6 @@ export default {
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   display: flex;
   flex-direction: column;
-  background: var(--surface-1, #fcfcfb);
 }
 .graph-header-row {
   display: flex;
@@ -430,67 +441,52 @@ export default {
 }
 .graph-header h1 {
   margin: 0 0 0.1rem;
-  font-size: 1.1rem;
+  font-size: 1.3rem;
+  color: var(--crt-green);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 6px var(--crt-green-faint);
 }
 .mode-toggle {
-  height: 2.5rem;
+  height: 2.75rem;
   flex: none;
-  background: transparent;
-  border: 1px solid var(--gridline, #e1e0d9);
-  color: var(--text-secondary, #52514e);
-  border-radius: 999px;
-  padding: 0.3rem 0.8rem;
-  font-size: 0.75rem;
+  background: var(--crt-bg);
+  border: 1px solid var(--crt-green-dim);
+  color: var(--crt-green);
+  border-radius: 2px;
+  padding: 0.3rem 0.9rem;
+  font-family: inherit;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   cursor: pointer;
+}
+.mode-toggle:hover {
+  border-color: var(--crt-green);
+  box-shadow: 0 0 8px var(--crt-green-faint);
 }
 .subtitle {
-  color: var(--text-secondary, #52514e);
-  font-size: 0.8rem;
+  color: var(--crt-green-soft);
+  font-size: 0.9rem;
   margin: 0 0 1rem;
+  line-height: 1.4;
 }
 .subtitle.loading {
-  color: var(--series-1, #2a78d6);
+  color: var(--crt-green);
   margin-top: -0.5rem;
 }
-#tooltip {
-  position: fixed;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 220px;
-  z-index: 20;
-}
-#tooltip .t-title {
-  pointer-events: auto;
-  color: var(--series-1, #2a78d6);
-  text-decoration: none;
-  cursor: pointer;
-}
-#tooltip .t-title:hover {
-  text-decoration: underline;
-}
-#tooltip .t-thumb {
-  width: 100%;
-  max-height: 110px;
-  object-fit: cover;
-  border-radius: 4px;
-  display: block;
-  margin: 4px 0;
-}
-#tooltip .t-extract {
-  font-size: 0.75rem;
-  line-height: 1.3;
-  color: var(--text-secondary, #52514e);
-  max-height: 4.6em;
-  overflow: hidden;
+.subtitle.loading::after {
+  content: '_';
+  animation: crt-blink 1s steps(1) infinite;
 }
 .graph-svg {
   width: 100%;
   height: 70vh;
   touch-action: none;
-  background: var(--surface-1, #fcfcfb);
-  border: 1px solid var(--gridline, #e1e0d9);
-  border-radius: 6px;
+  background: var(--crt-bg);
+  border: 1px solid var(--crt-green-dim);
+  border-radius: 4px;
+  box-shadow: inset 0 0 40px rgba(51, 255, 102, 0.08);
   cursor: grab;
 }
 .fullscreen .graph-header {
@@ -501,6 +497,7 @@ export default {
   height: auto;
   border: none;
   border-radius: 0;
+  box-shadow: none;
 }
 .graph-canvas {
   position: relative;
@@ -508,6 +505,20 @@ export default {
   flex-direction: column;
   flex: 1;
   min-height: 0;
+}
+.scanlines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.15) 0px,
+    rgba(0, 0, 0, 0.15) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  mix-blend-mode: multiply;
 }
 .zoom-controls {
   position: absolute;
@@ -522,53 +533,66 @@ export default {
   width: 3.5rem;
   height: 3.5rem;
   border-radius: 50%;
-  border: 1px solid var(--gridline, #e1e0d9);
-  background: var(--surface-1, #fcfcfb);
-  color: var(--text-primary, #0b0b0b);
-  font-size: 1.1rem;
+  border: 1px solid var(--crt-green-dim);
+  background: var(--crt-bg);
+  color: var(--crt-green);
+  font-family: inherit;
+  font-size: 1.4rem;
   line-height: 1;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
 }
 .zoom-controls button:hover {
-  border-color: var(--series-1, #2a78d6);
+  border-color: var(--crt-green);
+  box-shadow: 0 0 10px var(--crt-green-faint);
 }
 .graph-edge {
-  stroke: var(--gridline, #e1e0d9);
+  stroke: var(--crt-green-dim);
   stroke-width: 1.5;
+  filter: drop-shadow(0 0 2px rgba(51, 255, 102, 0.3));
 }
 .graph-node circle {
-  fill: var(--surface-1, #fcfcfb);
-  stroke: var(--muted, #898781);
+  fill: var(--crt-bg);
+  stroke: var(--crt-green-dim);
   stroke-width: 2;
   cursor: pointer;
-  transition: r 0.15s ease;
+  transition: r 0.15s ease, stroke 0.15s ease;
 }
 .graph-node:hover circle {
-  stroke: var(--series-1, #2a78d6);
+  stroke: var(--crt-green);
+  filter: drop-shadow(0 0 6px var(--crt-green));
 }
 .graph-node.center circle {
-  fill: var(--series-1, #2a78d6);
-  stroke: var(--series-1, #2a78d6);
+  fill: var(--crt-green-dim);
+  stroke: var(--crt-green);
+  filter: drop-shadow(0 0 8px var(--crt-green));
 }
 .graph-node.expanding circle {
   opacity: 0.5;
 }
 .expand-badge circle {
-  fill: var(--series-1, #2a78d6);
-  stroke: var(--surface-1, #fcfcfb);
+  fill: var(--crt-green);
+  stroke: var(--crt-bg);
   stroke-width: 1.5;
   cursor: pointer;
+  filter: drop-shadow(0 0 4px var(--crt-green));
 }
 .expand-badge line {
-  stroke: #fff;
+  stroke: var(--crt-bg);
   stroke-width: 1.5;
   pointer-events: none;
 }
 .graph-center-label {
-  fill: var(--text-primary, #0b0b0b);
-  font-size: 12px;
-  font-weight: 600;
+  fill: var(--crt-green);
+  font-family: "Courier New", Courier, monospace;
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   pointer-events: none;
+}
+@keyframes crt-blink {
+  0%, 50% { opacity: 1; }
+  50.01%, 100% { opacity: 0; }
 }
 </style>
