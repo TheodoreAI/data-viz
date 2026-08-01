@@ -36,6 +36,9 @@ from email_utils import init_mail
 from email_utils import send_password_reset_email
 from models import User
 from models import db
+from saved_items import delete_saved_item
+from saved_items import list_saved_items
+from saved_items import save_item
 from vite import vite_asset_tags
 from wikidata import fetch_art_feed_page
 from wikidata import fetch_art_movements
@@ -486,6 +489,44 @@ def api_stats():
         'totalUsers': User.query.count(),
         'artMovements': art_movements,
     })
+
+
+@app.route('/api/saved-items', methods=['GET', 'POST'])
+@jwt_required()
+def api_saved_items():
+    user = db.session.get(User, int(get_jwt_identity()))
+    if not user:
+        return jsonify({'error': 'Not found'}), 404
+
+    if request.method == 'POST':
+        data = request.get_json(silent=True) or {}
+        item, errors = save_item(
+            user,
+            item_type=data.get('itemType') or '',
+            title=data.get('title') or '',
+            subtitle=data.get('subtitle') or '',
+            image_url=data.get('imageUrl') or '',
+            source_url=data.get('sourceUrl') or '',
+        )
+        if errors:
+            return jsonify({'errors': errors}), 400
+        return jsonify(item.to_dict()), 201
+
+    item_type = request.args.get('itemType') or None
+    items = list_saved_items(user, item_type=item_type)
+    return jsonify([item.to_dict() for item in items])
+
+
+@app.route('/api/saved-items/<int:item_id>', methods=['DELETE'])
+@jwt_required()
+def api_delete_saved_item(item_id):
+    user = db.session.get(User, int(get_jwt_identity()))
+    if not user:
+        return jsonify({'error': 'Not found'}), 404
+
+    if not delete_saved_item(user, item_id):
+        return jsonify({'error': 'Not found'}), 404
+    return jsonify({'ok': True})
 
 
 @app.route('/bubbles')

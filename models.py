@@ -33,3 +33,29 @@ class User(db.Model):
             'createdAt': self.created_at.isoformat() if self.created_at else None,
             'lastLoginAt': self.last_login_at.isoformat() if self.last_login_at else None,
         }
+
+
+class SavedItem(db.Model):
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'item_type', 'source_url', name='uq_saved_item_per_user'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+    item_type = db.Column(db.String(16), nullable=False)  # 'painting' or 'article'
+    title = db.Column(db.String(255), nullable=False)
+    subtitle = db.Column(db.String(255), nullable=True)
+    image_url = db.Column(db.String(1024), nullable=True)
+    source_url = db.Column(db.String(1024), nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'itemType': self.item_type,
+            'title': self.title,
+            'subtitle': self.subtitle,
+            'imageUrl': self.image_url,
+            'sourceUrl': self.source_url,
+            'createdAt': self.created_at.isoformat() if self.created_at else None,
+        }
