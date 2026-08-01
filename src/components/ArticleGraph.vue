@@ -235,6 +235,15 @@ export default {
       this.tooltip.visible = false;
       this.hoveredId = null;
     },
+    onNodeHoverStart(node) {
+      this.hoveredId = node.id;
+    },
+    onNodeHoverEnd() {
+      if (!this.tooltip.visible) this.hoveredId = null;
+    },
+    hoverLabel(node) {
+      return node.id.length > 16 ? `${node.id.slice(0, 15)}…` : node.id;
+    },
     cancelHideTooltip() {
       if (this.hideTimer) {
         clearTimeout(this.hideTimer);
@@ -414,10 +423,18 @@ export default {
           :class="{ center: node.isCenter, expanding: expandingId === node.id }"
           :transform="`translate(${node.x}, ${node.y})`"
           @pointerdown="onNodePointerDown($event, node)"
+          @mouseenter="onNodeHoverStart(node)"
+          @mouseleave="onNodeHoverEnd"
           @touchstart="showTooltip(node)"
           @click="selectAsCenter(node)"
         >
           <circle :r="nodeRadius(node)" />
+          <text
+            v-if="hoveredId === node.id"
+            class="node-hover-label"
+            text-anchor="middle"
+            dominant-baseline="central"
+          >{{ hoverLabel(node) }}</text>
           <g
             v-if="!node.expanded && hoveredId === node.id && !atNodeLimit"
             class="expand-badge"
@@ -674,6 +691,14 @@ export default {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  pointer-events: none;
+}
+.node-hover-label {
+  fill: var(--crt-green);
+  font-family: "Courier New", Courier, monospace;
+  font-size: 6px;
+  font-weight: 700;
+  text-transform: uppercase;
   pointer-events: none;
 }
 @keyframes crt-blink {
