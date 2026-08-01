@@ -7,8 +7,10 @@ import requests
 from dotenv import load_dotenv
 from flask import Flask
 from flask import jsonify
+from flask import redirect
 from flask import render_template
 from flask import request
+from flask import url_for
 from flask_jwt_extended import JWTManager
 from flask_jwt_extended import create_access_token
 from flask_jwt_extended import get_jwt_identity
@@ -196,6 +198,18 @@ def login_page():
 @app.route('/profile')
 def profile_page():
     return render_template('profile.html')
+
+
+@app.route('/dashboard')
+def dashboard_page():
+    try:
+        verify_jwt_in_request(optional=True)
+        identity = get_jwt_identity()
+    except Exception:
+        identity = None
+    if not identity:
+        return redirect(url_for('login_page'))
+    return render_template('dashboard.html')
 
 
 @app.route('/forgot-password')
