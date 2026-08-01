@@ -6,6 +6,7 @@ USERNAME_PATTERN = re.compile(r'^[a-zA-Z0-9_]{3,32}$')
 EMAIL_PATTERN = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
 MIN_PASSWORD_LENGTH = 8
 MAX_BIO_LENGTH = 280
+MAX_DISPLAY_NAME_LENGTH = 64
 
 
 def validate_registration(username, email, password):
@@ -54,6 +55,15 @@ def update_bio(user, bio):
     if len(bio) > MAX_BIO_LENGTH:
         return {'bio': f'Bio must be {MAX_BIO_LENGTH} characters or fewer.'}
     user.bio = bio
+    db.session.commit()
+    return {}
+
+
+def update_display_name(user, display_name):
+    """Returns errors dict; {} on success. Updates and commits in place."""
+    if len(display_name) > MAX_DISPLAY_NAME_LENGTH:
+        return {'displayName': f'Display name must be {MAX_DISPLAY_NAME_LENGTH} characters or fewer.'}
+    user.display_name = display_name or None
     db.session.commit()
     return {}
 
