@@ -50,7 +50,12 @@ _topic_category_pool_cache = {}
 app = Flask(__name__)
 app.jinja_env.globals['vite_asset'] = lambda entry: vite_asset_tags(entry, app.debug, request.host)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///data-viz.db')
+DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///data-viz.db')
+if DATABASE_URL.startswith('postgres://'):
+    # Render's connection strings use the legacy 'postgres://' scheme, which
+    # SQLAlchemy 1.4+ no longer accepts.
+    DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Remember to clean this up before deploying
@@ -66,6 +71,7 @@ if not JWT_SECRET_KEY:
 app.config['JWT_SECRET_KEY'] = JWT_SECRET_KEY
 app.config['JWT_TOKEN_LOCATION'] = ['cookies']
 app.config['JWT_COOKIE_SECURE'] = not app.debug
+app.config['JWT_COOKIE_SAMESITE'] = 'Lax'
 app.config['JWT_COOKIE_CSRF_PROTECT'] = True
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=7)
 
