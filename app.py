@@ -126,6 +126,11 @@ def api_art_feed():
     return jsonify(fetch_art_feed_page(offset=offset, movement=movement))
 
 
+@app.route('/api/art-movements')
+def api_art_movements():
+    return jsonify(fetch_art_movements())
+
+
 @app.route('/graph')
 def graph():
     article = fetch_random_article()

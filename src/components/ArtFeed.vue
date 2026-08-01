@@ -3,23 +3,17 @@ export default {
   name: 'ArtFeed',
   props: {
     initialPaintings: { type: Array, required: true },
+    movements: { type: Array, default: () => [] },
   },
   data() {
     return {
       paintings: this.initialPaintings,
       offset: this.initialPaintings.length,
+      selectedMovement: '',
       loading: false,
       exhausted: false,
       error: false,
     };
-  },
-  computed: {
-    feedItems() {
-      return this.paintings.map((painting, index) => ({
-        painting,
-        showDivider: index === 0 || this.paintings[index - 1].movement !== painting.movement,
-      }));
-    },
   },
   mounted() {
     this.observer = new IntersectionObserver((entries) => {
@@ -42,11 +36,16 @@ export default {
       if (painting.birthYear) return `b. ${this.formatYear(painting.birthYear)}`;
       return '';
     },
+    feedUrl() {
+      const params = new URLSearchParams({ offset: this.offset });
+      if (this.selectedMovement) params.set('movement', this.selectedMovement);
+      return `/api/art-feed?${params.toString()}`;
+    },
     async loadMore() {
       if (this.loading || this.exhausted || this.error) return;
       this.loading = true;
       try {
-        const response = await fetch(`/api/art-feed?offset=${this.offset}`);
+        const response = await fetch(this.feedUrl());
         if (!response.ok) throw new Error(`Request failed: ${response.status}`);
         const page = await response.json();
         if (page.length === 0) {
@@ -65,6 +64,15 @@ export default {
       this.error = false;
       this.loadMore();
     },
+    async selectMovement(movementId) {
+      if (this.loading || movementId === this.selectedMovement) return;
+      this.selectedMovement = movementId;
+      this.paintings = [];
+      this.offset = 0;
+      this.exhausted = false;
+      this.error = false;
+      await this.loadMore();
+    },
     sourceUrl(image) {
       try {
         const url = new URL(image);
@@ -82,28 +90,39 @@ export default {
   <div class="art-feed">
     <header class="art-header">
       <h1>Art Movements</h1>
-      <p class="subtitle">Paintings ordered chronologically by creation date — keep scrolling.</p>
+      <p class="subtitle">Shuffled paintings — pick a movement or browse them all.</p>
+      <div class="topic-row">
+        <button
+          class="topic-pill"
+          :class="{ active: selectedMovement === '' }"
+          :disabled="loading"
+          @click="selectMovement('')"
+        >All</button>
+        <button
+          v-for="movement in movements"
+          :key="movement.id"
+          class="topic-pill"
+          :class="{ active: selectedMovement === movement.id }"
+          :disabled="loading"
+          @click="selectMovement(movement.id)"
+        >{{ movement.label }}</button>
+      </div>
     </header>
 
-    <div class="art-list">
-      <template v-for="item in feedItems" :key="item.painting.title + item.painting.year">
-        <div v-if="item.showDivider" class="movement-divider">
-          <span>{{ item.painting.movement }}<template v-if="item.painting.year != null"> · {{ formatYear(item.painting.year) }}</template></span>
+    <div class="art-grid">
+      <article v-for="(painting, index) in paintings" :key="painting.title + painting.year + index" class="art-card">
+        <a :href="sourceUrl(painting.image)" target="_blank" rel="noopener">
+          <img :src="painting.image" :alt="painting.title" loading="lazy" class="art-image">
+        </a>
+        <div class="art-body">
+          <h2><a :href="sourceUrl(painting.image)" target="_blank" rel="noopener">{{ painting.title }}</a></h2>
+          <p class="art-meta">
+            {{ painting.artist }}
+            <template v-if="lifespan(painting)"> ({{ lifespan(painting) }})</template>
+          </p>
+          <p class="art-year" v-if="painting.year != null">{{ formatYear(painting.year) }} · {{ painting.movement }}</p>
         </div>
-        <article class="art-card">
-          <a :href="sourceUrl(item.painting.image)" target="_blank" rel="noopener">
-            <img :src="item.painting.image" :alt="item.painting.title" loading="lazy" class="art-image">
-          </a>
-          <div class="art-body">
-            <h2><a :href="sourceUrl(item.painting.image)" target="_blank" rel="noopener">{{ item.painting.title }}</a></h2>
-            <p class="art-meta">
-              {{ item.painting.artist }}
-              <template v-if="lifespan(item.painting)"> ({{ lifespan(item.painting) }})</template>
-            </p>
-            <p class="art-year" v-if="item.painting.year != null">{{ formatYear(item.painting.year) }} · {{ item.painting.movement }}</p>
-          </div>
-        </article>
-      </template>
+      </article>
     </div>
 
     <div ref="sentinel" class="art-sentinel">
@@ -119,7 +138,7 @@ export default {
 
 <style scoped>
 .art-feed {
-  max-width: 640px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 1.5rem 1.25rem 3rem;
 }
@@ -130,32 +149,57 @@ export default {
 .subtitle {
   color: var(--text-secondary, #52514e);
   font-size: 0.8rem;
-  margin: 0 0 1.5rem;
+  margin: 0 0 0.9rem;
 }
-.movement-divider {
-  position: sticky;
-  top: calc(var(--navbar-height, 44px) + 0.5rem);
-  z-index: 5;
-  text-align: center;
-  margin: 1.5rem 0 1rem;
+.topic-row {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  margin-top: 0.6rem;
+  padding-bottom: 0.2rem;
+  mask-image: linear-gradient(to right, black calc(100% - 28px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, black calc(100% - 28px), transparent 100%);
 }
-.movement-divider span {
-  display: inline-block;
-  background: var(--series-1, #2a78d6);
-  color: #fff;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  padding: 0.35rem 0.9rem;
+.topic-pill {
+  flex: none;
+  border: 1px solid var(--gridline, #e1e0d9);
+  background: transparent;
+  color: var(--text-secondary, #52514e);
   border-radius: 999px;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.topic-pill.active {
+  background: var(--series-1, #2a78d6);
+  border-color: var(--series-1, #2a78d6);
+  color: #fff;
+}
+.topic-pill:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.art-grid {
+  columns: 1;
+  column-gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+@media (min-width: 641px) {
+  .art-grid {
+    columns: 2;
+  }
+}
+@media (min-width: 961px) {
+  .art-grid {
+    columns: 3;
+  }
 }
 .art-card {
-  margin-bottom: 2rem;
+  break-inside: avoid;
+  margin-bottom: 1.5rem;
 }
 .art-image {
   width: 100%;
-  max-height: 60vh;
   object-fit: contain;
   background: var(--gridline, #e1e0d9);
   display: block;

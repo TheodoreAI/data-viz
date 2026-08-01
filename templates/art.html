@@ -10,5 +10,5 @@
 
 {% include '_footer.html' %}
 
-<script id="art-data" type="application/json">{{ {'paintings': paintings} | tojson }}</script>
+<script id="art-data" type="application/json">{{ {'paintings': paintings, 'movements': movements} | tojson }}</script>
 {{ vite_asset('art') }}
