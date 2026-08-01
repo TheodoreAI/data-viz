@@ -56,3 +56,23 @@ def update_bio(user, bio):
     user.bio = bio
     db.session.commit()
     return {}
+
+
+def change_password(user, current_password, new_password):
+    """Returns errors dict; {} on success. Updates and commits in place."""
+    if not user.check_password(current_password):
+        return {'currentPassword': 'Current password is incorrect.'}
+    if not new_password or len(new_password) < MIN_PASSWORD_LENGTH:
+        return {'newPassword': f'Password must be at least {MIN_PASSWORD_LENGTH} characters.'}
+    user.set_password(new_password)
+    db.session.commit()
+    return {}
+
+
+def delete_account(user, password):
+    """Returns errors dict; {} on success, in which case the user is deleted."""
+    if not user.check_password(password):
+        return {'password': 'Incorrect password.'}
+    db.session.delete(user)
+    db.session.commit()
+    return {}
