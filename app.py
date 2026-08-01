@@ -10,6 +10,7 @@ from flask import request
 
 from vite import vite_asset_tags
 from wikidata import fetch_art_feed_page
+from wikidata import fetch_art_movements
 
 WIKIPEDIA_RANDOM_SUMMARY_URL = 'https://en.wikipedia.org/api/rest_v1/page/random/summary'
 WIKIPEDIA_SUMMARY_URL = 'https://en.wikipedia.org/api/rest_v1/page/summary/{title}'
@@ -113,14 +114,16 @@ def api_random_article():
 
 @app.route('/art')
 def art():
+    movements = fetch_art_movements()
     paintings = fetch_art_feed_page(offset=0)
-    return render_template('art.html', paintings=paintings)
+    return render_template('art.html', paintings=paintings, movements=movements)
 
 
 @app.route('/api/art-feed')
 def api_art_feed():
     offset = request.args.get('offset', 0, type=int)
-    return jsonify(fetch_art_feed_page(offset=offset))
+    movement = request.args.get('movement') or None
+    return jsonify(fetch_art_feed_page(offset=offset, movement=movement))
 
 
 @app.route('/graph')

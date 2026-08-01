@@ -1,3 +1,4 @@
+import random
 import re
 from functools import lru_cache
 
@@ -10,7 +11,26 @@ WIKIDATA_HEADERS = {
 }
 
 ART_FEED_PAGE_SIZE = 20
-ART_FEED_QUERY = """
+ART_POOL_SIZE = 400
+MIN_MOVEMENT_PAINTINGS = 15
+MAX_MOVEMENTS = 20
+
+ART_MOVEMENTS_QUERY = """
+SELECT ?movement ?movementLabel (COUNT(DISTINCT ?painting) AS ?count) WHERE {{
+  ?painting wdt:P31 wd:Q3305213;
+            wdt:P170 ?artist;
+            wdt:P18 ?image;
+            wdt:P135 ?movement;
+            wdt:P571 ?inception.
+  SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en". }}
+}}
+GROUP BY ?movement ?movementLabel
+HAVING (COUNT(DISTINCT ?painting) >= {min_count})
+ORDER BY DESC(?count)
+LIMIT {limit}
+"""
+
+ART_POOL_QUERY = """
 SELECT ?painting ?paintingLabel ?artistLabel ?movementLabel
        (SAMPLE(?birth) AS ?birthAgg)
        (SAMPLE(?death) AS ?deathAgg)
@@ -19,15 +39,14 @@ SELECT ?painting ?paintingLabel ?artistLabel ?movementLabel
   ?painting wdt:P31 wd:Q3305213;
             wdt:P170 ?artist;
             wdt:P18 ?image;
-            wdt:P135 ?movement;
+            wdt:P135 {movement_clause};
             wdt:P571 ?inception.
   OPTIONAL {{ ?artist wdt:P569 ?birth. }}
   OPTIONAL {{ ?artist wdt:P570 ?death. }}
   SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en". }}
 }}
 GROUP BY ?painting ?paintingLabel ?artistLabel ?movementLabel
-ORDER BY ?inceptionAgg
-LIMIT {limit} OFFSET {offset}
+LIMIT {limit}
 """
 
 YEAR_PATTERN = re.compile(r'^(-?\d+)-\d{2}-\d{2}')
@@ -56,25 +75,49 @@ def label_or_none(value):
     return value
 
 
-@lru_cache(maxsize=256)
-def fetch_art_feed_page(offset, limit=ART_FEED_PAGE_SIZE):
-    query = ART_FEED_QUERY.format(limit=limit, offset=offset)
+@lru_cache(maxsize=1)
+def fetch_art_movements():
+    query = ART_MOVEMENTS_QUERY.format(min_count=MIN_MOVEMENT_PAINTINGS, limit=MAX_MOVEMENTS)
     response = requests.get(WIKIDATA_SPARQL_URL, headers=WIKIDATA_HEADERS, params={'query': query})
     response.raise_for_status()
     bindings = response.json()['results']['bindings']
 
-    paintings = []
+    movements = []
     for row in bindings:
-        image = row.get('imageAgg', {}).get('value')
-        if not image:
-            continue
-        paintings.append({
-            'title': label_or_none(row.get('paintingLabel', {}).get('value')) or 'Untitled',
-            'artist': label_or_none(row.get('artistLabel', {}).get('value')) or 'Unknown artist',
-            'birthYear': extract_year(row.get('birthAgg', {}).get('value')),
-            'deathYear': extract_year(row.get('deathAgg', {}).get('value')),
-            'movement': label_or_none(row.get('movementLabel', {}).get('value')) or 'Unknown movement',
-            'year': extract_year(row.get('inceptionAgg', {}).get('value')),
-            'image': commons_thumbnail_url(image),
-        })
+        movement_id = row['movement']['value'].rsplit('/', 1)[-1]
+        label = label_or_none(row.get('movementLabel', {}).get('value')) or movement_id
+        movements.append({'id': movement_id, 'label': label})
+    return movements
+
+
+def parse_painting_row(row):
+    image = row.get('imageAgg', {}).get('value')
+    if not image:
+        return None
+    return {
+        'title': label_or_none(row.get('paintingLabel', {}).get('value')) or 'Untitled',
+        'artist': label_or_none(row.get('artistLabel', {}).get('value')) or 'Unknown artist',
+        'birthYear': extract_year(row.get('birthAgg', {}).get('value')),
+        'deathYear': extract_year(row.get('deathAgg', {}).get('value')),
+        'movement': label_or_none(row.get('movementLabel', {}).get('value')) or 'Unknown movement',
+        'year': extract_year(row.get('inceptionAgg', {}).get('value')),
+        'image': commons_thumbnail_url(image),
+    }
+
+
+@lru_cache(maxsize=64)
+def fetch_art_pool(movement_id=None):
+    movement_clause = f'wd:{movement_id}' if movement_id and QID_PATTERN.match(movement_id) else '?movement'
+    query = ART_POOL_QUERY.format(movement_clause=movement_clause, limit=ART_POOL_SIZE)
+    response = requests.get(WIKIDATA_SPARQL_URL, headers=WIKIDATA_HEADERS, params={'query': query})
+    response.raise_for_status()
+    bindings = response.json()['results']['bindings']
+
+    paintings = [p for p in (parse_painting_row(row) for row in bindings) if p]
+    random.shuffle(paintings)
     return paintings
+
+
+def fetch_art_feed_page(offset, limit=ART_FEED_PAGE_SIZE, movement=None):
+    pool = fetch_art_pool(movement)
+    return pool[offset:offset + limit]
