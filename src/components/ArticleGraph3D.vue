@@ -1,8 +1,11 @@
 <script>
 import ForceGraph3D from '3d-force-graph';
+import * as THREE from 'three';
 import ArticleTooltip from './ArticleTooltip.vue';
 
 const MAX_PIXEL_RATIO = 2;
+const CENTER_COLOR = 0xb8935a; // gold/bronze
+const NODE_COLOR = 0x74804a; // olive
 
 export default {
   name: 'ArticleGraph3D',
@@ -30,20 +33,27 @@ export default {
     this.graph = ForceGraph3D()(this.$refs.container)
       .backgroundColor('#00000000')
       .nodeLabel(node => node.id)
-      .nodeColor(node => (node.isCenter ? '#b8935a' : '#2f6690'))
-      .nodeRelSize(9)
+      .nodeThreeObject(node => {
+        const geometry = new THREE.SphereGeometry(node.isCenter ? 9 : 6, 24, 24);
+        const material = new THREE.MeshStandardMaterial({
+          color: node.isCenter ? CENTER_COLOR : NODE_COLOR,
+          metalness: node.isCenter ? 0.75 : 0.4,
+          roughness: node.isCenter ? 0.3 : 0.6,
+        });
+        return new THREE.Mesh(geometry, material);
+      })
       .linkColor(() => 'rgba(116, 128, 74, 0.6)')
       .linkWidth(1)
       .cooldownTicks(reducedMotion ? 0 : 200)
       .onNodeClick(node => this.navigateToNode(node))
       .onNodeHover(node => {
         this.$refs.container.style.cursor = node ? 'pointer' : 'default';
-        if (node) {
-          this.showTooltip(node.id);
-        } else {
-          this.hideTooltip();
-        }
       });
+
+    this.graph.scene().add(new THREE.AmbientLight(0xffffff, 0.6));
+    const keyLight = new THREE.DirectionalLight(0xfff2d9, 1.1);
+    keyLight.position.set(1, 1, 1);
+    this.graph.scene().add(keyLight);
 
     const pixelRatio = Math.min(window.devicePixelRatio || 1, MAX_PIXEL_RATIO);
     this.graph.renderer().setPixelRatio(pixelRatio);
@@ -61,6 +71,7 @@ export default {
   watch: {
     seedTitle(title) {
       this.setGraphData(title, this.seedLinks);
+      this.showTooltip(title);
     },
   },
   methods: {
@@ -134,7 +145,11 @@ export default {
       this.tooltip.visible = false;
     },
     navigateToNode(node) {
-      if (node.isCenter || this.loadingNodeId) return;
+      if (this.loadingNodeId) return;
+      if (node.isCenter) {
+        this.showTooltip(node.id);
+        return;
+      }
       this.hideTooltip();
       this.$emit('select', node.id);
     },
@@ -187,7 +202,7 @@ export default {
       ref="container"
       class="graph-3d-container"
       role="img"
-      :aria-label="`3D force graph centered on ${seedTitle}, with ${listNodes.length - 1} linked articles. Click a node to move there, hover for a summary. Use the list view for keyboard access.`"
+      :aria-label="`3D force graph centered on ${seedTitle}, with ${listNodes.length - 1} linked articles. Click a node to move there and see its summary; click the highlighted center node to see its summary. Use the list view for keyboard access.`"
     ></div>
 
     <div v-if="showList" class="graph-3d-list">
