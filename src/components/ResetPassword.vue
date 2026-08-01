@@ -9,6 +9,7 @@ export default {
       submitting: false,
       succeeded: false,
       errors: {},
+      showPasswords: false,
     };
   },
   mounted() {
@@ -55,7 +56,7 @@ export default {
   <div class="auth-page">
     <h1>Reset your password</h1>
     <template v-if="succeeded">
-      <p class="confirmation">Your password has been reset.</p>
+      <p class="confirmation" role="status">Your password has been reset.</p>
       <p class="auth-switch"><a href="/login">Log in</a></p>
     </template>
     <template v-else>
@@ -64,27 +65,37 @@ export default {
 
         <label class="field">
           <span>New password</span>
-          <input
-            v-model="newPassword"
-            type="password"
-            autocomplete="new-password"
-            minlength="8"
-            required
-            :aria-invalid="!!errors.newPassword"
-          >
-          <span v-if="errors.newPassword" class="field-error" role="alert">{{ errors.newPassword }}</span>
+          <div class="password-row">
+            <input
+              v-model="newPassword"
+              :type="showPasswords ? 'text' : 'password'"
+              autocomplete="new-password"
+              minlength="8"
+              required
+              :aria-invalid="!!errors.newPassword"
+              aria-describedby="new-password-error"
+            >
+            <button
+              type="button"
+              class="toggle-password"
+              :aria-label="showPasswords ? 'Hide passwords' : 'Show passwords'"
+              @click="showPasswords = !showPasswords"
+            >{{ showPasswords ? 'Hide' : 'Show' }}</button>
+          </div>
+          <span v-if="errors.newPassword" id="new-password-error" class="field-error" role="alert">{{ errors.newPassword }}</span>
         </label>
 
         <label class="field">
           <span>Confirm new password</span>
           <input
             v-model="confirmNewPassword"
-            type="password"
+            :type="showPasswords ? 'text' : 'password'"
             autocomplete="new-password"
             required
             :aria-invalid="!!errors.confirmNewPassword"
+            aria-describedby="confirm-new-password-error"
           >
-          <span v-if="errors.confirmNewPassword" class="field-error" role="alert">{{ errors.confirmNewPassword }}</span>
+          <span v-if="errors.confirmNewPassword" id="confirm-new-password-error" class="field-error" role="alert">{{ errors.confirmNewPassword }}</span>
         </label>
 
         <button type="submit" class="submit-button" :disabled="submitting">
@@ -142,6 +153,24 @@ h1 {
 }
 .field input[aria-invalid="true"] {
   border-color: #b0413e;
+}
+.password-row {
+  display: flex;
+  gap: 0.5rem;
+}
+.password-row input {
+  flex: 1;
+  min-width: 0;
+}
+.toggle-password {
+  flex: none;
+  background: transparent;
+  border: 1px solid var(--gridline, #d8c9a3);
+  color: var(--series-1, #2f6690);
+  border-radius: 4px;
+  padding: 0 0.75rem;
+  font-size: 0.8rem;
+  cursor: pointer;
 }
 .field-error {
   color: #b0413e;

@@ -36,8 +36,10 @@ export default {
       passwordErrors: {},
       passwordSuccess: false,
       savingPassword: false,
+      showPasswordFields: false,
       deletingAccount: false,
       deletePassword: '',
+      deleteConfirmText: '',
       deleteErrors: {},
       deletingInFlight: false,
     };
@@ -48,6 +50,9 @@ export default {
     },
     lastLogin() {
       return formatDate(this.user?.lastLoginAt);
+    },
+    deleteConfirmMatches() {
+      return this.deleteConfirmText === this.user?.username;
     },
   },
   async mounted() {
@@ -198,6 +203,7 @@ export default {
     },
     startDeletingAccount() {
       this.deletePassword = '';
+      this.deleteConfirmText = '';
       this.deleteErrors = {};
       this.deletingAccount = true;
     },
@@ -205,7 +211,7 @@ export default {
       this.deletingAccount = false;
     },
     async confirmDeleteAccount() {
-      if (this.deletingInFlight) return;
+      if (this.deletingInFlight || !this.deleteConfirmMatches) return;
       this.deletingInFlight = true;
       this.deleteErrors = {};
       try {
@@ -305,7 +311,7 @@ export default {
 
       <div class="settings-section">
         <h2>Password</h2>
-        <p v-if="passwordSuccess && !changingPassword" class="success-message">Password updated.</p>
+        <p v-if="passwordSuccess && !changingPassword" class="success-message" role="status">Password updated.</p>
         <button v-if="!changingPassword" type="button" class="edit-button" @click="startChangingPassword">
           Change password
         </button>
@@ -316,37 +322,48 @@ export default {
             <span>Current password</span>
             <input
               v-model="currentPassword"
-              type="password"
+              :type="showPasswordFields ? 'text' : 'password'"
               autocomplete="current-password"
               required
               :aria-invalid="!!passwordErrors.currentPassword"
+              aria-describedby="current-password-error"
             >
-            <span v-if="passwordErrors.currentPassword" class="field-error" role="alert">{{ passwordErrors.currentPassword }}</span>
+            <span v-if="passwordErrors.currentPassword" id="current-password-error" class="field-error" role="alert">{{ passwordErrors.currentPassword }}</span>
           </label>
 
           <label class="field">
             <span>New password</span>
-            <input
-              v-model="newPassword"
-              type="password"
-              autocomplete="new-password"
-              minlength="8"
-              required
-              :aria-invalid="!!passwordErrors.newPassword"
-            >
-            <span v-if="passwordErrors.newPassword" class="field-error" role="alert">{{ passwordErrors.newPassword }}</span>
+            <div class="password-row">
+              <input
+                v-model="newPassword"
+                :type="showPasswordFields ? 'text' : 'password'"
+                autocomplete="new-password"
+                minlength="8"
+                required
+                :aria-invalid="!!passwordErrors.newPassword"
+                aria-describedby="new-password-error"
+              >
+              <button
+                type="button"
+                class="toggle-password"
+                :aria-label="showPasswordFields ? 'Hide passwords' : 'Show passwords'"
+                @click="showPasswordFields = !showPasswordFields"
+              >{{ showPasswordFields ? 'Hide' : 'Show' }}</button>
+            </div>
+            <span v-if="passwordErrors.newPassword" id="new-password-error" class="field-error" role="alert">{{ passwordErrors.newPassword }}</span>
           </label>
 
           <label class="field">
             <span>Confirm new password</span>
             <input
               v-model="confirmNewPassword"
-              type="password"
+              :type="showPasswordFields ? 'text' : 'password'"
               autocomplete="new-password"
               required
               :aria-invalid="!!passwordErrors.confirmNewPassword"
+              aria-describedby="confirm-new-password-error"
             >
-            <span v-if="passwordErrors.confirmNewPassword" class="field-error" role="alert">{{ passwordErrors.confirmNewPassword }}</span>
+            <span v-if="passwordErrors.confirmNewPassword" id="confirm-new-password-error" class="field-error" role="alert">{{ passwordErrors.confirmNewPassword }}</span>
           </label>
 
           <div class="bio-actions">
@@ -367,6 +384,15 @@ export default {
         <form v-else class="settings-form" @submit.prevent="confirmDeleteAccount" novalidate>
           <p v-if="deleteErrors.form" class="form-error" role="alert">{{ deleteErrors.form }}</p>
           <label class="field">
+            <span>Type <strong>{{ user.username }}</strong> to confirm</span>
+            <input
+              v-model="deleteConfirmText"
+              type="text"
+              autocomplete="off"
+              required
+            >
+          </label>
+          <label class="field">
             <span>Enter your password to confirm</span>
             <input
               v-model="deletePassword"
@@ -374,11 +400,12 @@ export default {
               autocomplete="current-password"
               required
               :aria-invalid="!!deleteErrors.password"
+              aria-describedby="delete-password-error"
             >
-            <span v-if="deleteErrors.password" class="field-error" role="alert">{{ deleteErrors.password }}</span>
+            <span v-if="deleteErrors.password" id="delete-password-error" class="field-error" role="alert">{{ deleteErrors.password }}</span>
           </label>
           <div class="bio-actions">
-            <button type="submit" class="danger-button" :disabled="deletingInFlight">
+            <button type="submit" class="danger-button" :disabled="deletingInFlight || !deleteConfirmMatches">
               {{ deletingInFlight ? 'Deleting…' : 'Permanently delete account' }}
             </button>
             <button type="button" class="cancel-button" :disabled="deletingInFlight" @click="cancelDeletingAccount">Cancel</button>
@@ -405,6 +432,9 @@ export default {
   gap: 1rem;
   margin-bottom: 0.75rem;
 }
+.profile-header > div {
+  min-width: 0;
+}
 .avatar {
   border-radius: 50%;
   border: 1px solid var(--gridline, #d8c9a3);
@@ -414,6 +444,7 @@ export default {
 h1 {
   font-size: 1.3rem;
   margin: 0;
+  overflow-wrap: break-word;
 }
 .username-sub {
   color: var(--text-secondary, #6b5d47);
@@ -522,6 +553,7 @@ h1 {
   flex-direction: column;
   gap: 0.3rem;
   font-size: 0.85rem;
+  overflow-wrap: break-word;
 }
 .field input {
   font-family: inherit;
@@ -538,6 +570,24 @@ h1 {
 }
 .field input[aria-invalid="true"] {
   border-color: #b0413e;
+}
+.password-row {
+  display: flex;
+  gap: 0.5rem;
+}
+.password-row input {
+  flex: 1;
+  min-width: 0;
+}
+.toggle-password {
+  flex: none;
+  background: transparent;
+  border: 1px solid var(--gridline, #d8c9a3);
+  color: var(--series-1, #2f6690);
+  border-radius: 4px;
+  padding: 0 0.75rem;
+  font-size: 0.8rem;
+  cursor: pointer;
 }
 .field-error {
   color: #b0413e;

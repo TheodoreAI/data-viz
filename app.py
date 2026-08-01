@@ -1,5 +1,6 @@
 import os
 import random
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta, timezone
 from urllib.parse import quote
 
@@ -7,8 +8,10 @@ import requests
 from dotenv import load_dotenv
 from flask import Flask
 from flask import jsonify
+from flask import redirect
 from flask import render_template
 from flask import request
+from flask import url_for
 from flask_jwt_extended import JWTManager
 from flask_jwt_extended import create_access_token
 from flask_jwt_extended import get_jwt_identity
@@ -198,6 +201,18 @@ def profile_page():
     return render_template('profile.html')
 
 
+@app.route('/dashboard')
+def dashboard_page():
+    try:
+        verify_jwt_in_request(optional=True)
+        identity = get_jwt_identity()
+    except Exception:
+        identity = None
+    if not identity:
+        return redirect(url_for('login_page'))
+    return render_template('dashboard.html')
+
+
 @app.route('/forgot-password')
 def forgot_password_page():
     return render_template('forgot_password.html')
@@ -353,8 +368,13 @@ def api_random_article():
 
 @app.route('/art')
 def art():
-    movements = fetch_art_movements()
-    paintings = fetch_art_feed_page(offset=0)
+    # These are independent Wikidata SPARQL calls that can each take several
+    # seconds on a cold cache — run them concurrently instead of back to back.
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        movements_future = executor.submit(fetch_art_movements)
+        paintings_future = executor.submit(fetch_art_feed_page, offset=0)
+        movements = movements_future.result()
+        paintings = paintings_future.result()
     return render_template('art.html', paintings=paintings, movements=movements)
 
 
@@ -415,6 +435,56 @@ def api_article_summary():
         'title': summary.get('title', title),
         'extract': summary.get('extract', ''),
         'thumbnail': summary.get('thumbnail', {}).get('source'),
+    })
+
+
+def fetch_top_viewed_titles(year, month, day, limit=10):
+    """Lightweight version of the /bubbles fetch — just title/views/url, no
+    per-article summary lookups, so it's fast enough for a dashboard widget."""
+    top_url = WIKIPEDIA_TOP_VIEWED_URL.format(year=year, month=f'{month:02d}', day=day)
+    response = requests.get(top_url, headers=WIKIPEDIA_HEADERS, timeout=10)
+    response.raise_for_status()
+    top_articles = response.json()['items'][0]['articles']
+
+    articles = []
+    for entry in top_articles:
+        title = entry['article']
+        if title in EXCLUDED_TITLES or title.startswith('Special:') or title.startswith('Wikipedia:'):
+            continue
+        articles.append({
+            'title': title.replace('_', ' '),
+            'views': entry['views'],
+            'url': f'https://en.wikipedia.org/wiki/{quote(title)}',
+        })
+        if len(articles) == limit:
+            break
+    return articles
+
+
+@app.route('/api/top-articles')
+def api_top_articles():
+    yesterday = date.today() - timedelta(days=1)
+    year = request.args.get('year', default=yesterday.year, type=int)
+    month = request.args.get('month', default=yesterday.month, type=int)
+    day = request.args.get('day', type=int)  # omitted -> whole-month aggregate
+
+    try:
+        articles = fetch_top_viewed_titles(year, month, f'{day:02d}' if day else 'all-days')
+    except requests.RequestException:
+        return jsonify({'error': "Couldn't load article data for that period."}), 502
+
+    return jsonify({'year': year, 'month': month, 'day': day, 'articles': articles})
+
+
+@app.route('/api/stats')
+def api_stats():
+    try:
+        art_movements = len(fetch_art_movements())
+    except requests.RequestException:
+        art_movements = None
+    return jsonify({
+        'totalUsers': User.query.count(),
+        'artMovements': art_movements,
     })
 
 

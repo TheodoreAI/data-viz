@@ -23,6 +23,7 @@ export default defineConfig(({ command }) => ({
         register: 'src/entries/register.js',
         login: 'src/entries/login.js',
         profile: 'src/entries/profile.js',
+        dashboard: 'src/entries/dashboard.js',
         'forgot-password': 'src/entries/forgot-password.js',
         'reset-password': 'src/entries/reset-password.js',
       },

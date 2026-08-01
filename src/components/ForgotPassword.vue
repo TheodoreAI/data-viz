@@ -41,7 +41,7 @@ export default {
   <div class="auth-page">
     <h1>Forgot your password?</h1>
     <template v-if="submitted">
-      <p class="confirmation">
+      <p class="confirmation" role="status">
         If an account exists for that email, we've sent a link to reset your password.
       </p>
     </template>
