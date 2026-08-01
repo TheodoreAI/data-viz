@@ -8,20 +8,20 @@ html, body {
     height: 100%;
 }
 body {
-    font-family: "Linux Libertine", serif;
+    font-family: "Linux Libertine", "Palatino Linotype", Georgia, serif;
     margin: 0;
-    background: #fcfcfb;
-    color: #0b0b0b;
+    background: #f3e9d2;
+    color: #3f3326;
 }
 @media (prefers-color-scheme: dark) {
     :root:where(:not([data-theme="light"])) body {
-        background: #1a1a19;
-        color: #ffffff;
+        background: #1c2430;
+        color: #ede1c3;
     }
 }
 :root[data-theme="dark"] body {
-    background: #1a1a19;
-    color: #ffffff;
+    background: #1c2430;
+    color: #ede1c3;
 }
 
 body.graph-fullscreen {
@@ -38,18 +38,18 @@ body.graph-fullscreen .footer {
     align-items: center;
     gap: 1.25rem;
     padding: 0 1.25rem;
-    border-bottom: 1px solid #e1e0d9;
-    font-family: "Times New Roman";
+    border-bottom: 1px solid #d8c9a3;
+    font-family: "Times New Roman", "Palatino Linotype", serif;
     font-style: "bold";
 }
 .navbar a {
-    color: #52514e;
+    color: #6b5d47;
     text-decoration: none;
     font-size: 1.1rem;
     font-weight: 500;
 }
 .navbar a.active {
-    color: #2a78d6;
+    color: #2f6690;
 }
 .theme-toggle {
     margin-left: auto;
@@ -62,23 +62,23 @@ body.graph-fullscreen .footer {
 }
 @media (prefers-color-scheme: dark) {
     :root:where(:not([data-theme="light"])) .navbar {
-        border-bottom-color: #2c2c2a;
+        border-bottom-color: #3a4453;
     }
     :root:where(:not([data-theme="light"])) .navbar a {
-        color: #c3c2b7;
+        color: #b9ac8c;
     }
     :root:where(:not([data-theme="light"])) .navbar a.active {
-        color: #3987e5;
+        color: #5b9bc9;
     }
 }
 :root[data-theme="dark"] .navbar {
-    border-bottom-color: #2c2c2a;
+    border-bottom-color: #3a4453;
 }
 :root[data-theme="dark"] .navbar a {
-    color: #c3c2b7;
+    color: #b9ac8c;
 }
 :root[data-theme="dark"] .navbar a.active {
-    color: #3987e5;
+    color: #5b9bc9;
 }
 
 
@@ -86,58 +86,58 @@ body.graph-fullscreen .footer {
     text-align: center;
     padding: 1rem;
     font-size: 0.9rem;
-    color: #898781;
-    border-top: 1px solid #e1e0d9;
+    color: #8a7c62;
+    border-top: 1px solid #d8c9a3;
     font-style: italic;
-    font-family: "Times New Roman";
+    font-family: "Times New Roman", "Palatino Linotype", serif;
 }
 @media (prefers-color-scheme: dark) {
     :root:where(:not([data-theme="light"])) .footer {
-        border-top-color: #2c2c2a;
-        color: #36b7c3;
+        border-top-color: #3a4453;
+        color: #c9a24a;
     }
 }
 :root[data-theme="dark"] .footer {
-    border-top-color: #2c2c2a;
-    color: #36b7c3;
+    border-top-color: #3a4453;
+    color: #c9a24a;
 }
 :root {
   color-scheme: light;
-  --surface-1:      #fcfcfb;
-  --text-primary:   #0b0b0b;
-  --text-secondary: #52514e;
-  --muted:          #898781;
-  --gridline:       #e1e0d9;
-  --series-1:       #2a78d6;
-  --series-1-fill:  rgba(42, 120, 214, 0.28);
+  --surface-1:      #f3e9d2;
+  --text-primary:   #3f3326;
+  --text-secondary: #6b5d47;
+  --muted:          #8a7c62;
+  --gridline:       #d8c9a3;
+  --series-1:       #2f6690;
+  --series-1-fill:  rgba(47, 102, 144, 0.28);
 }
 @media (prefers-color-scheme: dark) {
   :root:where(:not([data-theme="light"])) {
     color-scheme: dark;
-    --surface-1:      #1a1a19;
-    --text-primary:   #ffffff;
-    --text-secondary: #c3c2b7;
-    --muted:          #898781;
-    --gridline:       #2c2c2a;
-    --series-1:       #3987e5;
-    --series-1-fill:  rgba(57, 135, 229, 0.28);
+    --surface-1:      #1c2430;
+    --text-primary:   #ede1c3;
+    --text-secondary: #b9ac8c;
+    --muted:          #8b8168;
+    --gridline:       #3a4453;
+    --series-1:       #5b9bc9;
+    --series-1-fill:  rgba(91, 155, 201, 0.28);
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --surface-1:      #1a1a19;
-  --text-primary:   #ffffff;
-  --text-secondary: #c3c2b7;
-  --muted:          #898781;
-  --gridline:       #2c2c2a;
-  --series-1:       #3987e5;
-  --series-1-fill:  rgba(57, 135, 229, 0.28);
+  --surface-1:      #1c2430;
+  --text-primary:   #ede1c3;
+  --text-secondary: #b9ac8c;
+  --muted:          #8b8168;
+  --gridline:       #3a4453;
+  --series-1:       #5b9bc9;
+  --series-1-fill:  rgba(91, 155, 201, 0.28);
 }
 
 .viz-root {
   background: var(--surface-1);
   color: var(--text-primary);
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: "Palatino Linotype", "Palatino", Georgia, serif;
   padding: 1.5rem;
   max-width: 780px;
 }
@@ -173,7 +173,7 @@ body.graph-fullscreen .footer {
   padding: 6px 10px;
   font-size: 0.8rem;
   pointer-events: none;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  box-shadow: 0 2px 8px rgba(63, 51, 38, 0.2);
 }
 #tooltip .t-title { font-weight: 600; }
 #tooltip .t-meta { color: var(--text-secondary); }

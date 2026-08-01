@@ -301,15 +301,23 @@ export default {
         this.hideTimer = null;
       }
     },
+    panCameraTo(x, y, k = this.zoom.k) {
+      this.smoothPan = true;
+      this.zoom = {
+        x: this.canvasWidth / 2 - x * k,
+        y: this.canvasHeight / 2 - y * k,
+        k,
+      };
+    },
     async selectAsCenter(node) {
       if (this.loadingSeed || node.id === this.currentSeedTitle) return;
-      this.loadingSeed = true;
-      try {
-        this.history.push(this.currentSeedTitle);
-        await this.rebuildGraph(node.id);
-      } finally {
-        this.loadingSeed = false;
-      }
+      this.history.push(this.currentSeedTitle);
+      const previousCenter = this.nodeById(this.currentSeedTitle);
+      if (previousCenter) previousCenter.isCenter = false;
+      node.isCenter = true;
+      this.currentSeedTitle = node.id;
+      this.panCameraTo(node.x, node.y, DEFAULT_ZOOM_K);
+      await this.expandNode(node);
     },
     registerPointer(event) {
       this.activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
