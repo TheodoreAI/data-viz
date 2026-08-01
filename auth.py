@@ -5,6 +5,7 @@ from models import User, db
 USERNAME_PATTERN = re.compile(r'^[a-zA-Z0-9_]{3,32}$')
 EMAIL_PATTERN = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
 MIN_PASSWORD_LENGTH = 8
+MAX_BIO_LENGTH = 280
 
 
 def validate_registration(username, email, password):
@@ -46,3 +47,12 @@ def authenticate_user(identifier, password):
     if user and user.check_password(password):
         return user
     return None
+
+
+def update_bio(user, bio):
+    """Returns errors dict; {} on success. Updates and commits in place."""
+    if len(bio) > MAX_BIO_LENGTH:
+        return {'bio': f'Bio must be {MAX_BIO_LENGTH} characters or fewer.'}
+    user.bio = bio
+    db.session.commit()
+    return {}
