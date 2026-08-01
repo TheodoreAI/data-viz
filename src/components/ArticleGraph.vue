@@ -4,7 +4,7 @@ import ArticleTooltip from './ArticleTooltip.vue';
 
 const BASE_WIDTH = 800;
 const BASE_HEIGHT = 600;
-const MAX_NODES = 150;
+const MAX_NODES = 1500;
 
 const SWIPE_MIN_DISTANCE = 60;
 const SWIPE_MAX_DURATION = 700;
@@ -46,6 +46,9 @@ export default {
       graphMode: false,
       selectedTopic: '',
       smoothPan: false,
+      searchQuery: '',
+      searchResults: [],
+      searchOpen: false,
     };
   },
   computed: {
@@ -83,6 +86,7 @@ export default {
     if (this.hideTimer) clearTimeout(this.hideTimer);
     if (this.longPressTimer) clearTimeout(this.longPressTimer);
     if (this.labelTimer) clearTimeout(this.labelTimer);
+    if (this.searchTimer) clearTimeout(this.searchTimer);
     window.removeEventListener('pointermove', this.onPointerMove);
     window.removeEventListener('pointerup', this.onPointerUp);
     document.body.classList.remove('graph-fullscreen');
@@ -213,6 +217,42 @@ export default {
       } finally {
         this.loadingSeed = false;
       }
+    },
+    onSearchInput() {
+      this.searchOpen = true;
+      if (this.searchTimer) clearTimeout(this.searchTimer);
+      const query = this.searchQuery.trim();
+      if (!query) {
+        this.searchResults = [];
+        return;
+      }
+      this.searchTimer = setTimeout(async () => {
+        try {
+          const response = await fetch(`/api/article-search?q=${encodeURIComponent(query)}`);
+          this.searchResults = await response.json();
+        } catch {
+          this.searchResults = [];
+        }
+      }, 250);
+    },
+    async selectSearchResult(title) {
+      if (this.loadingSeed) return;
+      this.searchOpen = false;
+      this.searchQuery = '';
+      this.searchResults = [];
+      this.selectedTopic = '';
+      this.loadingSeed = true;
+      try {
+        this.history.push(this.currentSeedTitle);
+        await this.rebuildGraph(title);
+      } finally {
+        this.loadingSeed = false;
+      }
+    },
+    onSearchBlur() {
+      setTimeout(() => {
+        this.searchOpen = false;
+      }, 150);
     },
     async goToPreviousSeed() {
       if (this.loadingSeed || this.history.length === 0) return;
@@ -504,6 +544,22 @@ export default {
         Starting from “{{ currentSeedTitle }}”. Click a node to open it on Wikipedia, tap the + to expand its links.
         Drag to reposition, pinch/scroll to zoom, swipe right for a new article, swipe left to go back.
       </p>
+      <div v-if="!graphMode" class="search-row">
+        <input
+          v-model="searchQuery"
+          type="text"
+          class="search-input"
+          placeholder="Search for an article…"
+          @input="onSearchInput"
+          @focus="searchOpen = true"
+          @blur="onSearchBlur"
+        >
+        <ul v-if="searchOpen && searchResults.length" class="search-results">
+          <li v-for="result in searchResults" :key="result">
+            <button type="button" @click="selectSearchResult(result)">{{ result }}</button>
+          </li>
+        </ul>
+      </div>
       <div v-if="!graphMode" class="topic-row">
         <button
           class="topic-pill"
@@ -674,6 +730,58 @@ export default {
 .subtitle.loading::after {
   content: '…';
   animation: gentle-blink 1.2s steps(1) infinite;
+}
+.search-row {
+  position: relative;
+  margin: 0 0 0.75rem;
+}
+.search-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--surface);
+  border: 1px solid var(--olive);
+  color: var(--ink);
+  border-radius: 2px;
+  padding: 0.5rem 0.75rem;
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+.search-input:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 2px var(--blue-faint);
+}
+.search-results {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem 0;
+  background: var(--surface);
+  border: 1px solid var(--olive);
+  border-radius: 2px;
+  max-height: 260px;
+  overflow-y: auto;
+  box-shadow: 0 4px 10px rgba(63, 51, 38, 0.2);
+}
+.search-results li button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 0.85rem;
+  padding: 0.45rem 0.75rem;
+  cursor: pointer;
+}
+.search-results li button:hover {
+  background: var(--blue-faint);
+  color: var(--blue);
 }
 .topic-row {
   display: flex;

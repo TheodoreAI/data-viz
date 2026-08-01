@@ -137,6 +137,23 @@ def api_article_links():
     return jsonify({'title': title, 'links': fetch_article_links(title)})
 
 
+@app.route('/api/article-search')
+def api_article_search():
+    query = request.args.get('q', '').strip()
+    if not query:
+        return jsonify([])
+    response = requests.get(WIKIPEDIA_ACTION_API_URL, headers=WIKIPEDIA_HEADERS, params={
+        'action': 'opensearch',
+        'search': query,
+        'limit': 8,
+        'namespace': 0,
+        'format': 'json',
+    })
+    response.raise_for_status()
+    titles = response.json()[1]
+    return jsonify(titles)
+
+
 @app.route('/api/article-summary')
 def api_article_summary():
     title = request.args.get('title', '')
