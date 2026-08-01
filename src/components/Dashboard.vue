@@ -1,4 +1,9 @@
 <script>
+function readCookie(name) {
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 function formatDate(iso) {
   if (!iso) return null;
   return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
@@ -38,6 +43,11 @@ export default {
       articles: [],
       articlesLoading: false,
       articlesError: false,
+
+      savedItems: [],
+      savedItemsLoading: true,
+      savedItemsError: false,
+      removingId: null,
     };
   },
   computed: {
