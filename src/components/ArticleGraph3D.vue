@@ -1,10 +1,12 @@
 <script>
 import ForceGraph3D from '3d-force-graph';
+import ArticleTooltip from './ArticleTooltip.vue';
 
 const MAX_PIXEL_RATIO = 2;
 
 export default {
   name: 'ArticleGraph3D',
+  components: { ArticleTooltip },
   props: {
     seedTitle: { type: String, required: true },
     seedLinks: { type: Array, required: true },
@@ -17,21 +19,27 @@ export default {
       showList: false,
       announcement: '',
       listNodes: [],
+      tooltip: { visible: false, title: '', extract: '', thumbnail: null, loading: false },
     };
   },
   mounted() {
     this.linksCache = {};
+    this.summaryCache = {};
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     this.graph = ForceGraph3D()(this.$refs.container)
       .backgroundColor('#00000000')
       .nodeLabel(node => node.id)
       .nodeColor(node => (node.isCenter ? '#b8935a' : '#2f6690'))
-      .nodeRelSize(5)
+      .nodeRelSize(9)
       .linkColor(() => 'rgba(116, 128, 74, 0.6)')
       .linkWidth(1)
       .cooldownTicks(reducedMotion ? 0 : 200)
-      .onNodeClick(node => this.expandNode(node));
+      .onNodeClick(node => this.expandNode(node))
+      .onNodeRightClick(node => this.showTooltip(node.id))
+      .onNodeHover(node => {
+        this.$refs.container.style.cursor = node ? 'pointer' : 'default';
+      });
 
     const pixelRatio = Math.min(window.devicePixelRatio || 1, MAX_PIXEL_RATIO);
     this.graph.renderer().setPixelRatio(pixelRatio);
@@ -74,6 +82,52 @@ export default {
     },
     wikipediaUrl(title) {
       return `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g, '_'))}`;
+    },
+    getCachedSummary(title) {
+      if (this.summaryCache[title]) return this.summaryCache[title];
+      try {
+        const stored = localStorage.getItem(`article-summary:${title}`);
+        if (stored) {
+          const data = JSON.parse(stored);
+          this.summaryCache[title] = data;
+          return data;
+        }
+      } catch {
+        // localStorage unavailable (private mode, quota, etc) — fall back to network.
+      }
+      return null;
+    },
+    setCachedSummary(title, data) {
+      this.summaryCache[title] = data;
+      try {
+        localStorage.setItem(`article-summary:${title}`, JSON.stringify(data));
+      } catch {
+        // ignore quota/availability errors, in-memory cache still works
+      }
+    },
+    async showTooltip(title) {
+      const cached = this.getCachedSummary(title);
+      this.tooltip = {
+        visible: true,
+        title,
+        extract: cached ? cached.extract : '',
+        thumbnail: cached ? cached.thumbnail : null,
+        loading: !cached,
+      };
+      if (cached) return;
+      try {
+        const response = await fetch(`/api/article-summary?title=${encodeURIComponent(title)}`);
+        const data = await response.json();
+        this.setCachedSummary(title, data);
+        if (this.tooltip.title === title) {
+          this.tooltip = { visible: true, title: data.title, extract: data.extract, thumbnail: data.thumbnail, loading: false };
+        }
+      } catch {
+        if (this.tooltip.title === title) this.tooltip.loading = false;
+      }
+    },
+    hideTooltip() {
+      this.tooltip.visible = false;
     },
     async expandNode(node) {
       if (node.isCenter) {
@@ -128,7 +182,7 @@ export default {
       ref="container"
       class="graph-3d-container"
       role="img"
-      :aria-label="`3D force graph centered on ${seedTitle}, with ${listNodes.length - 1} linked articles. Use the list view for keyboard access.`"
+      :aria-label="`3D force graph centered on ${seedTitle}, with ${listNodes.length - 1} linked articles. Click a node to expand its links, right-click for a summary. Use the list view for keyboard access.`"
     ></div>
 
     <div v-if="showList" class="graph-3d-list">
@@ -147,6 +201,13 @@ export default {
             <span v-if="loadingNodeId === node.id"> — loading…</span>
             <span v-else-if="errorNodeId === node.id"> — couldn't load, tap to retry</span>
           </button>
+          <button
+            type="button"
+            class="info-button"
+            :title="`View a summary of ${node.id}`"
+            :aria-label="`View a summary of ${node.id}`"
+            @click="showTooltip(node.id)"
+          >ⓘ</button>
           <a
             class="wiki-link"
             :href="wikipediaUrl(node.id)"
@@ -167,6 +228,16 @@ export default {
     </div>
 
     <p class="sr-only" role="status" aria-live="polite">{{ announcement }}</p>
+
+    <ArticleTooltip
+      :visible="tooltip.visible"
+      :title="tooltip.title"
+      :extract="tooltip.extract"
+      :thumbnail="tooltip.thumbnail"
+      :loading="tooltip.loading"
+      @hover-end="hideTooltip"
+      @close="hideTooltip"
+    />
   </div>
 </template>
 
@@ -228,6 +299,17 @@ export default {
 }
 .node-row.errored {
   color: #b0413e;
+}
+.info-button {
+  flex: none;
+  background: transparent;
+  border: 1px solid var(--olive, #74804a);
+  color: var(--blue, #2f6690);
+  border-radius: 50%;
+  width: 1.6rem;
+  height: 1.6rem;
+  font-size: 0.75rem;
+  cursor: pointer;
 }
 .wiki-link {
   flex: none;
