@@ -649,8 +649,12 @@ export default {
 .graph-header-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
+  flex-wrap: wrap;
+  gap: 0.6rem 0.75rem;
+}
+.graph-header-row h1 {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 .graph-header h1 {
   margin: 0 0 0.1rem;
