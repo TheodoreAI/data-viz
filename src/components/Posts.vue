@@ -288,8 +288,8 @@ export default {
         <p v-if="imageError" class="status form-error">{{ imageError }}</p>
 
         <div class="composer-footer">
-          <label class="photo-button">
-            📷
+          <label class="photo-button" aria-label="Add photo">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"><!--!Font Awesome Free v7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.--><path d="M213.1 128.8L202.7 160L128 160C92.7 160 64 188.7 64 224L64 480C64 515.3 92.7 544 128 544L512 544C547.3 544 576 515.3 576 480L576 224C576 188.7 547.3 160 512 160L437.3 160L426.9 128.8C420.4 109.2 402.1 96 381.4 96L258.6 96C237.9 96 219.6 109.2 213.1 128.8zM320 256C373 256 416 299 416 352C416 405 373 448 320 448C267 448 224 405 224 352C224 299 267 256 320 256z"/></svg>
             <input
               type="file"
               accept="image/*"
@@ -464,15 +464,26 @@ h1 {
   border: 1px solid var(--gridline, #d8c9a3);
   border-radius: 4px;
   cursor: pointer;
-  font-size: 1rem;
+  color: var(--series-1, #2f6690);
+}
+.photo-button:hover {
+  border-color: var(--series-1, #2f6690);
+}
+.photo-button svg {
+  width: 1rem;
+  height: 1rem;
+  fill: currentColor;
 }
 .composer-footer {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.6rem;
   margin-top: 0.6rem;
 }
 .saved-picker {
+  flex: 1 1 0;
+  min-width: 0;
   font-family: inherit;
   font-size: 0.82rem;
   padding: 0.3rem 0.4rem;
