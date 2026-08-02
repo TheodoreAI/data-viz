@@ -314,7 +314,7 @@ export default {
   width: 100%;
   height: 100%;
   overflow-y: auto;
-  padding: 0.75rem;
+  padding: 3rem 0.75rem 0.75rem;
   background: var(--surface, #f3e9d2);
 }
 .graph-3d-list ul {
