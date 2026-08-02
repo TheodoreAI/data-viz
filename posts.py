@@ -13,7 +13,7 @@ def validate_post(body):
     return errors
 
 
-def create_post(user, body, saved_item_id=None):
+def create_post(user, body, saved_item_id=None, image_url=None):
     """Returns (post, errors). On success errors is {}; on failure post is None."""
     body = (body or '').strip()
     errors = validate_post(body)
@@ -27,7 +27,12 @@ def create_post(user, body, saved_item_id=None):
     if errors:
         return None, errors
 
-    post = Post(user_id=user.id, body=body, saved_item_id=saved_item.id if saved_item else None)
+    post = Post(
+        user_id=user.id,
+        body=body,
+        saved_item_id=saved_item.id if saved_item else None,
+        image_url=image_url or None,
+    )
     db.session.add(post)
     db.session.commit()
     return post, {}

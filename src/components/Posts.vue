@@ -12,6 +12,33 @@ function formatDate(iso) {
 }
 
 const MAX_BODY_LENGTH = 1000;
+const MAX_IMAGE_DIMENSION = 1600;
+const IMAGE_JPEG_QUALITY = 0.82;
+
+function resizeImageFile(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const scale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(
+        (blob) => (blob ? resolve(blob) : reject(new Error('Could not process image.'))),
+        'image/jpeg',
+        IMAGE_JPEG_QUALITY,
+      );
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Could not read image.'));
+    };
+    img.src = objectUrl;
+  });
+}
 
 export default {
   name: 'Posts',
@@ -27,6 +54,11 @@ export default {
       selectedSavedItemId: null,
       posting: false,
       postError: '',
+
+      imagePreviewUrl: '',
+      uploadedImageUrl: '',
+      uploadingImage: false,
+      imageError: '',
 
       posts: [],
       postsLoading: true,
@@ -48,7 +80,7 @@ export default {
       return this.savedItems.find((item) => item.id === this.selectedSavedItemId) || null;
     },
     canPost() {
-      return !this.posting && this.body.trim().length > 0 && this.remaining >= 0;
+      return !this.posting && !this.uploadingImage && this.body.trim().length > 0 && this.remaining >= 0;
     },
   },
   async mounted() {
@@ -113,6 +145,44 @@ export default {
         this.loadingMore = false;
       }
     },
+    async onImageSelected(event) {
+      const file = event.target.files?.[0];
+      event.target.value = '';
+      if (!file) return;
+
+      this.imageError = '';
+      this.uploadingImage = true;
+      try {
+        const resized = await resizeImageFile(file);
+        this.imagePreviewUrl = URL.createObjectURL(resized);
+
+        const formData = new FormData();
+        formData.append('file', resized, 'photo.jpg');
+        const response = await fetch('/api/uploads', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'X-CSRF-TOKEN': readCookie('csrf_access_token') },
+          body: formData,
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          this.imageError = data.errors?.file || 'Could not upload image.';
+          this.removeImage();
+          return;
+        }
+        this.uploadedImageUrl = data.url;
+      } catch {
+        this.imageError = 'Could not upload image.';
+        this.removeImage();
+      } finally {
+        this.uploadingImage = false;
+      }
+    },
+    removeImage() {
+      if (this.imagePreviewUrl) URL.revokeObjectURL(this.imagePreviewUrl);
+      this.imagePreviewUrl = '';
+      this.uploadedImageUrl = '';
+    },
     async submitPost() {
       if (!this.canPost) return;
       this.posting = true;
@@ -128,6 +198,7 @@ export default {
           body: JSON.stringify({
             body: this.body.trim(),
             savedItemId: this.selectedSavedItemId,
+            imageUrl: this.uploadedImageUrl || null,
           }),
         });
         const data = await response.json();
@@ -138,6 +209,7 @@ export default {
         this.posts.unshift(data);
         this.body = '';
         this.selectedSavedItemId = null;
+        this.removeImage();
       } catch {
         this.postError = 'Could not create post.';
       } finally {
@@ -208,7 +280,25 @@ export default {
           <button type="button" class="attached-remove" @click="selectedSavedItemId = null">✕</button>
         </div>
 
+        <div v-if="imagePreviewUrl" class="attached-image">
+          <img :src="imagePreviewUrl" alt="Selected photo" class="attached-image-preview">
+          <span v-if="uploadingImage" class="attached-image-status">Uploading…</span>
+          <button type="button" class="attached-remove" :disabled="uploadingImage" @click="removeImage">✕</button>
+        </div>
+        <p v-if="imageError" class="status form-error">{{ imageError }}</p>
+
         <div class="composer-footer">
+          <label class="photo-button">
+            📷
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              hidden
+              :disabled="uploadingImage"
+              @change="onImageSelected"
+            >
+          </label>
           <select
             v-if="!savedItemsLoading && savedItems.length"
             v-model="selectedSavedItemId"
@@ -239,6 +329,7 @@ export default {
                 <span class="post-date">{{ formatDate(post.createdAt) }}</span>
               </div>
               <p class="post-text">{{ post.body }}</p>
+              <img v-if="post.imageUrl" :src="post.imageUrl" alt="" class="post-image">
               <a
                 v-if="post.sharedItem"
                 :href="post.sharedItem.sourceUrl"
@@ -346,6 +437,35 @@ h1 {
   color: var(--text-secondary, #6b5d47);
   font-size: 0.85rem;
 }
+.attached-image {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+.attached-image-preview {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid var(--gridline, #d8c9a3);
+}
+.attached-image-status {
+  font-size: 0.78rem;
+  color: var(--text-secondary, #6b5d47);
+}
+.photo-button {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--gridline, #d8c9a3);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+}
 .composer-footer {
   display: flex;
   align-items: center;
@@ -430,6 +550,14 @@ h1 {
   font-size: 0.9rem;
   white-space: pre-wrap;
   overflow-wrap: break-word;
+}
+.post-image {
+  display: block;
+  width: 100%;
+  max-height: 360px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-top: 0.6rem;
 }
 .shared-item {
   display: flex;
