@@ -136,52 +136,66 @@ body.graph-fullscreen .footer {
 @media (max-width: 640px) {
     .nav-toggle {
         display: flex;
+        position: fixed;
+        right: 1.1rem;
+        bottom: 1.1rem;
+        z-index: 30;
+        width: 3.25rem;
+        height: 3.25rem;
+        border-radius: 50%;
+        background: #f3e9d2;
+        box-shadow: 0 4px 14px rgba(63, 51, 38, 0.35);
     }
     .nav-links {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        right: 0;
+        position: fixed;
+        right: 1.1rem;
+        bottom: calc(1.1rem + 3.25rem + 0.6rem);
+        left: auto;
+        top: auto;
         z-index: 20;
         flex-direction: column;
         align-items: stretch;
         gap: 0;
+        width: min(78vw, 260px);
         max-height: 0;
         overflow: hidden;
+        border-radius: 14px;
         background: #f3e9d2;
-        box-shadow: 0 8px 16px rgba(63, 51, 38, 0.18);
+        box-shadow: 0 8px 24px rgba(63, 51, 38, 0.3);
         transition: max-height 0.25s ease;
+        transform-origin: bottom right;
     }
     .nav-links.nav-open {
         max-height: 70vh;
         overflow-y: auto;
-    }
-    .nav-links::after {
-        content: "";
-        display: block;
-        height: 10px;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='10' viewBox='0 0 24 10'%3E%3Cpath d='M0 10 L0 5 L6 5 L6 0 L12 0 L12 5 L18 5 L18 10 L24 10' fill='none' stroke='%23b8935a' stroke-width='2'/%3E%3C/svg%3E");
-        background-repeat: repeat-x;
-        background-size: 24px 10px;
     }
     .navbar a {
         padding: 0.9rem 1.25rem;
         border-bottom: 1px solid #e5d7b3;
         width: 100%;
     }
+    .navbar a:first-child {
+        border-radius: 14px 14px 0 0;
+    }
+    .navbar a:last-child {
+        border-bottom: none;
+        border-radius: 0 0 14px 14px;
+    }
     .navbar a.active {
         background: rgba(47, 102, 144, 0.08);
     }
 }
 @media (max-width: 640px) and (prefers-color-scheme: dark) {
-    :root:where(:not([data-theme="light"])) .nav-links {
+    :root:where(:not([data-theme="light"])) .nav-links,
+    :root:where(:not([data-theme="light"])) .nav-toggle {
         background: #1c2430;
     }
     :root:where(:not([data-theme="light"])) .navbar a {
         border-bottom-color: #2c3646;
     }
 }
-:root[data-theme="dark"] .nav-links {
+:root[data-theme="dark"] .nav-links,
+:root[data-theme="dark"] .nav-toggle {
     background: #1c2430;
 }
 :root[data-theme="dark"] .navbar a {
