@@ -7,9 +7,14 @@
 
 {% include '_navbar.html' %}
 
-<div id="app"></div>
+{% if articles is none %}
+  <p style="max-width: 900px; margin: 2rem auto; padding: 0 1.25rem; color: #b0413e; font-family: 'Palatino Linotype', Palatino, Georgia, serif;">
+    Couldn't load Wikipedia's most-viewed articles right now. Please try again later.
+  </p>
+{% else %}
+  <div id="app"></div>
+  <script id="chart-data" type="application/json">{{ {'articles': articles, 'date': date} | tojson }}</script>
+  {{ vite_asset('bubbles') }}
+{% endif %}
 
 {% include '_footer.html' %}
-
-<script id="chart-data" type="application/json">{{ {'articles': articles, 'date': date} | tojson }}</script>
-{{ vite_asset('bubbles') }}
