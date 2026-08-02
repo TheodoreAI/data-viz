@@ -137,6 +137,9 @@ body.graph-fullscreen .footer {
 }
 
 @media (max-width: 640px) {
+    .navbar {
+        border-bottom-width: 2px;
+    }
     .nav-toggle {
         display: flex;
         position: fixed;
@@ -146,6 +149,7 @@ body.graph-fullscreen .footer {
         width: 3.25rem;
         height: 3.25rem;
         border-radius: 50%;
+        border-width: 2px;
         background: #f3e9d2;
         box-shadow: 0 4px 14px rgba(63, 51, 38, 0.35);
     }
@@ -162,6 +166,7 @@ body.graph-fullscreen .footer {
         width: min(78vw, 260px);
         max-height: 0;
         overflow: hidden;
+        border: 2px solid rgba(63, 51, 38, 0.16);
         border-radius: 14px;
         background: #f3e9d2;
         box-shadow: 0 8px 24px rgba(63, 51, 38, 0.3);
@@ -174,7 +179,9 @@ body.graph-fullscreen .footer {
     }
     .navbar a {
         padding: 0.9rem 1.25rem;
-        border-bottom: 1px solid #e5d7b3;
+        border-bottom-width: 2px;
+        border-bottom-style: solid;
+        border-bottom-color: #e5d7b3;
         width: 100%;
     }
     .navbar a:first-child {
@@ -186,6 +193,15 @@ body.graph-fullscreen .footer {
     }
     .navbar a.active {
         background: rgba(47, 102, 144, 0.08);
+    }
+    .footer {
+        border-top-width: 2px;
+    }
+    .viz-root .gridline {
+        stroke-width: 1.35;
+    }
+    .viz-root .bubble {
+        stroke-width: 2.4;
     }
 }
 @media (max-width: 640px) and (prefers-color-scheme: dark) {
