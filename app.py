@@ -579,15 +579,35 @@ def api_delete_post(post_id):
     return jsonify({'ok': True})
 
 
+TOP_VIEWED_LOOKBACK_DAYS = 5
+
+
+def fetch_latest_top_viewed_articles():
+    """Wikimedia's pageviews pipeline can lag a day or more, so 'yesterday'
+    sometimes 404s. Walk backwards until we find a published day.
+    Returns (day, top_articles); raises the last error if none are found."""
+    day = date.today() - timedelta(days=1)
+    last_error = None
+    for _ in range(TOP_VIEWED_LOOKBACK_DAYS):
+        top_url = WIKIPEDIA_TOP_VIEWED_URL.format(
+            year=day.year, month=f'{day.month:02d}', day=f'{day.day:02d}'
+        )
+        response = requests.get(top_url, headers=WIKIPEDIA_HEADERS)
+        if response.status_code == 404:
+            last_error = requests.exceptions.HTTPError(response=response)
+            day -= timedelta(days=1)
+            continue
+        response.raise_for_status()
+        return day, response.json()['items'][0]['articles']
+    raise last_error
+
+
 @app.route('/bubbles')
 def bubbles():
-    yesterday = date.today() - timedelta(days=1)
-    top_url = WIKIPEDIA_TOP_VIEWED_URL.format(
-        year=yesterday.year, month=f'{yesterday.month:02d}', day=f'{yesterday.day:02d}'
-    )
-    response = requests.get(top_url, headers=WIKIPEDIA_HEADERS)
-    response.raise_for_status()
-    top_articles = response.json()['items'][0]['articles']
+    try:
+        day, top_articles = fetch_latest_top_viewed_articles()
+    except requests.RequestException:
+        return render_template('bubbles.html', articles=None, date=None)
 
     articles = []
     for entry in top_articles:
@@ -609,7 +629,7 @@ def bubbles():
         if len(articles) == BUBBLE_COUNT:
             break
 
-    return render_template('bubbles.html', articles=articles, date=yesterday.isoformat())
+    return render_template('bubbles.html', articles=articles, date=day.isoformat())
 
 
 if __name__ == '__main__':
