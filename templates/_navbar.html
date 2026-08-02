@@ -19,6 +19,7 @@
     <a href="{{ url_for('graph') }}" class="{{ 'active' if request.path == url_for('graph') }}" {{ 'aria-current="page"' if request.path == url_for('graph') }}>Graph</a>
     {% if current_user %}
       <a href="{{ url_for('dashboard_page') }}" class="{{ 'active' if request.path == url_for('dashboard_page') }}" {{ 'aria-current="page"' if request.path == url_for('dashboard_page') }}>Dashboard</a>
+      <a href="{{ url_for('posts_page') }}" class="{{ 'active' if request.path == url_for('posts_page') }}" {{ 'aria-current="page"' if request.path == url_for('posts_page') }}>Posts</a>
       <a href="{{ url_for('profile_page') }}" class="{{ 'active' if request.path == url_for('profile_page') }}" {{ 'aria-current="page"' if request.path == url_for('profile_page') }}>{{ current_user.display_name or current_user.username }}</a>
     {% else %}
       <a href="{{ url_for('login_page') }}" class="{{ 'active' if request.path == url_for('login_page') }}" {{ 'aria-current="page"' if request.path == url_for('login_page') }}>Log in</a>

@@ -36,6 +36,9 @@ from email_utils import init_mail
 from email_utils import send_password_reset_email
 from models import User
 from models import db
+from posts import create_post
+from posts import delete_post
+from posts import list_posts
 from saved_items import delete_saved_item
 from saved_items import list_saved_items
 from saved_items import save_item
@@ -214,6 +217,18 @@ def dashboard_page():
     if not identity:
         return redirect(url_for('login_page'))
     return render_template('dashboard.html')
+
+
+@app.route('/posts')
+def posts_page():
+    try:
+        verify_jwt_in_request(optional=True)
+        identity = get_jwt_identity()
+    except Exception:
+        identity = None
+    if not identity:
+        return redirect(url_for('login_page'))
+    return render_template('posts.html')
 
 
 @app.route('/forgot-password')
@@ -525,6 +540,41 @@ def api_delete_saved_item(item_id):
         return jsonify({'error': 'Not found'}), 404
 
     if not delete_saved_item(user, item_id):
+        return jsonify({'error': 'Not found'}), 404
+    return jsonify({'ok': True})
+
+
+@app.route('/api/posts', methods=['GET', 'POST'])
+@jwt_required()
+def api_posts():
+    user = db.session.get(User, int(get_jwt_identity()))
+    if not user:
+        return jsonify({'error': 'Not found'}), 404
+
+    if request.method == 'POST':
+        data = request.get_json(silent=True) or {}
+        post, errors = create_post(
+            user,
+            body=data.get('body') or '',
+            saved_item_id=data.get('savedItemId'),
+        )
+        if errors:
+            return jsonify({'errors': errors}), 400
+        return jsonify(post.to_dict()), 201
+
+    before_id = request.args.get('beforeId', type=int)
+    posts = list_posts(before_id=before_id)
+    return jsonify([post.to_dict() for post in posts])
+
+
+@app.route('/api/posts/<int:post_id>', methods=['DELETE'])
+@jwt_required()
+def api_delete_post(post_id):
+    user = db.session.get(User, int(get_jwt_identity()))
+    if not user:
+        return jsonify({'error': 'Not found'}), 404
+
+    if not delete_post(user, post_id):
         return jsonify({'error': 'Not found'}), 404
     return jsonify({'ok': True})
 
