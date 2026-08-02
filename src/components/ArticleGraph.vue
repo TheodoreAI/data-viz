@@ -1,5 +1,5 @@
 <script>
-import { forceSimulation, forceLink, forceManyBody, forceCenter, forceCollide } from 'd3';
+import { forceSimulation, forceLink, forceManyBody, forceCenter, forceCollide, quadtree } from 'd3';
 import { defineAsyncComponent } from 'vue';
 import ArticleTooltip from './ArticleTooltip.vue';
 import ArticleSearch from './ArticleSearch.vue';
@@ -14,6 +14,7 @@ const SWIPE_MIN_DISTANCE = 60;
 const SWIPE_MAX_DURATION = 700;
 const DEFAULT_ZOOM_K = 1.9;
 const TAP_MOVE_THRESHOLD = 8;
+const NEAR_MISS_TOLERANCE_PX = 18;
 
 function computeDefaultZoom(width, height) {
   return { x: (width / 2) * (1 - DEFAULT_ZOOM_K), y: (height / 2) * (1 - DEFAULT_ZOOM_K), k: DEFAULT_ZOOM_K };
@@ -380,12 +381,31 @@ export default {
       this.dragNode = node;
       this.simulation.alphaTarget(0.3).restart();
     },
+    findNearestNode(canvasX, canvasY, maxDistance) {
+      if (!this.nodes.length) return null;
+      const tree = quadtree().x(d => d.x).y(d => d.y).addAll(this.nodes);
+      return tree.find(canvasX, canvasY, maxDistance) || null;
+    },
     onBackgroundPointerDown(event) {
       this.registerPointer(event);
       if (this.activePointers.size >= 2) {
         this.startPinch();
         return;
       }
+
+      // The tap/click missed every node's own hit area (their pointerdown
+      // handlers stop propagation, so this only runs on a genuine miss).
+      // Snap to a node a few pixels away instead of forcing pixel-perfect
+      // hits — this matters most for small nodes on touch screens.
+      const rect = this.$refs.svg.getBoundingClientRect();
+      const canvasX = (event.clientX - rect.left - this.zoom.x) / this.zoom.k;
+      const canvasY = (event.clientY - rect.top - this.zoom.y) / this.zoom.k;
+      const nearest = this.findNearestNode(canvasX, canvasY, NEAR_MISS_TOLERANCE_PX / this.zoom.k);
+      if (nearest) {
+        this.onNodePointerDown(event, nearest);
+        return;
+      }
+
       this.smoothPan = false;
       this.panning = true;
       this.swipeStart = { x: event.clientX, y: event.clientY, time: Date.now() };
