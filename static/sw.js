@@ -1,20 +1,26 @@
-const CACHE_NAME = 'data-viz-static-v1';
+const CACHE_NAME = 'data-viz-static-v2';
 
-// Only cache actual static assets (built JS/CSS, icons, fonts). Pages and
-// /api/* are left untouched so logged-in content and live data are never
-// served stale or from the wrong account.
-function isCacheableStaticAsset(url) {
+// Vite build output is content-hashed (new filename per deploy), so it's
+// safe to cache aggressively and never re-check the network for it.
+const IMMUTABLE_PREFIXES = ['/static/dist/', '/static/icons/'];
+
+// These are edited in place with a stable filename, so a cache-first or
+// stale-while-revalidate strategy can keep serving an outdated copy across
+// visits. Always prefer the network for them and only fall back to the
+// cache when offline.
+const REVALIDATED_PATHS = new Set(['/static/style.css', '/static/manifest.json']);
+
+function isImmutableAsset(url) {
   if (url.origin !== self.location.origin) return false;
-  return (
-    url.pathname.startsWith('/static/dist/') ||
-    url.pathname.startsWith('/static/icons/') ||
-    url.pathname === '/static/style.css' ||
-    url.pathname.startsWith('/static/js/') ||
-    url.pathname === '/static/manifest.json'
-  );
+  return IMMUTABLE_PREFIXES.some((prefix) => url.pathname.startsWith(prefix));
 }
 
-self.addEventListener('install', (event) => {
+function isRevalidatedAsset(url) {
+  if (url.origin !== self.location.origin) return false;
+  return REVALIDATED_PATHS.has(url.pathname) || url.pathname.startsWith('/static/js/');
+}
+
+self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
@@ -29,20 +35,29 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
-
   const url = new URL(event.request.url);
-  if (!isCacheableStaticAsset(url)) return;
 
-  event.respondWith(
-    caches.open(CACHE_NAME).then(async (cache) => {
-      const cached = await cache.match(event.request);
-      const fetchPromise = fetch(event.request)
+  if (isImmutableAsset(url)) {
+    event.respondWith(
+      caches.open(CACHE_NAME).then(async (cache) => {
+        const cached = await cache.match(event.request);
+        if (cached) return cached;
+        const response = await fetch(event.request);
+        if (response.ok) cache.put(event.request, response.clone());
+        return response;
+      })
+    );
+    return;
+  }
+
+  if (isRevalidatedAsset(url)) {
+    event.respondWith(
+      fetch(event.request)
         .then((response) => {
-          if (response.ok) cache.put(event.request, response.clone());
+          if (response.ok) caches.open(CACHE_NAME).then((cache) => cache.put(event.request, response.clone()));
           return response;
         })
-        .catch(() => cached);
-      return cached || fetchPromise;
-    })
-  );
+        .catch(() => caches.match(event.request))
+    );
+  }
 });
