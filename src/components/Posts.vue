@@ -34,6 +34,7 @@ export default {
       hasMore: true,
       loadingMore: false,
       removingId: null,
+      copiedId: null,
     };
   },
   computed: {
@@ -159,6 +160,26 @@ export default {
         this.removingId = null;
       }
     },
+    async sharePost(post) {
+      const url = `${window.location.origin}/posts/${post.id}`;
+      if (navigator.share) {
+        try {
+          await navigator.share({ url });
+        } catch {
+          // User cancelled the share sheet or it failed silently; no action needed.
+        }
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(url);
+        this.copiedId = post.id;
+        setTimeout(() => {
+          if (this.copiedId === post.id) this.copiedId = null;
+        }, 2000);
+      } catch {
+        // Clipboard API unavailable (e.g. insecure context); nothing more we can do.
+      }
+    },
     formatDate,
   },
 };
@@ -231,13 +252,20 @@ export default {
                   <span v-if="post.sharedItem.subtitle" class="shared-subtitle">{{ post.sharedItem.subtitle }}</span>
                 </div>
               </a>
-              <button
-                v-if="user && post.author.id === user.id"
-                type="button"
-                class="remove-button"
-                :disabled="removingId === post.id"
-                @click="removePost(post)"
-              >{{ removingId === post.id ? 'Removing…' : 'Delete' }}</button>
+              <div class="post-actions">
+                <button
+                  type="button"
+                  class="share-button"
+                  @click="sharePost(post)"
+                >{{ copiedId === post.id ? 'Link copied!' : 'Share' }}</button>
+                <button
+                  v-if="user && post.author.id === user.id"
+                  type="button"
+                  class="remove-button"
+                  :disabled="removingId === post.id"
+                  @click="removePost(post)"
+                >{{ removingId === post.id ? 'Removing…' : 'Delete' }}</button>
+              </div>
             </div>
           </li>
         </ul>
@@ -440,8 +468,21 @@ h1 {
   font-size: 0.75rem;
   color: var(--text-secondary, #6b5d47);
 }
-.remove-button {
+.post-actions {
+  display: flex;
+  gap: 0.5rem;
   margin-top: 0.5rem;
+}
+.share-button {
+  background: transparent;
+  border: 1px solid var(--gridline, #d8c9a3);
+  color: var(--series-1, #2f6690);
+  border-radius: 4px;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+.remove-button {
   background: transparent;
   border: 1px solid var(--gridline, #d8c9a3);
   color: #b0413e;
