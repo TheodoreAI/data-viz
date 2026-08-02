@@ -1,0 +1,119 @@
+<!doctype html>
+<title>{{ og_title }}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{% include '_theme_init.html' %}
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+{% include '_pwa_head.html' %}
+
+{% include '_navbar.html' %}
+
+<main class="post-detail">
+  <article class="post-detail-card">
+    <div class="post-detail-header">
+      <img src="{{ post.author.avatarUrl }}" alt="{{ post.author.username }}" class="post-detail-avatar">
+      <div>
+        <p class="post-detail-author">{{ post.author.displayName or post.author.username }}</p>
+        <p class="post-detail-date">{{ post.displayDate }}</p>
+      </div>
+    </div>
+    <p class="post-detail-body">{{ post.body }}</p>
+    {% if post.sharedItem %}
+      <a href="{{ post.sharedItem.sourceUrl }}" target="_blank" rel="noopener" class="post-detail-shared">
+        {% if post.sharedItem.imageUrl %}
+          <img src="{{ post.sharedItem.imageUrl }}" alt="{{ post.sharedItem.title }}" class="post-detail-shared-thumb">
+        {% endif %}
+        <span>
+          <span class="post-detail-shared-title">{{ post.sharedItem.title }}</span>
+          {% if post.sharedItem.subtitle %}<span class="post-detail-shared-subtitle">{{ post.sharedItem.subtitle }}</span>{% endif %}
+        </span>
+      </a>
+    {% endif %}
+  </article>
+
+  {% if current_user %}
+    <a href="{{ url_for('posts_page') }}" class="post-detail-cta">View all posts</a>
+  {% else %}
+    <p class="post-detail-cta-text">
+      <a href="{{ url_for('login_page') }}">Log in</a> to see more posts and share your own.
+    </p>
+  {% endif %}
+</main>
+
+{% include '_footer.html' %}
+
+<style>
+  .post-detail {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 2rem 1.25rem 3rem;
+    font-family: "Palatino Linotype", "Palatino", Georgia, serif;
+  }
+  .post-detail-card {
+    padding: 1.25rem;
+    border: 1px solid var(--gridline, #d8c9a3);
+    border-radius: 6px;
+  }
+  .post-detail-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+  .post-detail-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--surface-1, #fcfcfb);
+  }
+  .post-detail-author {
+    margin: 0;
+    font-weight: 700;
+  }
+  .post-detail-date {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary, #6b5d47);
+  }
+  .post-detail-body {
+    font-size: 1.05rem;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+  }
+  .post-detail-shared {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+    padding: 0.6rem;
+    border: 1px solid var(--gridline, #d8c9a3);
+    border-radius: 6px;
+    text-decoration: none;
+    color: inherit;
+  }
+  .post-detail-shared:hover {
+    border-color: var(--series-1, #2f6690);
+  }
+  .post-detail-shared-thumb {
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+    border-radius: 4px;
+    flex: none;
+  }
+  .post-detail-shared-title {
+    display: block;
+    color: var(--series-1, #2f6690);
+  }
+  .post-detail-shared-subtitle {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--text-secondary, #6b5d47);
+  }
+  .post-detail-cta,
+  .post-detail-cta-text {
+    display: block;
+    margin-top: 1.25rem;
+    text-align: center;
+    font-size: 0.9rem;
+  }
+</style>

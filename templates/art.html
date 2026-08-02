@@ -1,5 +1,7 @@
 <!doctype html>
-<title>Art Movements</title>
+{% set og_title = "Art Movements — Data Viz" %}
+{% set og_description = "Browse Wikidata-sourced paintings grouped by art movement." %}
+<title>{{ og_title }}</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 {% include '_theme_init.html' %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">

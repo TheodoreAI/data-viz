@@ -41,6 +41,10 @@ def list_posts(before_id=None, limit=PAGE_SIZE):
     return query.limit(limit).all()
 
 
+def get_post(post_id):
+    return Post.query.get(post_id)
+
+
 def delete_post(user, post_id):
     """Returns True if deleted, False if not found or not owned by user."""
     post = Post.query.filter_by(id=post_id, user_id=user.id).first()

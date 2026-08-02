@@ -7,3 +7,4 @@ static/dist/
 instance/
 .env
 .wikidata_cache/
+static/generated_og/
