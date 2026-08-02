@@ -166,16 +166,17 @@ body.graph-fullscreen .footer {
         width: min(78vw, 260px);
         max-height: 0;
         overflow: hidden;
-        border: 2px solid rgba(63, 51, 38, 0.16);
+        border: none;
         border-radius: 14px;
         background: #f3e9d2;
         box-shadow: 0 8px 24px rgba(63, 51, 38, 0.3);
-        transition: max-height 0.25s ease;
+        transition: max-height 0.25s ease, border-color 0.2s ease;
         transform-origin: bottom right;
     }
     .nav-links.nav-open {
         max-height: 70vh;
         overflow-y: auto;
+        border: 2px solid rgba(63, 51, 38, 0.16);
     }
     .navbar a {
         padding: 0.9rem 1.25rem;
