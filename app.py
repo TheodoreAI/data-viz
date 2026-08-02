@@ -101,6 +101,11 @@ app.config['JWT_COOKIE_SECURE'] = not app.debug
 app.config['JWT_COOKIE_SAMESITE'] = 'Lax'
 app.config['JWT_COOKIE_CSRF_PROTECT'] = True
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=7)
+# Without this, flask-jwt-extended issues the cookie with no Max-Age/Expires
+# (a browser "session cookie"). iOS PWAs launched from the home screen often
+# start a fresh WKWebView process per launch, which drops session cookies —
+# users get logged out well before the token's actual 7-day expiry.
+app.config['JWT_SESSION_COOKIE'] = False
 
 RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
 mail_config = {
