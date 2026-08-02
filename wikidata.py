@@ -13,10 +13,10 @@ WIKIDATA_HEADERS = {
     'Accept': 'application/sparql-results+json',
 }
 
-ART_FEED_PAGE_SIZE = 20
-ART_POOL_SIZE = 100
-MIN_MOVEMENT_PAINTINGS = 15
-MAX_MOVEMENTS = 20
+FILM_FEED_PAGE_SIZE = 20
+FILM_POOL_SIZE = 100
+MIN_GENRE_FILMS = 15
+MAX_GENRES = 20
 
 # These SPARQL queries take several seconds to ~10s each. lru_cache alone only
 # helps within a single running process, so every restart/redeploy/new worker
@@ -64,22 +64,36 @@ ORDER BY DESC(?count)
 LIMIT {limit}
 """
 
-ART_POOL_QUERY = """
-SELECT ?painting ?paintingLabel ?artistLabel ?movementLabel
-       (SAMPLE(?birth) AS ?birthAgg)
-       (SAMPLE(?death) AS ?deathAgg)
-       (SAMPLE(?inception) AS ?inceptionAgg)
-       (SAMPLE(?image) AS ?imageAgg) WHERE {{
-  ?painting wdt:P31 wd:Q3305213;
-            wdt:P170 ?artist;
-            wdt:P18 ?image;
-            wdt:P135 {movement_clause};
-            wdt:P571 ?inception.
-  OPTIONAL {{ ?artist wdt:P569 ?birth. }}
-  OPTIONAL {{ ?artist wdt:P570 ?death. }}
+FILM_GENRES_QUERY = """
+SELECT ?genre ?genreLabel (COUNT(DISTINCT ?film) AS ?count) WHERE {{
+  ?film wdt:P31 wd:Q11424;
+        wdt:P136 ?genre;
+        wdt:P18 ?image;
+        wdt:P577 ?publicationDate.
   SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en". }}
 }}
-GROUP BY ?painting ?paintingLabel ?artistLabel ?movementLabel
+GROUP BY ?genre ?genreLabel
+HAVING (COUNT(DISTINCT ?film) >= {min_count})
+ORDER BY DESC(?count)
+LIMIT {limit}
+"""
+
+FILM_POOL_QUERY = """
+SELECT ?film ?filmLabel ?directorLabel ?genre ?genreLabel
+       (SAMPLE(?birth) AS ?birthAgg)
+       (SAMPLE(?death) AS ?deathAgg)
+       (SAMPLE(?publicationDate) AS ?publicationDateAgg)
+       (SAMPLE(?image) AS ?imageAgg) WHERE {{
+  ?film wdt:P31 wd:Q11424;
+        wdt:P57 ?director;
+        wdt:P136 {genre_clause};
+        wdt:P18 ?image;
+        wdt:P577 ?publicationDate.
+  OPTIONAL {{ ?director wdt:P569 ?birth. }}
+  OPTIONAL {{ ?director wdt:P570 ?death. }}
+  SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en". }}
+}}
+GROUP BY ?film ?filmLabel ?directorLabel ?genre ?genreLabel
 LIMIT {limit}
 """
 
@@ -110,61 +124,61 @@ def label_or_none(value):
 
 
 @lru_cache(maxsize=1)
-def fetch_art_movements():
-    cached = _read_disk_cache('art_movements')
+def fetch_film_genres():
+    cached = _read_disk_cache('film_genres')
     if cached is not None:
         return cached
 
-    query = ART_MOVEMENTS_QUERY.format(min_count=MIN_MOVEMENT_PAINTINGS, limit=MAX_MOVEMENTS)
+    query = FILM_GENRES_QUERY.format(min_count=MIN_GENRE_FILMS, limit=MAX_GENRES)
     response = requests.get(WIKIDATA_SPARQL_URL, headers=WIKIDATA_HEADERS, params={'query': query})
     response.raise_for_status()
     bindings = response.json()['results']['bindings']
 
-    movements = []
+    genres = []
     for row in bindings:
-        movement_id = row['movement']['value'].rsplit('/', 1)[-1]
-        label = label_or_none(row.get('movementLabel', {}).get('value')) or movement_id
-        movements.append({'id': movement_id, 'label': label})
+        genre_id = row['genre']['value'].rsplit('/', 1)[-1]
+        label = label_or_none(row.get('genreLabel', {}).get('value')) or genre_id
+        genres.append({'id': genre_id, 'label': label})
 
-    _write_disk_cache('art_movements', movements)
-    return movements
+    _write_disk_cache('film_genres', genres)
+    return genres
 
 
-def parse_painting_row(row):
+def parse_film_row(row):
     image = row.get('imageAgg', {}).get('value')
     if not image:
         return None
     return {
-        'title': label_or_none(row.get('paintingLabel', {}).get('value')) or 'Untitled',
-        'artist': label_or_none(row.get('artistLabel', {}).get('value')) or 'Unknown artist',
+        'title': label_or_none(row.get('filmLabel', {}).get('value')) or 'Untitled',
+        'director': label_or_none(row.get('directorLabel', {}).get('value')) or 'Unknown director',
         'birthYear': extract_year(row.get('birthAgg', {}).get('value')),
         'deathYear': extract_year(row.get('deathAgg', {}).get('value')),
-        'movement': label_or_none(row.get('movementLabel', {}).get('value')) or 'Unknown movement',
-        'year': extract_year(row.get('inceptionAgg', {}).get('value')),
+        'genre': label_or_none(row.get('genreLabel', {}).get('value')) or 'Unknown genre',
+        'year': extract_year(row.get('publicationDateAgg', {}).get('value')),
         'image': commons_thumbnail_url(image),
     }
 
 
 @lru_cache(maxsize=64)
-def fetch_art_pool(movement_id=None):
-    cache_key = f'art_pool_{movement_id or "all"}'
+def fetch_film_pool(genre_id=None):
+    cache_key = f'film_pool_{genre_id or "all"}'
     cached = _read_disk_cache(cache_key)
     if cached is not None:
         return cached
 
-    movement_clause = f'wd:{movement_id}' if movement_id and QID_PATTERN.match(movement_id) else '?movement'
-    query = ART_POOL_QUERY.format(movement_clause=movement_clause, limit=ART_POOL_SIZE)
+    genre_clause = f'wd:{genre_id}' if genre_id and QID_PATTERN.match(genre_id) else '?genre'
+    query = FILM_POOL_QUERY.format(genre_clause=genre_clause, limit=FILM_POOL_SIZE)
     response = requests.get(WIKIDATA_SPARQL_URL, headers=WIKIDATA_HEADERS, params={'query': query})
     response.raise_for_status()
     bindings = response.json()['results']['bindings']
 
-    paintings = [p for p in (parse_painting_row(row) for row in bindings) if p]
-    random.shuffle(paintings)
+    films = [p for p in (parse_film_row(row) for row in bindings) if p]
+    random.shuffle(films)
 
-    _write_disk_cache(cache_key, paintings)
-    return paintings
+    _write_disk_cache(cache_key, films)
+    return films
 
 
-def fetch_art_feed_page(offset, limit=ART_FEED_PAGE_SIZE, movement=None):
-    pool = fetch_art_pool(movement)
+def fetch_film_feed_page(offset, limit=FILM_FEED_PAGE_SIZE, genre=None):
+    pool = fetch_film_pool(genre)
     return pool[offset:offset + limit]

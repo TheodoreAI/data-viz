@@ -15,7 +15,7 @@
   <div id="nav-links" class="nav-links">
     <a href="{{ url_for('hello_world') }}" class="{{ 'active' if request.path == url_for('hello_world') }}" {{ 'aria-current="page"' if request.path == url_for('hello_world') }}>Home</a>
     <a href="{{ url_for('bubbles') }}" class="{{ 'active' if request.path == url_for('bubbles') }}" {{ 'aria-current="page"' if request.path == url_for('bubbles') }}>Bubbles</a>
-    <a href="{{ url_for('art') }}" class="{{ 'active' if request.path == url_for('art') }}" {{ 'aria-current="page"' if request.path == url_for('art') }}>Art</a>
+    <a href="{{ url_for('movies') }}" class="{{ 'active' if request.path == url_for('movies') }}" {{ 'aria-current="page"' if request.path == url_for('movies') }}>Movies</a>
     <a href="{{ url_for('graph') }}" class="{{ 'active' if request.path == url_for('graph') }}" {{ 'aria-current="page"' if request.path == url_for('graph') }}>Graph</a>
     <a href="{{ url_for('time_travel_page') }}" class="{{ 'active' if request.path == url_for('time_travel_page') }}" {{ 'aria-current="page"' if request.path == url_for('time_travel_page') }}>Time Travel</a>
     {% if current_user %}

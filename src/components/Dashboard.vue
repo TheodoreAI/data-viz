@@ -161,8 +161,8 @@ export default {
 
       <div class="quick-links">
         <a href="/art" class="quick-link">
-          <span class="quick-link-title">Art</span>
-          <span class="quick-link-copy">Browse paintings by movement</span>
+          <span class="quick-link-title">Movies</span>
+          <span class="quick-link-copy">Browse films by genre</span>
         </a>
         <a href="/graph" class="quick-link">
           <span class="quick-link-title">Graph</span>
@@ -183,7 +183,7 @@ export default {
         <p v-if="savedItemsLoading" class="status">Loading…</p>
         <p v-else-if="savedItemsError" class="status form-error">Couldn't load your saved items.</p>
         <p v-else-if="!savedItems.length" class="status">
-          Nothing saved yet — look for a Save button on paintings in Art or articles on Home.
+          Nothing saved yet — look for a Save button on films in Movies or articles on Home.
         </p>
         <ul v-else class="saved-list">
           <li v-for="item in savedItems" :key="item.id" class="saved-item">

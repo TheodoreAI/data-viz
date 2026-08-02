@@ -1,6 +1,6 @@
 from models import SavedItem, db
 
-VALID_ITEM_TYPES = {'painting', 'article'}
+VALID_ITEM_TYPES = {'painting', 'film', 'article'}
 MAX_TITLE_LENGTH = 255
 MAX_SUBTITLE_LENGTH = 255
 
