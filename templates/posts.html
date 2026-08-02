@@ -1,5 +1,7 @@
 <!doctype html>
-<title>Posts</title>
+{% set og_title = "Posts — Data Viz" %}
+{% set og_description = "See and share posts and saved articles from the Data Viz community." %}
+<title>{{ og_title }}</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 {% include '_theme_init.html' %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">

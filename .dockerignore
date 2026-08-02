@@ -3,5 +3,6 @@ env
 __pycache__
 *.pyc
 static/dist
+static/generated_og
 .git
 .gitignore

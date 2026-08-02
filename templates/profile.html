@@ -1,5 +1,7 @@
 <!doctype html>
-<title>Profile</title>
+{% set og_title = "Profile — Data Viz" %}
+{% set og_description = "Manage your Data Viz profile and account settings." %}
+<title>{{ og_title }}</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 {% include '_theme_init.html' %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">

@@ -11,6 +11,7 @@ from flask import jsonify
 from flask import redirect
 from flask import render_template
 from flask import request
+from flask import send_file
 from flask import url_for
 from flask_jwt_extended import JWTManager
 from flask_jwt_extended import create_access_token
@@ -36,8 +37,10 @@ from email_utils import init_mail
 from email_utils import send_password_reset_email
 from models import User
 from models import db
+from og_image import render_post_card
 from posts import create_post
 from posts import delete_post
+from posts import get_post
 from posts import list_posts
 from saved_items import delete_saved_item
 from saved_items import list_saved_items
@@ -70,6 +73,9 @@ _topic_category_pool_cache = {}
 
 app = Flask(__name__)
 app.jinja_env.globals['vite_asset'] = lambda entry: vite_asset_tags(entry, app.debug, request.host)
+
+GENERATED_OG_DIR = os.path.join(app.root_path, 'static', 'generated_og')
+os.makedirs(GENERATED_OG_DIR, exist_ok=True)
 
 DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///data-viz.db')
 if DATABASE_URL.startswith('postgres://'):
@@ -229,6 +235,47 @@ def posts_page():
     if not identity:
         return redirect(url_for('login_page'))
     return render_template('posts.html')
+
+
+@app.route('/posts/<int:post_id>')
+def post_detail_page(post_id):
+    post = get_post(post_id)
+    if not post:
+        return render_template('post_not_found.html'), 404
+
+    post_dict = post.to_dict()
+    post_dict['displayDate'] = post.created_at.strftime('%B %-d, %Y at %-I:%M %p') if post.created_at else ''
+    author_name = post_dict['author']['displayName'] or post_dict['author']['username']
+    body_excerpt = post_dict['body'] if len(post_dict['body']) <= 200 else post_dict['body'][:199] + '…'
+    return render_template(
+        'post_detail.html',
+        post=post_dict,
+        og_title=f'{author_name} on Data Viz',
+        og_description=body_excerpt,
+        og_image=url_for('api_post_og_image', post_id=post_id, _external=True),
+    )
+
+
+def _generated_og_path(post_id):
+    return os.path.join(GENERATED_OG_DIR, f'{post_id}.png')
+
+
+@app.route('/api/posts/<int:post_id>/og-image.png')
+@limiter.limit('30 per minute')
+def api_post_og_image(post_id):
+    post = get_post(post_id)
+    if not post:
+        return jsonify({'error': 'Not found'}), 404
+
+    cache_path = _generated_og_path(post_id)
+    if not os.path.exists(cache_path):
+        image_bytes = render_post_card(post.to_dict())
+        with open(cache_path, 'wb') as f:
+            f.write(image_bytes)
+
+    response = send_file(cache_path, mimetype='image/png')
+    response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+    return response
 
 
 @app.route('/forgot-password')
@@ -576,6 +623,11 @@ def api_delete_post(post_id):
 
     if not delete_post(user, post_id):
         return jsonify({'error': 'Not found'}), 404
+
+    cache_path = _generated_og_path(post_id)
+    if os.path.exists(cache_path):
+        os.remove(cache_path)
+
     return jsonify({'ok': True})
 
 
