@@ -90,7 +90,8 @@ def render_post_card(post):
     draw = ImageDraw.Draw(img)
 
     shared_item = post.get('sharedItem')
-    has_thumb = bool(shared_item and shared_item.get('imageUrl'))
+    thumb_url = post.get('imageUrl') or (shared_item and shared_item.get('imageUrl'))
+    has_thumb = bool(thumb_url)
     thumb_w = 340
     text_right_edge = (CARD_WIDTH - thumb_w - 40) if has_thumb else (CARD_WIDTH - 60)
 
@@ -119,7 +120,7 @@ def render_post_card(post):
         draw.text((60, body_y + i * line_height), line, font=body_font, fill=INK)
 
     if has_thumb:
-        thumb_img = _fetch_image(shared_item['imageUrl'])
+        thumb_img = _fetch_image(thumb_url)
         if thumb_img:
             fitted = _fit_cover(thumb_img.convert('RGB'), thumb_w, CARD_HEIGHT)
             img.paste(fitted, (CARD_WIDTH - thumb_w, 0))

@@ -42,6 +42,7 @@ from posts import create_post
 from posts import delete_post
 from posts import get_post
 from posts import list_posts
+from storage import upload_image
 from saved_items import delete_saved_item
 from saved_items import list_saved_items
 from saved_items import save_item
@@ -609,6 +610,7 @@ def api_posts():
             user,
             body=data.get('body') or '',
             saved_item_id=data.get('savedItemId'),
+            image_url=data.get('imageUrl'),
         )
         if errors:
             return jsonify({'errors': errors}), 400
@@ -617,6 +619,20 @@ def api_posts():
     before_id = request.args.get('beforeId', type=int)
     posts = list_posts(before_id=before_id)
     return jsonify([post.to_dict() for post in posts])
+
+
+@app.route('/api/uploads', methods=['POST'])
+@jwt_required()
+@limiter.limit('20 per hour')
+def api_upload_image():
+    file_storage = request.files.get('file')
+    if not file_storage:
+        return jsonify({'errors': {'file': 'No file provided.'}}), 400
+
+    url, errors = upload_image(file_storage, folder=f'posts/{get_jwt_identity()}')
+    if errors:
+        return jsonify({'errors': errors}), 400
+    return jsonify({'url': url}), 201
 
 
 @app.route('/api/posts/<int:post_id>', methods=['DELETE'])
