@@ -25,6 +25,7 @@ export default defineConfig(({ command }) => ({
         profile: 'src/entries/profile.js',
         dashboard: 'src/entries/dashboard.js',
         posts: 'src/entries/posts.js',
+        'time-travel': 'src/entries/time-travel.js',
         'forgot-password': 'src/entries/forgot-password.js',
         'reset-password': 'src/entries/reset-password.js',
       },

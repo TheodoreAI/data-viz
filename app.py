@@ -49,6 +49,7 @@ from saved_items import save_item
 from vite import vite_asset_tags
 from wikidata import fetch_art_feed_page
 from wikidata import fetch_art_movements
+from wayback import fetch_snapshots
 
 load_dotenv()
 
@@ -467,6 +468,29 @@ def graph():
     title = article['title']
     links = fetch_article_links(title)
     return render_template('graph.html', title=title, links=links, topics=TOPIC_CATEGORIES)
+
+
+@app.route('/time-travel')
+def time_travel_page():
+    return render_template('time_travel.html')
+
+
+@app.route('/api/wayback/snapshots')
+@limiter.limit('20 per minute')
+def api_wayback_snapshots():
+    url = (request.args.get('url') or '').strip()
+    if not url:
+        return jsonify({'error': 'A url is required.'}), 400
+
+    try:
+        snapshots = fetch_snapshots(url)
+    except requests.RequestException:
+        return jsonify({'error': "Couldn't reach the Wayback Machine. Please try again."}), 502
+
+    if not snapshots:
+        return jsonify({'error': 'No archived snapshots found for that URL.'}), 404
+
+    return jsonify({'url': url, 'snapshots': snapshots})
 
 
 @app.route('/api/article-links')

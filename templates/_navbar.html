@@ -17,6 +17,7 @@
     <a href="{{ url_for('bubbles') }}" class="{{ 'active' if request.path == url_for('bubbles') }}" {{ 'aria-current="page"' if request.path == url_for('bubbles') }}>Bubbles</a>
     <a href="{{ url_for('art') }}" class="{{ 'active' if request.path == url_for('art') }}" {{ 'aria-current="page"' if request.path == url_for('art') }}>Art</a>
     <a href="{{ url_for('graph') }}" class="{{ 'active' if request.path == url_for('graph') }}" {{ 'aria-current="page"' if request.path == url_for('graph') }}>Graph</a>
+    <a href="{{ url_for('time_travel_page') }}" class="{{ 'active' if request.path == url_for('time_travel_page') }}" {{ 'aria-current="page"' if request.path == url_for('time_travel_page') }}>Time Travel</a>
     {% if current_user %}
       <a href="{{ url_for('dashboard_page') }}" class="{{ 'active' if request.path == url_for('dashboard_page') }}" {{ 'aria-current="page"' if request.path == url_for('dashboard_page') }}>Dashboard</a>
       <a href="{{ url_for('posts_page') }}" class="{{ 'active' if request.path == url_for('posts_page') }}" {{ 'aria-current="page"' if request.path == url_for('posts_page') }}>Posts</a>
