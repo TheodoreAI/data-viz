@@ -49,6 +49,7 @@ from saved_items import save_item
 from vite import vite_asset_tags
 from wikidata import fetch_art_feed_page
 from wikidata import fetch_art_movements
+from wayback import fetch_popular_pages
 from wayback import fetch_snapshots
 
 load_dotenv()
@@ -484,13 +485,20 @@ def api_wayback_snapshots():
 
     try:
         snapshots = fetch_snapshots(url)
+        if snapshots:
+            return jsonify({'mode': 'timeline', 'url': url, 'snapshots': snapshots})
+
+        # No exact-match capture — the CDX index is keyed by exact URL, and a
+        # bare domain almost never has one. Fall back to sampling the domain's
+        # deep pages and ranking them by how often each was recaptured.
+        pages = fetch_popular_pages(url)
     except requests.RequestException:
         return jsonify({'error': "Couldn't reach the Wayback Machine. Please try again."}), 502
 
-    if not snapshots:
+    if not pages:
         return jsonify({'error': 'No archived snapshots found for that URL.'}), 404
 
-    return jsonify({'url': url, 'snapshots': snapshots})
+    return jsonify({'mode': 'popular', 'url': url, 'pages': pages})
 
 
 @app.route('/api/article-links')

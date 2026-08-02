@@ -13,8 +13,11 @@ export default {
       searchedUrl: '',
       loading: false,
       error: '',
+      mode: null, // 'timeline' | 'popular'
       snapshots: [],
+      popularPages: [],
       selectedTimestamp: null,
+      selectedArchiveUrl: '',
     };
   },
   computed: {
@@ -29,8 +32,11 @@ export default {
 
       this.loading = true;
       this.error = '';
+      this.mode = null;
       this.snapshots = [];
+      this.popularPages = [];
       this.selectedTimestamp = null;
+      this.selectedArchiveUrl = '';
       try {
         const response = await fetch(`/api/wayback/snapshots?url=${encodeURIComponent(url)}`);
         const data = await response.json();
@@ -39,13 +45,29 @@ export default {
           return;
         }
         this.searchedUrl = url;
-        this.snapshots = data.snapshots;
-        this.selectedTimestamp = data.snapshots[0]?.timestamp || null;
+        this.mode = data.mode;
+        if (data.mode === 'timeline') {
+          this.snapshots = data.snapshots;
+          this.selectedTimestamp = data.snapshots[0]?.timestamp || null;
+          this.selectedArchiveUrl = data.snapshots[0]?.archiveUrl || '';
+        } else {
+          this.popularPages = data.pages;
+          this.selectPopularPage(data.pages[0]);
+        }
       } catch {
         this.error = "Couldn't reach the Wayback Machine. Please try again.";
       } finally {
         this.loading = false;
       }
+    },
+    selectYear(snapshot) {
+      this.selectedTimestamp = snapshot.timestamp;
+      this.selectedArchiveUrl = snapshot.archiveUrl;
+    },
+    selectPopularPage(page) {
+      if (!page) return;
+      this.selectedTimestamp = page.timestamp;
+      this.selectedArchiveUrl = page.archiveUrl;
     },
   },
 };
@@ -70,7 +92,7 @@ export default {
 
     <p v-if="error" class="status form-error">{{ error }}</p>
 
-    <template v-if="snapshots.length">
+    <template v-if="mode === 'timeline'">
       <div class="year-row">
         <button
           v-for="snapshot in snapshots"
@@ -78,19 +100,37 @@ export default {
           type="button"
           class="year-pill"
           :class="{ active: snapshot.timestamp === selectedTimestamp }"
-          @click="selectedTimestamp = snapshot.timestamp"
+          @click="selectYear(snapshot)"
         >{{ snapshot.year }}</button>
       </div>
+    </template>
 
-      <p v-if="selectedSnapshot" class="snapshot-meta">
-        Captured {{ selectedSnapshot.date }} —
-        <a :href="selectedSnapshot.archiveUrl" target="_blank" rel="noopener">open in a new tab</a>
+    <template v-else-if="mode === 'popular'">
+      <p class="status">
+        No exact match for <strong>{{ searchedUrl }}</strong> — here are the most-archived pages we found on that site instead:
       </p>
+      <ul class="popular-list">
+        <li v-for="page in popularPages" :key="page.url">
+          <button
+            type="button"
+            class="popular-item"
+            :class="{ active: page.timestamp === selectedTimestamp && page.archiveUrl === selectedArchiveUrl }"
+            @click="selectPopularPage(page)"
+          >
+            <span class="popular-url">{{ page.url }}</span>
+            <span class="popular-meta">{{ page.captureCount.toLocaleString() }} captures · last seen {{ page.date }}</span>
+          </button>
+        </li>
+      </ul>
+    </template>
 
+    <template v-if="selectedArchiveUrl">
+      <p class="snapshot-meta">
+        <a :href="selectedArchiveUrl" target="_blank" rel="noopener">open in a new tab</a>
+      </p>
       <iframe
-        v-if="selectedSnapshot"
-        :key="selectedSnapshot.timestamp"
-        :src="selectedSnapshot.archiveUrl"
+        :key="selectedArchiveUrl"
+        :src="selectedArchiveUrl"
         class="snapshot-frame"
         title="Archived page"
       ></iframe>
@@ -171,6 +211,40 @@ h1 {
   background: var(--series-1, #2f6690);
   border-color: var(--series-1, #2f6690);
   color: #fff;
+}
+.popular-list {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.popular-item {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  text-align: left;
+  background: var(--surface-1, #fcfcfb);
+  border: 1px solid var(--gridline, #d8c9a3);
+  border-radius: 4px;
+  padding: 0.5rem 0.7rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+.popular-item.active {
+  border-color: var(--series-1, #2f6690);
+}
+.popular-url {
+  font-size: 0.88rem;
+  color: var(--series-1, #2f6690);
+  overflow-wrap: break-word;
+}
+.popular-meta {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #6b5d47);
 }
 .snapshot-meta {
   font-size: 0.82rem;
