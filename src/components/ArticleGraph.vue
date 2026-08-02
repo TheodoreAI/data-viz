@@ -38,6 +38,8 @@ export default {
       tooltip: { visible: false, title: '', extract: '', thumbnail: null, loading: false },
       zoom: computeDefaultZoom(BASE_WIDTH, BASE_HEIGHT),
       dragNode: null,
+      dragMoved: false,
+      suppressNextClick: false,
       panning: false,
       expandingId: null,
       hoveredId: null,
@@ -104,6 +106,8 @@ export default {
       this.nodes.forEach(node => {
         node.x *= scaleX;
         node.y *= scaleY;
+        if (node.fx != null) node.fx *= scaleX;
+        if (node.fy != null) node.fy *= scaleY;
       });
       this.baseWidth = newBaseWidth;
       this.baseHeight = newBaseHeight;
@@ -318,6 +322,19 @@ export default {
         k,
       };
     },
+    onNodeClick(node) {
+      if (this.suppressNextClick) {
+        this.suppressNextClick = false;
+        return;
+      }
+      this.selectAsCenter(node);
+    },
+    unpinNode(node) {
+      node.fx = null;
+      node.fy = null;
+      node.pinned = false;
+      this.simulation.alpha(0.3).restart();
+    },
     async selectAsCenter(node) {
       if (this.loadingSeed || node.id === this.currentSeedTitle) return;
       this.history.push(this.currentSeedTitle);
@@ -359,6 +376,7 @@ export default {
       }
 
       this.smoothPan = false;
+      this.dragMoved = false;
       this.dragNode = node;
       this.simulation.alphaTarget(0.3).restart();
     },
@@ -396,6 +414,7 @@ export default {
         }
       }
       if (this.dragNode) {
+        this.dragMoved = true;
         const rect = this.$refs.svg.getBoundingClientRect();
         this.dragNode.fx = (event.clientX - rect.left - this.zoom.x) / this.zoom.k;
         this.dragNode.fy = (event.clientY - rect.top - this.zoom.y) / this.zoom.k;
@@ -416,8 +435,13 @@ export default {
         if (!this.touchMoved) this.selectAsCenter(node);
       }
       if (this.dragNode) {
-        this.dragNode.fx = null;
-        this.dragNode.fy = null;
+        if (this.dragMoved) {
+          this.dragNode.pinned = true;
+          this.suppressNextClick = true;
+        } else {
+          this.dragNode.fx = null;
+          this.dragNode.fy = null;
+        }
         this.simulation.alphaTarget(0);
         this.dragNode = null;
       }
@@ -481,7 +505,7 @@ export default {
       </div>
       <p v-if="!graphMode" class="subtitle">
         Starting from “{{ currentSeedTitle }}”. Click a node to recenter on it, + to expand its links, ⓘ for a summary.
-        Drag to reposition, pinch/scroll to zoom, swipe right for a new article, swipe left to go back.
+        Drag a node to pin it in place — tap 📌 to release it. Pinch/scroll to zoom, swipe right for a new article, swipe left to go back.
       </p>
       <ArticleSearch v-if="!graphMode" :disabled="loadingSeed" @select="selectSearchResult" />
       <div v-if="!graphMode" class="topic-row">
@@ -538,7 +562,7 @@ export default {
           @pointerdown="onNodePointerDown($event, node)"
           @mouseenter="onNodeHoverStart(node)"
           @mouseleave="onNodeHoverEnd"
-          @click="selectAsCenter(node)"
+          @click="onNodeClick(node)"
         >
           <circle :r="nodeRadius(node)" />
           <text
@@ -566,6 +590,17 @@ export default {
           >
             <circle r="12" />
             <text text-anchor="middle" dominant-baseline="central">i</text>
+          </g>
+          <g
+            v-if="node.pinned"
+            class="pin-badge"
+            :title="`Unpin ${node.id}`"
+            :transform="`translate(${-nodeRadius(node) * 0.75}, ${-nodeRadius(node) * 0.75})`"
+            @click.stop="unpinNode(node)"
+            @pointerdown.stop
+          >
+            <circle r="10" />
+            <text text-anchor="middle" dominant-baseline="central">📌</text>
           </g>
         </g>
         <text
@@ -598,7 +633,7 @@ export default {
           <li><strong>Tap a node</strong> — recenter the graph on it</li>
           <li><strong>+</strong> — expand that node's links</li>
           <li><strong>ⓘ</strong> — view its summary</li>
-          <li><strong>Drag a node</strong> — reposition it</li>
+          <li><strong>Drag a node</strong> — reposition and pin it; tap 📌 to release</li>
           <li><strong>Pinch / scroll</strong> — zoom</li>
           <li><strong>Drag background</strong> — pan</li>
           <li><strong>Swipe right / left</strong> — new article / go back</li>
@@ -905,6 +940,16 @@ export default {
   font-style: italic;
   font-weight: 700;
   font-size: 13px;
+  pointer-events: none;
+}
+.pin-badge circle {
+  fill: var(--surface);
+  stroke: var(--gold);
+  stroke-width: 1.5;
+  cursor: pointer;
+}
+.pin-badge text {
+  font-size: 11px;
   pointer-events: none;
 }
 .graph-center-label {
