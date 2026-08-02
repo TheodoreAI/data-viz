@@ -29,6 +29,7 @@ export default {
       displayNameDraft: '',
       displayNameErrors: {},
       savingDisplayName: false,
+      activeTab: 'profile',
       changingPassword: false,
       currentPassword: '',
       newPassword: '',
@@ -256,60 +257,93 @@ export default {
         </div>
       </div>
 
-      <div v-if="!editingDisplayName" class="display-name-row">
-        <button type="button" class="edit-button" @click="startEditingDisplayName">
-          {{ user.displayName ? 'Edit display name' : 'Set a display name' }}
-        </button>
+      <div class="tab-bar" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          class="tab-button"
+          :class="{ active: activeTab === 'profile' }"
+          :aria-selected="activeTab === 'profile'"
+          @click="activeTab = 'profile'"
+        >Profile</button>
+        <button
+          type="button"
+          role="tab"
+          class="tab-button"
+          :class="{ active: activeTab === 'security' }"
+          :aria-selected="activeTab === 'security'"
+          @click="activeTab = 'security'"
+        >Security</button>
+        <button
+          type="button"
+          role="tab"
+          class="tab-button danger"
+          :class="{ active: activeTab === 'danger' }"
+          :aria-selected="activeTab === 'danger'"
+          @click="activeTab = 'danger'"
+        >Danger Zone</button>
       </div>
-      <form v-else class="settings-form" @submit.prevent="saveDisplayName" novalidate>
-        <p v-if="displayNameErrors.displayName" class="form-error" role="alert">{{ displayNameErrors.displayName }}</p>
-        <label class="field">
-          <span>Display name</span>
-          <input
-            v-model="displayNameDraft"
-            type="text"
-            maxlength="64"
-            placeholder="How should we show your name?"
-            :aria-invalid="!!displayNameErrors.displayName"
-          >
-        </label>
-        <div class="bio-actions">
-          <button type="submit" class="save-button" :disabled="savingDisplayName">
-            {{ savingDisplayName ? 'Saving…' : 'Save' }}
+
+      <section v-show="activeTab === 'profile'" role="tabpanel">
+        <div v-if="!editingDisplayName" class="display-name-row">
+          <button type="button" class="edit-button" @click="startEditingDisplayName">
+            {{ user.displayName ? 'Edit display name' : 'Set a display name' }}
           </button>
-          <button type="button" class="cancel-button" :disabled="savingDisplayName" @click="cancelEditingDisplayName">Cancel</button>
         </div>
-      </form>
-
-      <p v-if="memberSince" class="meta">Member since {{ memberSince }}</p>
-      <p v-if="lastLogin" class="meta">Last login {{ lastLogin }}</p>
-
-      <div class="bio-section">
-        <template v-if="!editingBio">
-          <p v-if="user.bio" class="bio-text">{{ user.bio }}</p>
-          <p v-else class="bio-text bio-empty">No bio yet.</p>
-          <button type="button" class="edit-button" @click="startEditingBio">Edit bio</button>
-        </template>
-        <template v-else>
-          <p v-if="bioErrors.bio" class="form-error" role="alert">{{ bioErrors.bio }}</p>
-          <textarea
-            v-model="bioDraft"
-            class="bio-input"
-            :maxlength="bioMax"
-            rows="3"
-            aria-label="Bio"
-          ></textarea>
-          <p class="char-count">{{ bioDraft.length }} / {{ bioMax }}</p>
+        <form v-else class="settings-form" @submit.prevent="saveDisplayName" novalidate>
+          <p v-if="displayNameErrors.displayName" class="form-error" role="alert">{{ displayNameErrors.displayName }}</p>
+          <label class="field">
+            <span>Display name</span>
+            <input
+              v-model="displayNameDraft"
+              type="text"
+              maxlength="64"
+              placeholder="How should we show your name?"
+              :aria-invalid="!!displayNameErrors.displayName"
+            >
+          </label>
           <div class="bio-actions">
-            <button type="button" class="save-button" :disabled="savingBio" @click="saveBio">
-              {{ savingBio ? 'Saving…' : 'Save' }}
+            <button type="submit" class="save-button" :disabled="savingDisplayName">
+              {{ savingDisplayName ? 'Saving…' : 'Save' }}
             </button>
-            <button type="button" class="cancel-button" :disabled="savingBio" @click="cancelEditingBio">Cancel</button>
+            <button type="button" class="cancel-button" :disabled="savingDisplayName" @click="cancelEditingDisplayName">Cancel</button>
           </div>
-        </template>
-      </div>
+        </form>
 
-      <div class="settings-section">
+        <p v-if="memberSince" class="meta">Member since {{ memberSince }}</p>
+        <p v-if="lastLogin" class="meta">Last login {{ lastLogin }}</p>
+
+        <div class="bio-section">
+          <template v-if="!editingBio">
+            <p v-if="user.bio" class="bio-text">{{ user.bio }}</p>
+            <p v-else class="bio-text bio-empty">No bio yet.</p>
+            <button type="button" class="edit-button" @click="startEditingBio">Edit bio</button>
+          </template>
+          <template v-else>
+            <p v-if="bioErrors.bio" class="form-error" role="alert">{{ bioErrors.bio }}</p>
+            <textarea
+              v-model="bioDraft"
+              class="bio-input"
+              :maxlength="bioMax"
+              rows="3"
+              aria-label="Bio"
+            ></textarea>
+            <p class="char-count">{{ bioDraft.length }} / {{ bioMax }}</p>
+            <div class="bio-actions">
+              <button type="button" class="save-button" :disabled="savingBio" @click="saveBio">
+                {{ savingBio ? 'Saving…' : 'Save' }}
+              </button>
+              <button type="button" class="cancel-button" :disabled="savingBio" @click="cancelEditingBio">Cancel</button>
+            </div>
+          </template>
+        </div>
+
+        <button type="button" class="logout-button" :disabled="loggingOut" @click="logout">
+          {{ loggingOut ? 'Logging out…' : 'Log out' }}
+        </button>
+      </section>
+
+      <section v-show="activeTab === 'security'" role="tabpanel" class="settings-section">
         <h2>Password</h2>
         <p v-if="passwordSuccess && !changingPassword" class="success-message" role="status">Password updated.</p>
         <button v-if="!changingPassword" type="button" class="edit-button" @click="startChangingPassword">
@@ -373,9 +407,9 @@ export default {
             <button type="button" class="cancel-button" :disabled="savingPassword" @click="cancelChangingPassword">Cancel</button>
           </div>
         </form>
-      </div>
+      </section>
 
-      <div class="settings-section danger-zone">
+      <section v-show="activeTab === 'danger'" role="tabpanel" class="settings-section danger-zone">
         <h2>Delete account</h2>
         <p class="danger-copy">This permanently deletes your account. This can't be undone.</p>
         <button v-if="!deletingAccount" type="button" class="danger-button" @click="startDeletingAccount">
@@ -411,11 +445,7 @@ export default {
             <button type="button" class="cancel-button" :disabled="deletingInFlight" @click="cancelDeletingAccount">Cancel</button>
           </div>
         </form>
-      </div>
-
-      <button type="button" class="logout-button" :disabled="loggingOut" @click="logout">
-        {{ loggingOut ? 'Logging out…' : 'Log out' }}
-      </button>
+      </section>
     </template>
   </div>
 </template>
@@ -534,6 +564,32 @@ h1 {
 .logout-button:disabled {
   opacity: 0.6;
   cursor: default;
+}
+.tab-bar {
+  display: flex;
+  gap: 0.4rem;
+  margin: 1.25rem 0 1.5rem;
+  border-bottom: 1px solid var(--gridline, #d8c9a3);
+}
+.tab-button {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary, #6b5d47);
+  padding: 0.6rem 0.4rem;
+  font-family: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.tab-button.active {
+  color: var(--series-1, #2f6690);
+  border-bottom-color: var(--series-1, #2f6690);
+  font-weight: 700;
+}
+.tab-button.danger.active {
+  color: #b0413e;
+  border-bottom-color: #b0413e;
 }
 .settings-section {
   margin: 1.5rem 0;
