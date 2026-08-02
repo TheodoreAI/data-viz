@@ -5,16 +5,16 @@ function readCookie(name) {
 }
 
 export default {
-  name: 'ArtFeed',
+  name: 'MoviesFeed',
   props: {
-    initialPaintings: { type: Array, required: true },
-    movements: { type: Array, default: () => [] },
+    initialFilms: { type: Array, required: true },
+    genres: { type: Array, default: () => [] },
   },
   data() {
     return {
-      paintings: this.initialPaintings,
-      offset: this.initialPaintings.length,
-      selectedMovement: '',
+      films: this.initialFilms,
+      offset: this.initialFilms.length,
+      selectedGenre: '',
       sortMode: 'oldest',
       loading: false,
       exhausted: false,
@@ -25,14 +25,14 @@ export default {
     };
   },
   computed: {
-    displayedPaintings() {
+    displayedFilms() {
       if (this.sortMode === 'newest') {
-        return [...this.paintings].sort((a, b) => (b.year ?? -Infinity) - (a.year ?? -Infinity));
+        return [...this.films].sort((a, b) => (b.year ?? -Infinity) - (a.year ?? -Infinity));
       }
       if (this.sortMode === 'oldest') {
-        return [...this.paintings].sort((a, b) => (a.year ?? Infinity) - (b.year ?? Infinity));
+        return [...this.films].sort((a, b) => (a.year ?? Infinity) - (b.year ?? Infinity));
       }
-      return this.paintings;
+      return this.films;
     },
   },
   mounted() {
@@ -45,20 +45,20 @@ export default {
     if (this.observer) this.observer.disconnect();
   },
   methods: {
-    paintingKey(painting) {
-      return `${painting.title}::${painting.artist}`;
+    filmKey(film) {
+      return `${film.title}::${film.director}`;
     },
     shuffle() {
-      const shuffled = [...this.paintings];
+      const shuffled = [...this.films];
       for (let i = shuffled.length - 1; i > 0; i -= 1) {
         const j = Math.floor(Math.random() * (i + 1));
         [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
       }
-      this.paintings = shuffled;
+      this.films = shuffled;
       this.sortMode = 'shuffled';
     },
-    async saveItem(painting) {
-      const key = this.paintingKey(painting);
+    async saveItem(film) {
+      const key = this.filmKey(film);
       if (this.savingKey || this.savedKeys.has(key)) return;
       this.savingKey = key;
       try {
@@ -70,11 +70,11 @@ export default {
             'X-CSRF-TOKEN': readCookie('csrf_access_token'),
           },
           body: JSON.stringify({
-            itemType: 'painting',
-            title: painting.title,
-            subtitle: painting.artist,
-            imageUrl: painting.image,
-            sourceUrl: this.sourceUrl(painting.image),
+            itemType: 'film',
+            title: film.title,
+            subtitle: film.director,
+            imageUrl: film.image,
+            sourceUrl: this.sourceUrl(film.image),
           }),
         });
         if (response.status === 401) {
@@ -88,11 +88,11 @@ export default {
         this.savingKey = '';
       }
     },
-    async share(painting) {
-      const url = this.sourceUrl(painting.image);
+    async share(film) {
+      const url = this.sourceUrl(film.image);
       if (navigator.share) {
         try {
-          await navigator.share({ title: painting.title, url });
+          await navigator.share({ title: film.title, url });
         } catch {
           // user cancelled the native share sheet — nothing to do
         }
@@ -100,7 +100,7 @@ export default {
       }
       try {
         await navigator.clipboard.writeText(url);
-        const key = this.paintingKey(painting);
+        const key = this.filmKey(film);
         this.copiedKey = key;
         setTimeout(() => {
           if (this.copiedKey === key) this.copiedKey = '';
@@ -113,17 +113,17 @@ export default {
       if (year == null) return '';
       return year < 0 ? `${Math.abs(year)} BCE` : `${year}`;
     },
-    lifespan(painting) {
-      if (painting.birthYear && painting.deathYear) {
-        return `${this.formatYear(painting.birthYear)}–${this.formatYear(painting.deathYear)}`;
+    lifespan(film) {
+      if (film.birthYear && film.deathYear) {
+        return `${this.formatYear(film.birthYear)}–${this.formatYear(film.deathYear)}`;
       }
-      if (painting.birthYear) return `b. ${this.formatYear(painting.birthYear)}`;
+      if (film.birthYear) return `b. ${this.formatYear(film.birthYear)}`;
       return '';
     },
     feedUrl() {
       const params = new URLSearchParams({ offset: this.offset });
-      if (this.selectedMovement) params.set('movement', this.selectedMovement);
-      return `/api/art-feed?${params.toString()}`;
+      if (this.selectedGenre) params.set('genre', this.selectedGenre);
+      return `/api/film-feed?${params.toString()}`;
     },
     async loadMore() {
       if (this.loading || this.exhausted || this.error) return;
@@ -135,7 +135,7 @@ export default {
         if (page.length === 0) {
           this.exhausted = true;
         } else {
-          this.paintings = this.paintings.concat(page);
+          this.films = this.films.concat(page);
           this.offset += page.length;
         }
       } catch {
@@ -148,10 +148,10 @@ export default {
       this.error = false;
       this.loadMore();
     },
-    async selectMovement(movementId) {
-      if (this.loading || movementId === this.selectedMovement) return;
-      this.selectedMovement = movementId;
-      this.paintings = [];
+    async selectGenre(genreId) {
+      if (this.loading || genreId === this.selectedGenre) return;
+      this.selectedGenre = genreId;
+      this.films = [];
       this.offset = 0;
       this.exhausted = false;
       this.error = false;
@@ -173,23 +173,23 @@ export default {
 <template>
   <div class="art-feed">
     <header class="art-header">
-      <h1>Art Movements</h1>
-      <p class="subtitle">Paintings in chronological order — pick a movement, shuffle, or flip the direction.</p>
+      <h1>Movies</h1>
+      <p class="subtitle">Browse films by genre — pick one, shuffle, or sort by release.</p>
       <div class="topic-row">
         <button
           class="topic-pill"
-          :class="{ active: selectedMovement === '' }"
+          :class="{ active: selectedGenre === '' }"
           :disabled="loading"
-          @click="selectMovement('')"
+          @click="selectGenre('')"
         >All</button>
         <button
-          v-for="movement in movements"
-          :key="movement.id"
+          v-for="genre in genres"
+          :key="genre.id"
           class="topic-pill"
-          :class="{ active: selectedMovement === movement.id }"
+          :class="{ active: selectedGenre === genre.id }"
           :disabled="loading"
-          @click="selectMovement(movement.id)"
-        >{{ movement.label }}</button>
+          @click="selectGenre(genre.id)"
+        >{{ genre.label }}</button>
       </div>
       <div class="sort-row">
         <button
@@ -214,26 +214,26 @@ export default {
     </header>
 
     <div class="art-grid">
-      <article v-for="(painting, index) in displayedPaintings" :key="painting.title + painting.year + index" class="art-card">
-        <a :href="sourceUrl(painting.image)" target="_blank" rel="noopener">
-          <img :src="painting.image" :alt="painting.title" loading="lazy" class="art-image">
+      <article v-for="(film, index) in displayedFilms" :key="film.title + film.year + index" class="art-card">
+        <a :href="sourceUrl(film.image)" target="_blank" rel="noopener">
+          <img :src="film.image" :alt="film.title" loading="lazy" class="art-image">
         </a>
         <div class="art-body">
-          <h2><a :href="sourceUrl(painting.image)" target="_blank" rel="noopener">{{ painting.title }}</a></h2>
+          <h2><a :href="sourceUrl(film.image)" target="_blank" rel="noopener">{{ film.title }}</a></h2>
           <p class="art-meta">
-            {{ painting.artist }}
-            <template v-if="lifespan(painting)"> ({{ lifespan(painting) }})</template>
+            {{ film.director }}
+            <template v-if="lifespan(film)"> ({{ lifespan(film) }})</template>
           </p>
-          <p class="art-year" v-if="painting.year != null">{{ formatYear(painting.year) }} · {{ painting.movement }}</p>
+          <p class="art-year" v-if="film.year != null">{{ formatYear(film.year) }} · {{ film.genre }}</p>
           <div class="art-footer">
             <button
               type="button"
               class="share-button"
-              :disabled="savedKeys.has(paintingKey(painting))"
-              @click="saveItem(painting)"
-            >{{ savedKeys.has(paintingKey(painting)) ? 'Saved' : (savingKey === paintingKey(painting) ? 'Saving…' : 'Save') }}</button>
-            <button type="button" class="share-button" @click="share(painting)">
-              {{ copiedKey === paintingKey(painting) ? 'Link copied' : 'Share' }}
+              :disabled="savedKeys.has(filmKey(film))"
+              @click="saveItem(film)"
+            >{{ savedKeys.has(filmKey(film)) ? 'Saved' : (savingKey === filmKey(film) ? 'Saving…' : 'Save') }}</button>
+            <button type="button" class="share-button" @click="share(film)">
+              {{ copiedKey === filmKey(film) ? 'Link copied' : 'Share' }}
             </button>
           </div>
         </div>

@@ -18,7 +18,7 @@ export default defineConfig(({ command }) => ({
       input: {
         bubbles: 'src/entries/bubbles.js',
         home: 'src/entries/home.js',
-        art: 'src/entries/art.js',
+        movies: 'src/entries/movies.js',
         graph: 'src/entries/graph.js',
         register: 'src/entries/register.js',
         login: 'src/entries/login.js',

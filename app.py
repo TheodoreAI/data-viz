@@ -47,8 +47,8 @@ from saved_items import delete_saved_item
 from saved_items import list_saved_items
 from saved_items import save_item
 from vite import vite_asset_tags
-from wikidata import fetch_art_feed_page
-from wikidata import fetch_art_movements
+from wikidata import fetch_film_feed_page
+from wikidata import fetch_film_genres
 from wayback import fetch_popular_pages
 from wayback import fetch_snapshots
 
@@ -440,27 +440,32 @@ def api_random_article():
 
 
 @app.route('/art')
-def art():
+def art_redirect():
+    return redirect(url_for('movies'))
+
+
+@app.route('/movies')
+def movies():
     # These are independent Wikidata SPARQL calls that can each take several
     # seconds on a cold cache — run them concurrently instead of back to back.
     with ThreadPoolExecutor(max_workers=2) as executor:
-        movements_future = executor.submit(fetch_art_movements)
-        paintings_future = executor.submit(fetch_art_feed_page, offset=0)
-        movements = movements_future.result()
-        paintings = paintings_future.result()
-    return render_template('art.html', paintings=paintings, movements=movements)
+        genres_future = executor.submit(fetch_film_genres)
+        films_future = executor.submit(fetch_film_feed_page, offset=0)
+        genres = genres_future.result()
+        films = films_future.result()
+    return render_template('movies.html', films=films, genres=genres)
 
 
-@app.route('/api/art-feed')
-def api_art_feed():
+@app.route('/api/film-feed')
+def api_film_feed():
     offset = request.args.get('offset', 0, type=int)
-    movement = request.args.get('movement') or None
-    return jsonify(fetch_art_feed_page(offset=offset, movement=movement))
+    genre = request.args.get('genre') or None
+    return jsonify(fetch_film_feed_page(offset=offset, genre=genre))
 
 
-@app.route('/api/art-movements')
-def api_art_movements():
-    return jsonify(fetch_art_movements())
+@app.route('/api/film-genres')
+def api_film_genres():
+    return jsonify(fetch_film_genres())
 
 
 @app.route('/graph')
@@ -582,12 +587,12 @@ def api_top_articles():
 @app.route('/api/stats')
 def api_stats():
     try:
-        art_movements = len(fetch_art_movements())
+        film_genres = len(fetch_film_genres())
     except requests.RequestException:
-        art_movements = None
+        film_genres = None
     return jsonify({
         'totalUsers': User.query.count(),
-        'artMovements': art_movements,
+        'filmGenres': film_genres,
     })
 
 

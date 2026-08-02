@@ -1,6 +1,6 @@
 <!doctype html>
-{% set og_title = "Art Movements — Data Viz" %}
-{% set og_description = "Browse Wikidata-sourced paintings grouped by art movement." %}
+{% set og_title = "Movies — Data Viz" %}
+{% set og_description = "Browse Wikidata-sourced films grouped by genre." %}
 <title>{{ og_title }}</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 {% include '_theme_init.html' %}
@@ -13,5 +13,5 @@
 
 {% include '_footer.html' %}
 
-<script id="art-data" type="application/json">{{ {'paintings': paintings, 'movements': movements} | tojson }}</script>
-{{ vite_asset('art') }}
+<script id="movies-data" type="application/json">{{ {'films': films, 'genres': genres} | tojson }}</script>
+{{ vite_asset('movies') }}
