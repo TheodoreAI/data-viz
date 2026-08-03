@@ -693,6 +693,30 @@ export default {
   background: var(--surface);
   font-family: "Palatino Linotype", "Palatino", Georgia, serif;
 }
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) .graph-root {
+    --surface: #1c1a15;
+    --surface-deep: #131209;
+    --ink: #e8dfc8;
+    --ink-soft: #b3a888;
+    --blue: #86b3d9;
+    --blue-faint: rgba(134, 179, 217, 0.25);
+    --olive: #9caa6e;
+    --olive-soft: rgba(156, 170, 110, 0.35);
+    --gold: #d1a869;
+  }
+}
+:root[data-theme="dark"] .graph-root {
+  --surface: #1c1a15;
+  --surface-deep: #131209;
+  --ink: #e8dfc8;
+  --ink-soft: #b3a888;
+  --blue: #86b3d9;
+  --blue-faint: rgba(134, 179, 217, 0.25);
+  --olive: #9caa6e;
+  --olive-soft: rgba(156, 170, 110, 0.35);
+  --gold: #d1a869;
+}
 .graph-root.fullscreen {
   position: fixed;
   inset: 0;
