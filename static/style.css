@@ -6,22 +6,26 @@
     --navbar-height: 44px;
     
     /* Surface & Text */
-    --surface-1:      #f3e9d2;
-    --text-primary:   #3f3326;
-    --text-secondary: #6b5d47;
-    --muted:          #8a7c62;
-    --gridline:       #d8c9a3;
-    --card-bg:        rgba(255, 255, 255, 0.96);
-    
+    --surface-1:      #f5f6f8;
+    --text-primary:   #14171f;
+    --text-secondary: #5b6270;
+    --muted:          #8a90a0;
+    --gridline:       #e2e5eb;
+    --card-bg:        rgba(255, 255, 255, 0.98);
+
     /* Accents & Series */
-    --series-1:       #2f6690;
-    --series-1-fill:  rgba(47, 102, 144, 0.28);
-    --accent-1:       #8aa7b8; 
-    --accent-2:       #d99b6c; 
-    --accent-1-strong:#2b6e9e; 
-    --accent-2-warm:  #d67844; 
-    --accent-3-deep:  #7a513f; 
-    
+    --series-1:       #5b5bf0;
+    --series-1-fill:  rgba(91, 91, 240, 0.24);
+    --accent-1:       #8aa7b8;
+    --accent-2:       #ff5c7a;
+    --accent-1-strong:#5b5bf0;
+    --accent-2-warm:  #ff5c7a;
+    --accent-3-deep:  #7a513f;
+
+    /* Card geometry */
+    --card-radius: 16px;
+    --pill-radius: 999px;
+
     /* Typography Weights */
     --heading-weight: 800;
     --display-weight: 700;
@@ -30,29 +34,31 @@
 @media (prefers-color-scheme: dark) {
     :root:where(:not([data-theme="light"])) {
         color-scheme: dark;
-        --surface-1:      #1c2430;
-        --text-primary:   #ede1c3;
-        --text-secondary: #b9ac8c;
-        --muted:          #8b8168;
-        --gridline:       #3a4453;
-        --series-1:       #5b9bc9;
-        --series-1-fill:  rgba(91, 155, 201, 0.28);
-        --accent-1-strong:#5b9bc9; 
-        --accent-2-warm:  #c97a3a;
+        --surface-1:      #0f1115;
+        --text-primary:   #f0f1f4;
+        --text-secondary: #9ba1ae;
+        --muted:          #6b7280;
+        --gridline:       #262a33;
+        --card-bg:        rgba(26, 28, 34, 0.96);
+        --series-1:       #8686ff;
+        --series-1-fill:  rgba(134, 134, 255, 0.28);
+        --accent-1-strong:#8686ff;
+        --accent-2-warm:  #ff7590;
     }
 }
 
 :root[data-theme="dark"] {
     color-scheme: dark;
-    --surface-1:      #1c2430;
-    --text-primary:   #ede1c3;
-    --text-secondary: #b9ac8c;
-    --muted:          #8b8168;
-    --gridline:       #3a4453;
-    --series-1:       #5b9bc9;
-    --series-1-fill:  rgba(91, 155, 201, 0.28);
-    --accent-1-strong:#5b9bc9; 
-    --accent-2-warm:  #c97a3a;
+    --surface-1:      #0f1115;
+    --text-primary:   #f0f1f4;
+    --text-secondary: #9ba1ae;
+    --muted:          #6b7280;
+    --gridline:       #262a33;
+    --card-bg:        rgba(26, 28, 34, 0.96);
+    --series-1:       #8686ff;
+    --series-1-fill:  rgba(134, 134, 255, 0.28);
+    --accent-1-strong:#8686ff;
+    --accent-2-warm:  #ff7590;
 }
 
 /* -------------------------------------------------------------------------
@@ -86,9 +92,9 @@ body.graph-fullscreen .footer {
 
 /* Fluid type scale and Heading styles */
 h1, h2, .viz-root h1 {
-    font-family: "Merriweather", Georgia, serif;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-weight: var(--heading-weight);
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
 }
 
 h1 {
@@ -201,11 +207,9 @@ p {
 .footer {
     text-align: center;
     padding: 1rem;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: var(--muted);
     border-top: 1px solid var(--gridline);
-    font-style: italic;
-    font-family: "Merriweather", Georgia, serif;
 }
 
 /* -------------------------------------------------------------------------
@@ -393,9 +397,9 @@ button, .tab, .save-btn, .filter-pill {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(180deg, #fff, #f6e9d8);
-    box-shadow: 0 10px 28px rgba(46, 34, 18, 0.14);
-    border: 3px solid rgba(0, 0, 0, 0.05);
+    background: var(--series-1);
+    box-shadow: 0 10px 28px rgba(91, 91, 240, 0.35);
+    border: none;
     z-index: 40;
     cursor: pointer;
 }

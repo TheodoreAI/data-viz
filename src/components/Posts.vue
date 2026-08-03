@@ -527,16 +527,18 @@ h1 {
 .post {
   display: flex;
   gap: 0.75rem;
-  padding: 0.75rem;
-  border: 1px solid var(--gridline, #d8c9a3);
-  border-radius: 6px;
+  padding: 1rem;
+  background: var(--card-bg, #fff);
+  border: none;
+  border-radius: var(--card-radius, 16px);
+  box-shadow: 0 8px 24px rgba(20, 23, 31, 0.08);
 }
 .post-avatar {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   flex: none;
-  background: var(--surface-1, #fcfcfb);
+  background: var(--gridline, #e2e5eb);
 }
 .post-body {
   flex: 1;
@@ -567,7 +569,7 @@ h1 {
   width: 100%;
   max-height: 360px;
   object-fit: cover;
-  border-radius: 6px;
+  border-radius: 12px;
   margin-top: 0.6rem;
 }
 .shared-item {
@@ -577,7 +579,7 @@ h1 {
   margin-top: 0.6rem;
   padding: 0.5rem;
   border: 1px solid var(--gridline, #d8c9a3);
-  border-radius: 6px;
+  border-radius: 12px;
   text-decoration: none;
   color: inherit;
 }
