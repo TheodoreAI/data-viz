@@ -68,6 +68,26 @@ export default {
   color: var(--ink);
   pointer-events: auto;
 }
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) .article-tooltip {
+    --surface: #1c1a15;
+    --ink: #e8dfc8;
+    --ink-soft: #b3a888;
+    --blue: #86b3d9;
+    --blue-faint: rgba(134, 179, 217, 0.25);
+    --olive: #9caa6e;
+    --gold: #d1a869;
+  }
+}
+:root[data-theme="dark"] .article-tooltip {
+  --surface: #1c1a15;
+  --ink: #e8dfc8;
+  --ink-soft: #b3a888;
+  --blue: #86b3d9;
+  --blue-faint: rgba(134, 179, 217, 0.25);
+  --olive: #9caa6e;
+  --gold: #d1a869;
+}
 .t-close {
   position: absolute;
   bottom: 1rem;

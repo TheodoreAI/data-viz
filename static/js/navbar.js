@@ -1,6 +1,7 @@
 (function () {
   var toggle = document.getElementById('nav-toggle');
   var links = document.getElementById('nav-links');
+  var backdrop = document.getElementById('nav-backdrop');
   if (!toggle || !links) return;
 
   function isOpen() {
@@ -9,9 +10,11 @@
 
   function setOpen(open) {
     links.classList.toggle('nav-open', open);
+    if (backdrop) backdrop.classList.toggle('nav-backdrop-open', open);
     toggle.setAttribute('aria-expanded', String(open));
     toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
     toggle.classList.toggle('nav-toggle-open', open);
+    document.body.classList.toggle('nav-drawer-open', open);
   }
 
   toggle.addEventListener('click', function () {
