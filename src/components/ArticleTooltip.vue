@@ -1,6 +1,9 @@
 <script>
+import LoadingSpinner from './LoadingSpinner.vue';
+
 export default {
   name: 'ArticleTooltip',
+  components: { LoadingSpinner },
   emits: ['hover-start', 'hover-end', 'close'],
   props: {
     visible: { type: Boolean, default: false },
@@ -34,7 +37,7 @@ export default {
         rel="noopener"
       >{{ title }}</a>
       <img v-if="thumbnail" :src="thumbnail" :alt="title" class="t-thumb">
-      <div v-if="loading" class="t-meta">Loading…</div>
+      <LoadingSpinner v-if="loading" class="t-meta" inline />
       <div v-else-if="extract" class="t-extract">{{ extract }}</div>
     </div>
   </Teleport>
@@ -112,6 +115,10 @@ export default {
 .t-meta {
   font-size: 1rem;
   color: var(--ink-soft);
+}
+.t-meta :deep(.spinner-ring) {
+  border-color: var(--olive);
+  border-top-color: var(--blue);
 }
 .t-extract {
   font-size: 1.05rem;

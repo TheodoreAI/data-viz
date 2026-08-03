@@ -11,8 +11,11 @@ function formatDate(iso) {
   return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
 }
 
+import LoadingSpinner from './LoadingSpinner.vue';
+
 export default {
   name: 'Profile',
+  components: { LoadingSpinner },
   data() {
     return {
       user: null,
@@ -243,7 +246,7 @@ export default {
 
 <template>
   <div class="profile-page">
-    <p v-if="loading" class="status">Loading…</p>
+    <LoadingSpinner v-if="loading" size="lg" />
     <template v-else-if="error">
       <p class="status form-error">Couldn't load your profile. Please refresh the page.</p>
     </template>

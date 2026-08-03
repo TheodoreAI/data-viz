@@ -3,6 +3,7 @@ import { forceSimulation, forceLink, forceManyBody, forceCenter, forceCollide, q
 import { defineAsyncComponent } from 'vue';
 import ArticleTooltip from './ArticleTooltip.vue';
 import ArticleSearch from './ArticleSearch.vue';
+import LoadingSpinner from './LoadingSpinner.vue';
 
 const ArticleGraph3D = defineAsyncComponent(() => import('./ArticleGraph3D.vue'));
 
@@ -22,7 +23,7 @@ function computeDefaultZoom(width, height) {
 
 export default {
   name: 'ArticleGraph',
-  components: { ArticleTooltip, ArticleSearch, ArticleGraph3D },
+  components: { ArticleTooltip, ArticleSearch, ArticleGraph3D, LoadingSpinner },
   props: {
     seedTitle: { type: String, required: true },
     seedLinks: { type: Array, required: true },
@@ -63,6 +64,20 @@ export default {
     },
     maxNodes() {
       return MAX_NODES;
+    },
+  },
+  watch: {
+    async selectedTopic(topic) {
+      if (this.loadingSeed) return;
+      this.loadingSeed = true;
+      try {
+        this.history.push(this.currentSeedTitle);
+        const randomResponse = await fetch(this.randomArticleUrl());
+        const article = await randomResponse.json();
+        await this.rebuildGraph(article.title);
+      } finally {
+        this.loadingSeed = false;
+      }
     },
   },
   created() {
@@ -194,19 +209,6 @@ export default {
     },
     async loadNewSeed() {
       if (this.loadingSeed) return;
-      this.loadingSeed = true;
-      try {
-        this.history.push(this.currentSeedTitle);
-        const randomResponse = await fetch(this.randomArticleUrl());
-        const article = await randomResponse.json();
-        await this.rebuildGraph(article.title);
-      } finally {
-        this.loadingSeed = false;
-      }
-    },
-    async selectTopic(topic) {
-      if (this.loadingSeed || topic === this.selectedTopic) return;
-      this.selectedTopic = topic;
       this.loadingSeed = true;
       try {
         this.history.push(this.currentSeedTitle);
@@ -528,23 +530,22 @@ export default {
         Drag a node to pin it in place — tap 📌 to release it. Pinch/scroll to zoom, swipe right for a new article, swipe left to go back.
       </p>
       <ArticleSearch v-if="!graphMode" :disabled="loadingSeed" @select="selectSearchResult" />
-      <div v-if="!graphMode" class="topic-row">
-        <button
-          class="topic-pill"
-          :class="{ active: selectedTopic === '' }"
-          :disabled="loadingSeed"
-          @click="selectTopic('')"
-        >Random</button>
-        <button
-          v-for="topic in topics"
-          :key="topic"
-          class="topic-pill"
-          :class="{ active: selectedTopic === topic }"
-          :disabled="loadingSeed"
-          @click="selectTopic(topic)"
-        >{{ topic }}</button>
-      </div>
-      <p v-if="loadingSeed" class="subtitle loading">Loading…</p>
+      <!-- TODO: known Firefox bug — selecting a new option here sometimes doesn't
+           fire `change` at all (reproduced via screen recording, persists after
+           hard refresh; works fine in Safari). v-model didn't fix it since it
+           relies on the same native `change` event. Needs a Firefox-specific
+           workaround (e.g. also listen for `input`, or replace with a custom
+           listbox) — not yet implemented. -->
+      <select
+        v-if="!graphMode"
+        v-model="selectedTopic"
+        class="topic-select"
+        :disabled="loadingSeed"
+      >
+        <option value="">Random</option>
+        <option v-for="topic in topics" :key="topic" :value="topic">{{ topic }}</option>
+      </select>
+      <LoadingSpinner v-if="loadingSeed" class="subtitle loading" size="sm" inline />
       <p v-else-if="atNodeLimit && !graphMode" class="subtitle loading">Node limit reached ({{ maxNodes }}) — swipe for a new article to keep exploring.</p>
     </header>
 
@@ -745,42 +746,35 @@ export default {
 .subtitle.loading {
   color: var(--blue);
   margin-top: -0.5rem;
+  justify-content: flex-start;
+  padding: 0;
 }
-.subtitle.loading::after {
-  content: '…';
-  animation: gentle-blink 1.2s steps(1) infinite;
-}
-.topic-row {
-  display: flex;
-  gap: 0.4rem;
-  overflow-x: auto;
+.topic-select {
+  display: block;
   margin: 0 0 1rem;
-  padding-bottom: 0.2rem;
-}
-.topic-pill {
-  flex: none;
   border: 1px solid var(--olive);
   background: var(--surface);
   color: var(--ink-soft);
   border-radius: 2px;
-  padding: 0.3rem 0.8rem;
+  padding: 0.3rem 1.8rem 0.3rem 0.8rem;
   font-family: inherit;
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 14px) calc(50% - 1px), calc(100% - 9px) calc(50% - 1px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
 }
-.topic-pill.active {
-  background: var(--blue);
+.topic-select:hover {
   border-color: var(--blue);
-  color: var(--surface);
 }
-.topic-pill:hover {
-  border-color: var(--blue);
-}
-.topic-pill:disabled {
+.topic-select:disabled {
   opacity: 0.5;
-  cursor: default;
+  cursor: wait;
 }
 .graph-svg {
   width: 100%;
@@ -996,9 +990,5 @@ export default {
   stroke: var(--surface);
   stroke-width: 3px;
   stroke-linejoin: round;
-}
-@keyframes gentle-blink {
-  0%, 50% { opacity: 1; }
-  50.01%, 100% { opacity: 0; }
 }
 </style>
