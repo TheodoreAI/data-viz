@@ -413,6 +413,9 @@ button, .tab, .save-btn, .filter-pill {
    6. Mobile Adjustments
    ------------------------------------------------------------------------- */
 @media (max-width: 640px) {
+    body.nav-drawer-open {
+        overflow: hidden;
+    }
     .viz-root {
         padding: 1rem;
     }
@@ -426,7 +429,7 @@ button, .tab, .save-btn, .filter-pill {
         position: fixed;
         right: 1.1rem;
         bottom: 1.1rem;
-        z-index: 30;
+        z-index: 35;
         width: 3.25rem;
         height: 3.25rem;
         border-radius: 50%;
@@ -434,30 +437,44 @@ button, .tab, .save-btn, .filter-pill {
         background: var(--surface-1);
         box-shadow: 0 4px 14px rgba(63, 51, 38, 0.35);
     }
+    .nav-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.45);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.25s ease;
+        z-index: 25;
+    }
+    .nav-backdrop.nav-backdrop-open {
+        opacity: 1;
+        pointer-events: auto;
+    }
     .nav-links {
         position: fixed;
-        right: 1.1rem;
-        bottom: calc(1.1rem + 3.25rem + 0.6rem);
+        top: 0;
+        right: 0;
+        bottom: 0;
         left: auto;
-        top: auto;
-        z-index: 20;
+        z-index: 30;
         flex-direction: column;
         align-items: stretch;
         gap: 0;
-        width: min(78vw, 260px);
-        max-height: 0;
-        overflow: hidden;
+        width: min(78vw, 300px);
+        max-height: none;
+        height: 100dvh;
+        overflow-y: auto;
         border: none;
-        border-radius: 14px;
+        border-left: 2px solid rgba(63, 51, 38, 0.16);
+        border-radius: 0;
         background: var(--surface-1);
-        box-shadow: 0 8px 24px rgba(63, 51, 38, 0.3);
-        transition: max-height 0.25s ease, border-color 0.2s ease;
-        transform-origin: bottom right;
+        box-shadow: -8px 0 28px rgba(0, 0, 0, 0.25);
+        transform: translateX(100%);
+        transition: transform 0.28s ease;
+        padding-top: env(safe-area-inset-top);
     }
     .nav-links.nav-open {
-        max-height: 70vh;
-        overflow-y: auto;
-        border: 2px solid rgba(63, 51, 38, 0.16);
+        transform: translateX(0);
     }
     .navbar a {
         padding: 0.9rem 1.25rem;
@@ -465,11 +482,6 @@ button, .tab, .save-btn, .filter-pill {
         border-bottom-style: solid;
         border-bottom-color: var(--gridline);
         width: 100%;
-    }
-    .navbar a:first-child { border-radius: 14px 14px 0 0; }
-    .navbar a:last-child {
-        border-bottom: none;
-        border-radius: 0 0 14px 14px;
     }
     .navbar a.active {
         background: rgba(47, 102, 144, 0.08);
