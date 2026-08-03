@@ -13,5 +13,5 @@
 
 {% include '_footer.html' %}
 
-<script id="graph-data" type="application/json">{{ {'title': title, 'links': links, 'topics': topics.keys() | list} | tojson }}</script>
+<script id="graph-data" type="application/json">{{ {'title': title, 'links': links, 'topics': topics.keys() | list, 'defaultTopic': default_topic} | tojson }}</script>
 {{ vite_asset('graph') }}

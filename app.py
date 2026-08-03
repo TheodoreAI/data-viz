@@ -470,10 +470,13 @@ def api_film_genres():
 
 @app.route('/graph')
 def graph():
-    article = fetch_random_article()
+    default_topic = 'computer-science'
+    article = fetch_random_article(default_topic)
     title = article['title']
     links = fetch_article_links(title)
-    return render_template('graph.html', title=title, links=links, topics=TOPIC_CATEGORIES)
+    return render_template(
+        'graph.html', title=title, links=links, topics=TOPIC_CATEGORIES, default_topic=default_topic
+    )
 
 
 @app.route('/time-travel')

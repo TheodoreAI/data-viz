@@ -28,6 +28,7 @@ export default {
     seedTitle: { type: String, required: true },
     seedLinks: { type: Array, required: true },
     topics: { type: Array, default: () => [] },
+    defaultTopic: { type: String, default: '' },
   },
   data() {
     return {
@@ -49,7 +50,7 @@ export default {
       history: [],
       loadingSeed: false,
       graphMode: false,
-      selectedTopic: '',
+      selectedTopic: this.defaultTopic,
       smoothPan: false,
       helpOpen: false,
       view3D: false,
