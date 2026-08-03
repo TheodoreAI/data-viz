@@ -201,7 +201,6 @@ export default {
   watch: {
     seedTitle(title) {
       this.setGraphData(title, this.seedLinks);
-      this.showTooltip(title);
     },
   },
   methods: {
