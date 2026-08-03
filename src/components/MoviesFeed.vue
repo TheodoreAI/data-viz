@@ -317,13 +317,17 @@ export default {
 .art-card {
   break-inside: avoid;
   margin-bottom: 1.5rem;
+  background: var(--card-bg, #fff);
+  border-radius: var(--card-radius, 16px);
+  padding: 0.6rem 0.6rem 0.8rem;
+  box-shadow: 0 8px 24px rgba(20, 23, 31, 0.08);
 }
 .art-image {
   width: 100%;
   object-fit: contain;
   background: var(--gridline, #e1e0d9);
   display: block;
-  border-radius: 4px;
+  border-radius: calc(var(--card-radius, 16px) - 6px);
 }
 .art-body h2 {
   font-size: 1rem;
