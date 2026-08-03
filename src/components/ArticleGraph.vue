@@ -111,6 +111,7 @@ export default {
       this.$nextTick(() => this.syncAspectRatio());
     },
     syncAspectRatio() {
+      if (!this.$refs.svg) return;
       const rect = this.$refs.svg.getBoundingClientRect();
       if (!rect.width || !rect.height) return;
       const aspect = rect.width / rect.height;
