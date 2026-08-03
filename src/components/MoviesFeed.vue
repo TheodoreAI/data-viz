@@ -4,8 +4,11 @@ function readCookie(name) {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
+import LoadingSpinner from './LoadingSpinner.vue';
+
 export default {
   name: 'MoviesFeed',
+  components: { LoadingSpinner },
   props: {
     initialFilms: { type: Array, required: true },
     genres: { type: Array, default: () => [] },
@@ -33,6 +36,16 @@ export default {
         return [...this.films].sort((a, b) => (a.year ?? Infinity) - (b.year ?? Infinity));
       }
       return this.films;
+    },
+  },
+  watch: {
+    async selectedGenre() {
+      if (this.loading) return;
+      this.films = [];
+      this.offset = 0;
+      this.exhausted = false;
+      this.error = false;
+      await this.loadMore();
     },
   },
   mounted() {
@@ -148,15 +161,6 @@ export default {
       this.error = false;
       this.loadMore();
     },
-    async selectGenre(genreId) {
-      if (this.loading || genreId === this.selectedGenre) return;
-      this.selectedGenre = genreId;
-      this.films = [];
-      this.offset = 0;
-      this.exhausted = false;
-      this.error = false;
-      await this.loadMore();
-    },
     sourceUrl(image) {
       try {
         const url = new URL(image);
@@ -175,41 +179,23 @@ export default {
     <header class="art-header">
       <h1>Movies</h1>
       <p class="subtitle">Browse films by genre — pick one, shuffle, or sort by release.</p>
-      <div class="topic-row">
-        <button
-          class="topic-pill"
-          :class="{ active: selectedGenre === '' }"
+      <div class="filter-row">
+        <select
+          v-model="selectedGenre"
+          class="topic-select"
           :disabled="loading"
-          @click="selectGenre('')"
-        >All</button>
-        <button
-          v-for="genre in genres"
-          :key="genre.id"
-          class="topic-pill"
-          :class="{ active: selectedGenre === genre.id }"
-          :disabled="loading"
-          @click="selectGenre(genre.id)"
-        >{{ genre.label }}</button>
-      </div>
-      <div class="sort-row">
-        <button
-          type="button"
-          class="topic-pill"
-          :class="{ active: sortMode === 'oldest' }"
-          @click="sortMode = 'oldest'"
-        >Oldest first</button>
-        <button
-          type="button"
-          class="topic-pill"
-          :class="{ active: sortMode === 'newest' }"
-          @click="sortMode = 'newest'"
-        >Newest first</button>
-        <button
-          type="button"
-          class="topic-pill"
-          :class="{ active: sortMode === 'shuffled' }"
-          @click="shuffle"
-        >Shuffle</button>
+        >
+          <option value="">All genres</option>
+          <option v-for="genre in genres" :key="genre.id" :value="genre.id">{{ genre.label }}</option>
+        </select>
+        <select
+          v-model="sortMode"
+          class="topic-select"
+        >
+          <option value="oldest">Oldest first</option>
+          <option value="newest">Newest first</option>
+        </select>
+        <button type="button" class="shuffle-button" @click="shuffle">Shuffle</button>
       </div>
     </header>
 
@@ -241,7 +227,7 @@ export default {
     </div>
 
     <div ref="sentinel" class="art-sentinel">
-      <span v-if="loading">Loading more…</span>
+      <LoadingSpinner v-if="loading" size="sm" label="Loading more…" inline />
       <template v-else-if="error">
         <span>Couldn't load more.</span>
         <button type="button" class="retry-button" @click="retry">Retry</button>
@@ -266,38 +252,45 @@ export default {
   font-size: 0.8rem;
   margin: 0 0 0.9rem;
 }
-.topic-row {
+.filter-row {
   display: flex;
-  gap: 0.4rem;
-  overflow-x: auto;
+  flex-wrap: wrap;
+  gap: 0.5rem;
   margin-top: 0.6rem;
-  padding-bottom: 0.2rem;
-  mask-image: linear-gradient(to right, black calc(100% - 28px), transparent 100%);
-  -webkit-mask-image: linear-gradient(to right, black calc(100% - 28px), transparent 100%);
 }
-.sort-row {
-  display: flex;
-  gap: 0.4rem;
-  margin-top: 0.5rem;
+.topic-select {
+  border: 1px solid var(--gridline, #e1e0d9);
+  background: var(--card-bg, #fff);
+  color: var(--text-primary, inherit);
+  border-radius: var(--pill-radius, 999px);
+  padding: 0.4rem 2rem 0.4rem 0.9rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 16px) calc(50% - 2px), calc(100% - 11px) calc(50% - 2px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
 }
-.topic-pill {
-  flex: none;
+.topic-select:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.shuffle-button {
   border: 1px solid var(--gridline, #e1e0d9);
   background: transparent;
   color: var(--text-secondary, #52514e);
-  border-radius: 999px;
-  padding: 0.3rem 0.8rem;
+  border-radius: var(--pill-radius, 999px);
+  padding: 0.4rem 0.9rem;
   font-size: 0.78rem;
+  font-weight: 600;
   cursor: pointer;
 }
-.topic-pill.active {
-  background: var(--series-1, #2a78d6);
-  border-color: var(--series-1, #2a78d6);
-  color: #fff;
-}
-.topic-pill:disabled {
-  opacity: 0.6;
-  cursor: default;
+.shuffle-button:hover {
+  border-color: var(--series-1, #5b5bf0);
+  color: var(--series-1, #5b5bf0);
 }
 .art-grid {
   columns: 1;

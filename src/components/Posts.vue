@@ -40,8 +40,11 @@ function resizeImageFile(file) {
   });
 }
 
+import LoadingSpinner from './LoadingSpinner.vue';
+
 export default {
   name: 'Posts',
+  components: { LoadingSpinner },
   data() {
     return {
       user: null,
@@ -259,7 +262,7 @@ export default {
 
 <template>
   <div class="posts-page">
-    <p v-if="loading" class="status">Loading…</p>
+    <LoadingSpinner v-if="loading" size="lg" />
     <template v-else-if="error">
       <p class="status form-error">Couldn't load posts. Please refresh the page.</p>
     </template>

@@ -24,8 +24,11 @@ function isoMonth(d) {
 const yesterday = new Date();
 yesterday.setDate(yesterday.getDate() - 1);
 
+import LoadingSpinner from './LoadingSpinner.vue';
+
 export default {
   name: 'Dashboard',
+  components: { LoadingSpinner },
   data() {
     return {
       user: null,
@@ -148,7 +151,7 @@ export default {
 
 <template>
   <div class="dashboard-page">
-    <p v-if="loading" class="status">Loading…</p>
+    <LoadingSpinner v-if="loading" size="lg" />
     <template v-else-if="error">
       <p class="status form-error">Couldn't load your dashboard. Please refresh the page.</p>
     </template>

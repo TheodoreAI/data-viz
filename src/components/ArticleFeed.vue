@@ -4,8 +4,11 @@ function readCookie(name) {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
+import LoadingSpinner from './LoadingSpinner.vue';
+
 export default {
   name: 'ArticleFeed',
+  components: { LoadingSpinner },
   props: {
     initialArticle: { type: Object, required: true },
     topics: { type: Array, default: () => [] },
@@ -29,6 +32,15 @@ export default {
     },
     canGoBack() {
       return this.currentIndex > 0;
+    },
+  },
+  watch: {
+    async selectedTopic() {
+      if (this.loading) return;
+      this.direction = 'up';
+      this.history = [];
+      this.currentIndex = -1;
+      await this.appendRandomArticle();
     },
   },
   mounted() {
@@ -108,14 +120,6 @@ export default {
         this.loading = false;
       }
     },
-    async selectTopic(topic) {
-      if (this.loading || topic === this.selectedTopic) return;
-      this.selectedTopic = topic;
-      this.direction = 'up';
-      this.history = [];
-      this.currentIndex = -1;
-      await this.appendRandomArticle();
-    },
     async saveCurrentArticle() {
       const article = this.currentArticle;
       if (this.savingTitle || this.savedTitles.has(article.title)) return;
@@ -155,22 +159,14 @@ export default {
     <header class="feed-header">
       <h1>Hello!</h1>
       <p class="subtitle">Swipe up for a new article, down to go back.</p>
-      <div class="topic-row">
-        <button
-          class="topic-pill"
-          :class="{ active: selectedTopic === '' }"
-          :disabled="loading"
-          @click="selectTopic('')"
-        >All</button>
-        <button
-          v-for="topic in topics"
-          :key="topic"
-          class="topic-pill"
-          :class="{ active: selectedTopic === topic }"
-          :disabled="loading"
-          @click="selectTopic(topic)"
-        >{{ topic }}</button>
-      </div>
+      <select
+        v-model="selectedTopic"
+        class="topic-select"
+        :disabled="loading"
+      >
+        <option value="">All topics</option>
+        <option v-for="topic in topics" :key="topic" :value="topic">{{ topic }}</option>
+      </select>
     </header>
 
     <div v-if="canGoBack" class="swipe-hint swipe-hint-up" aria-hidden="true">︿</div>
@@ -196,7 +192,7 @@ export default {
     <div class="swipe-hint swipe-hint-down" aria-hidden="true">﹀</div>
 
     <div v-if="atStartFlash" class="edge-message">You're at the start</div>
-    <div v-if="loading" class="feed-loading">Loading…</div>
+    <LoadingSpinner v-if="loading" class="feed-loading" inline />
   </div>
 </template>
 
@@ -254,32 +250,26 @@ export default {
   flex: none;
   padding: 1rem 1.25rem 0.5rem;
 }
-.topic-row {
-  display: flex;
-  gap: 0.4rem;
-  overflow-x: auto;
+.topic-select {
+  display: block;
   margin-top: 0.6rem;
-  padding-bottom: 0.2rem;
-  mask-image: linear-gradient(to right, black calc(100% - 28px), transparent 100%);
-  -webkit-mask-image: linear-gradient(to right, black calc(100% - 28px), transparent 100%);
-}
-.topic-pill {
-  flex: none;
   border: 1px solid var(--gridline, #e1e0d9);
-  background: transparent;
-  color: var(--text-secondary, #52514e);
-  border-radius: 999px;
-  padding: 0.3rem 0.8rem;
-  font-size: 0.78rem;
+  background: var(--card-bg, #fff);
+  color: var(--text-primary, inherit);
+  border-radius: var(--pill-radius, 999px);
+  padding: 0.4rem 2rem 0.4rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 600;
   text-transform: capitalize;
   cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 16px) calc(50% - 2px), calc(100% - 11px) calc(50% - 2px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
 }
-.topic-pill.active {
-  background: var(--series-1, #2a78d6);
-  border-color: var(--series-1, #2a78d6);
-  color: #fff;
-}
-.topic-pill:disabled {
+.topic-select:disabled {
   opacity: 0.6;
   cursor: default;
 }
