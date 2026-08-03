@@ -4,4 +4,8 @@ import ArticleFeed from '../components/ArticleFeed.vue';
 const el = document.getElementById('app');
 const data = JSON.parse(document.getElementById('feed-data').textContent);
 
-createApp(ArticleFeed, { initialArticle: data.article, topics: data.topics }).mount(el);
+createApp(ArticleFeed, {
+  initialArticle: data.article,
+  topics: data.topics,
+  defaultTopic: data.defaultTopic,
+}).mount(el);
