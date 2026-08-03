@@ -211,8 +211,8 @@ export default {
             <span class="stat-label">registered users</span>
           </div>
           <div class="stat">
-            <span class="stat-value">{{ stats.artMovements ?? '—' }}</span>
-            <span class="stat-label">art movements available</span>
+            <span class="stat-value">{{ stats.filmGenres ?? '—' }}</span>
+            <span class="stat-label">film genres available</span>
           </div>
         </div>
       </section>
