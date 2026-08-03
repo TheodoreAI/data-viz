@@ -159,6 +159,8 @@ export default {
     <header class="feed-header">
       <h1>Hello!</h1>
       <p class="subtitle">Swipe up for a new article, down to go back.</p>
+      <!-- TODO: known Firefox bug — same topic-select issue as ArticleGraph.vue,
+           selecting an option sometimes doesn't fire `change`. Not yet fixed. -->
       <select
         v-model="selectedTopic"
         class="topic-select"
