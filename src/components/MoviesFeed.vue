@@ -180,6 +180,8 @@ export default {
       <h1>Movies</h1>
       <p class="subtitle">Browse films by genre — pick one, shuffle, or sort by release.</p>
       <div class="filter-row">
+        <!-- TODO: known Firefox bug — same topic-select issue as ArticleGraph.vue,
+             selecting an option sometimes doesn't fire `change`. Not yet fixed. -->
         <select
           v-model="selectedGenre"
           class="topic-select"
