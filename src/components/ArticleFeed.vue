@@ -12,6 +12,7 @@ export default {
   props: {
     initialArticle: { type: Object, required: true },
     topics: { type: Array, default: () => [] },
+    defaultTopic: { type: String, default: '' },
   },
   data() {
     return {
@@ -20,7 +21,7 @@ export default {
       loading: false,
       navigating: false,
       direction: 'up',
-      selectedTopic: '',
+      selectedTopic: this.defaultTopic,
       atStartFlash: false,
       savedTitles: new Set(),
       savingTitle: '',

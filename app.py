@@ -100,7 +100,14 @@ if not JWT_SECRET_KEY:
     )
 app.config['JWT_SECRET_KEY'] = JWT_SECRET_KEY
 app.config['JWT_TOKEN_LOCATION'] = ['cookies']
-app.config['JWT_COOKIE_SECURE'] = not app.debug
+# app.debug is only set once app.run(debug=...) actually runs, which happens
+# after this module-level config is read — so `not app.debug` here would
+# always evaluate to True (Secure cookie) even in local dev. Safari, unlike
+# Chrome/Firefox, refuses to store Secure cookies over plain HTTP even on
+# localhost, so that bug silently broke login in Safari only. Use the
+# RENDER env var (set in production) as the actual dev/prod signal instead.
+IS_PRODUCTION = bool(os.environ.get('RENDER'))
+app.config['JWT_COOKIE_SECURE'] = IS_PRODUCTION
 app.config['JWT_COOKIE_SAMESITE'] = 'Lax'
 app.config['JWT_COOKIE_CSRF_PROTECT'] = True
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=7)
@@ -202,8 +209,11 @@ def fetch_article_links(title, limit=GRAPH_LINKS_LIMIT):
 
 @app.route('/')
 def hello_world():
-    article = fetch_random_article()
-    return render_template('home.html', article=article, topics=TOPIC_CATEGORIES)
+    default_topic = 'computer-science'
+    article = fetch_random_article(default_topic)
+    return render_template(
+        'home.html', article=article, topics=TOPIC_CATEGORIES, default_topic=default_topic
+    )
 
 
 @app.route('/register')
