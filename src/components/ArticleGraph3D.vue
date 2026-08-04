@@ -257,6 +257,11 @@ export default {
       // as a sibling, nodeThreeObject won't run for it again — we have to
       // restyle it ourselves for a smooth transform instead of a hard swap.
       const centerAlreadyExisted = this.nodeVisuals.has(title);
+      // Capture where it's actually rendered right now, before the physics
+      // simulation gets a chance to yank it toward the center on its own.
+      const fromPosition = centerAlreadyExisted
+        ? this.nodeVisuals.get(title).group.position.clone()
+        : null;
 
       const nodes = [{ id: title, isCenter: true }, ...linkTitles.map(id => ({ id }))];
       const links = linkTitles.map(id => ({ source: title, target: id }));
@@ -281,7 +286,42 @@ export default {
         if (previousCenterId && previousCenterId !== title && this.nodeVisuals.has(previousCenterId)) {
           this.animateNodeRoleChange(previousCenterId, false);
         }
+        this.animateRecenterMove(title, fromPosition);
       }
+    },
+    // Rather than letting the force simulation yank the recentered node
+    // toward the origin at whatever speed its forces dictate (which is what
+    // read as a "jump"), pin it at its last known position and manually tween
+    // that pin to (0, 0, 0) ourselves — a fully controlled, eased move that
+    // doesn't depend on simulation internals. Everything else (new sibling
+    // nodes, links) still settles normally via the physics simulation.
+    animateRecenterMove(nodeId, fromPosition) {
+      const liveNode = this.graph.graphData().nodes.find(n => n.id === nodeId);
+      if (!liveNode) return;
+      if (this.reducedMotion) {
+        liveNode.fx = 0;
+        liveNode.fy = 0;
+        liveNode.fz = 0;
+        requestAnimationFrame(() => {
+          liveNode.fx = null;
+          liveNode.fy = null;
+          liveNode.fz = null;
+        });
+        return;
+      }
+      liveNode.fx = fromPosition.x;
+      liveNode.fy = fromPosition.y;
+      liveNode.fz = fromPosition.z;
+      tween(TRANSITION_MS, (t) => {
+        liveNode.fx = fromPosition.x * (1 - t);
+        liveNode.fy = fromPosition.y * (1 - t);
+        liveNode.fz = fromPosition.z * (1 - t);
+        if (t >= 1) {
+          liveNode.fx = null;
+          liveNode.fy = null;
+          liveNode.fz = null;
+        }
+      });
     },
     animateNodeRoleChange(nodeId, isCenter) {
       const visual = this.nodeVisuals.get(nodeId);
