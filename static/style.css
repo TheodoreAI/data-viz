@@ -29,6 +29,17 @@
     /* Typography Weights */
     --heading-weight: 800;
     --display-weight: 700;
+
+    /* Vintage palette (article graph/tooltip/search) */
+    --surface:      #f3e9d2;
+    --surface-deep: #e9dbb6;
+    --ink:          #3f3326;
+    --ink-soft:     #6b5d47;
+    --blue:         #2f6690;
+    --blue-faint:   rgba(47, 102, 144, 0.22);
+    --olive:        #74804a;
+    --olive-soft:   rgba(116, 128, 74, 0.35);
+    --gold:         #b8935a;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -44,6 +55,16 @@
         --series-1-fill:  rgba(134, 134, 255, 0.28);
         --accent-1-strong:#8686ff;
         --accent-2-warm:  #ff7590;
+
+        --surface:      #1c1a15;
+        --surface-deep: #131209;
+        --ink:          #e8dfc8;
+        --ink-soft:     #b3a888;
+        --blue:         #86b3d9;
+        --blue-faint:   rgba(134, 179, 217, 0.25);
+        --olive:        #9caa6e;
+        --olive-soft:   rgba(156, 170, 110, 0.35);
+        --gold:         #d1a869;
     }
 }
 
@@ -59,6 +80,16 @@
     --series-1-fill:  rgba(134, 134, 255, 0.28);
     --accent-1-strong:#8686ff;
     --accent-2-warm:  #ff7590;
+
+    --surface:      #1c1a15;
+    --surface-deep: #131209;
+    --ink:          #e8dfc8;
+    --ink-soft:     #b3a888;
+    --blue:         #86b3d9;
+    --blue-faint:   rgba(134, 179, 217, 0.25);
+    --olive:        #9caa6e;
+    --olive-soft:   rgba(156, 170, 110, 0.35);
+    --gold:         #d1a869;
 }
 
 /* -------------------------------------------------------------------------

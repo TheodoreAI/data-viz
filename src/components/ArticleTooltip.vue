@@ -45,13 +45,6 @@ export default {
 
 <style scoped>
 .article-tooltip {
-  --surface: #f3e9d2;
-  --ink: #3f3326;
-  --ink-soft: #6b5d47;
-  --blue: #2f6690;
-  --blue-faint: rgba(47, 102, 144, 0.22);
-  --olive: #74804a;
-  --gold: #b8935a;
   position: fixed;
   inset: 0;
   width: 100vw;
@@ -68,26 +61,6 @@ export default {
   color: var(--ink);
   pointer-events: auto;
 }
-@media (prefers-color-scheme: dark) {
-  :root:where(:not([data-theme="light"])) .article-tooltip {
-    --surface: #1c1a15;
-    --ink: #e8dfc8;
-    --ink-soft: #b3a888;
-    --blue: #86b3d9;
-    --blue-faint: rgba(134, 179, 217, 0.25);
-    --olive: #9caa6e;
-    --gold: #d1a869;
-  }
-}
-:root[data-theme="dark"] .article-tooltip {
-  --surface: #1c1a15;
-  --ink: #e8dfc8;
-  --ink-soft: #b3a888;
-  --blue: #86b3d9;
-  --blue-faint: rgba(134, 179, 217, 0.25);
-  --olive: #9caa6e;
-  --gold: #d1a869;
-}
 .t-close {
   position: absolute;
   bottom: 1rem;
@@ -102,10 +75,19 @@ export default {
   font-size: 1.1rem;
   line-height: 1;
   cursor: pointer;
+  box-shadow: 0 2px 6px rgba(63, 51, 38, 0.2);
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+    color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 .t-close:hover {
+  background: var(--blue);
   border-color: var(--blue);
-  box-shadow: 0 0 8px var(--blue-faint);
+  color: var(--surface);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(63, 51, 38, 0.25);
+}
+.t-close:active {
+  transform: translateY(0);
 }
 .t-title {
   display: block;
@@ -126,7 +108,7 @@ export default {
   width: 100%;
   max-height: 45vh;
   object-fit: cover;
-  border-radius: 0;
+  border-radius: 16px;
   border: 1px solid var(--olive);
   display: block;
   margin: 0 0 1rem;

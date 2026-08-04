@@ -85,10 +85,11 @@ export default {
   background: var(--surface);
   border: 1px solid var(--olive);
   color: var(--ink);
-  border-radius: 2px;
+  border-radius: 10px;
   padding: 0.5rem 0.75rem;
   font-family: inherit;
   font-size: 0.9rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .search-input:focus {
   outline: none;
@@ -101,19 +102,19 @@ export default {
 }
 .search-results {
   position: absolute;
-  top: calc(100% + 2px);
+  top: calc(100% + 6px);
   left: 0;
   right: 0;
   z-index: 30;
   list-style: none;
   margin: 0;
-  padding: 0.25rem 0;
+  padding: 0.35rem;
   background: var(--surface);
   border: 1px solid var(--olive);
-  border-radius: 2px;
+  border-radius: 12px;
   max-height: 260px;
   overflow-y: auto;
-  box-shadow: 0 4px 10px rgba(63, 51, 38, 0.2);
+  box-shadow: 0 6px 16px rgba(63, 51, 38, 0.18);
 }
 .search-results li button {
   display: block;
@@ -121,11 +122,13 @@ export default {
   text-align: left;
   background: none;
   border: none;
+  border-radius: 8px;
   color: var(--ink);
   font-family: inherit;
   font-size: 0.85rem;
   padding: 0.45rem 0.75rem;
   cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 .search-results li button:hover {
   background: var(--blue-faint);

@@ -681,44 +681,11 @@ export default {
 
 <style scoped>
 .graph-root {
-  --surface: #f3e9d2;
-  --surface-deep: #e9dbb6;
-  --ink: #3f3326;
-  --ink-soft: #6b5d47;
-  --blue: #2f6690;
-  --blue-faint: rgba(47, 102, 144, 0.22);
-  --olive: #74804a;
-  --olive-soft: rgba(116, 128, 74, 0.35);
-  --gold: #b8935a;
   max-width: 900px;
   margin: 0 auto;
   padding: 1.5rem 1.25rem;
   background: var(--surface);
   font-family: "Palatino Linotype", "Palatino", Georgia, serif;
-}
-@media (prefers-color-scheme: dark) {
-  :root:where(:not([data-theme="light"])) .graph-root {
-    --surface: #1c1a15;
-    --surface-deep: #131209;
-    --ink: #e8dfc8;
-    --ink-soft: #b3a888;
-    --blue: #86b3d9;
-    --blue-faint: rgba(134, 179, 217, 0.25);
-    --olive: #9caa6e;
-    --olive-soft: rgba(156, 170, 110, 0.35);
-    --gold: #d1a869;
-  }
-}
-:root[data-theme="dark"] .graph-root {
-  --surface: #1c1a15;
-  --surface-deep: #131209;
-  --ink: #e8dfc8;
-  --ink-soft: #b3a888;
-  --blue: #86b3d9;
-  --blue-faint: rgba(134, 179, 217, 0.25);
-  --olive: #9caa6e;
-  --olive-soft: rgba(156, 170, 110, 0.35);
-  --gold: #d1a869;
 }
 .graph-root.fullscreen {
   position: fixed;
@@ -759,17 +726,26 @@ export default {
   background: var(--surface);
   border: 1px solid var(--olive);
   color: var(--blue);
-  border-radius: 2px;
-  padding: 0.3rem 0.9rem;
+  border-radius: 999px;
+  padding: 0.3rem 1.1rem;
   font-family: inherit;
   font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   cursor: pointer;
+  box-shadow: 0 1px 3px rgba(63, 51, 38, 0.12);
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+    color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 .mode-toggle:hover {
+  background: var(--blue);
   border-color: var(--blue);
-  box-shadow: 0 0 8px var(--blue-faint);
+  color: var(--surface);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(63, 51, 38, 0.2);
+}
+.mode-toggle:active {
+  transform: translateY(0);
 }
 .subtitle {
   color: var(--ink-soft);
@@ -789,7 +765,7 @@ export default {
   border: 1px solid var(--olive);
   background: var(--surface);
   color: var(--ink-soft);
-  border-radius: 2px;
+  border-radius: 10px;
   padding: 0.3rem 1.8rem 0.3rem 0.8rem;
   font-family: inherit;
   font-size: 0.75rem;
@@ -802,9 +778,11 @@ export default {
   background-position: calc(100% - 14px) calc(50% - 1px), calc(100% - 9px) calc(50% - 1px);
   background-size: 5px 5px, 5px 5px;
   background-repeat: no-repeat;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .topic-select:hover {
   border-color: var(--blue);
+  box-shadow: 0 0 0 2px var(--blue-faint);
 }
 .topic-select:disabled {
   opacity: 0.5;
@@ -816,7 +794,7 @@ export default {
   touch-action: none;
   background: var(--surface);
   border: 1px solid var(--olive);
-  border-radius: 4px;
+  border-radius: 16px;
   box-shadow: inset 0 0 40px rgba(184, 147, 90, 0.18);
   cursor: grab;
 }
@@ -826,7 +804,7 @@ export default {
   display: block;
   background: #0c1220;
   border: 1px solid var(--olive);
-  border-radius: 4px;
+  border-radius: 16px;
 }
 .fullscreen .graph-header {
   flex: none;
@@ -876,11 +854,19 @@ export default {
   font-size: 1.4rem;
   line-height: 1;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(63, 51, 38, 0.25);
+  box-shadow: 0 2px 6px rgba(63, 51, 38, 0.2);
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+    color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 .zoom-controls button:hover {
+  background: var(--blue);
   border-color: var(--blue);
-  box-shadow: 0 0 10px var(--blue-faint);
+  color: var(--surface);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(63, 51, 38, 0.25);
+}
+.zoom-controls button:active {
+  transform: translateY(0);
 }
 .help-toggle {
   position: absolute;
@@ -897,11 +883,19 @@ export default {
   font-weight: 700;
   font-size: 1.1rem;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(63, 51, 38, 0.25);
+  box-shadow: 0 2px 6px rgba(63, 51, 38, 0.2);
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+    color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 .help-toggle:hover {
+  background: var(--blue);
   border-color: var(--blue);
-  box-shadow: 0 0 10px var(--blue-faint);
+  color: var(--surface);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(63, 51, 38, 0.25);
+}
+.help-toggle:active {
+  transform: translateY(0);
 }
 .help-panel {
   position: absolute;
@@ -912,9 +906,9 @@ export default {
   max-width: calc(100% - 2rem);
   background: var(--surface);
   border: 1px solid var(--olive);
-  border-radius: 4px;
+  border-radius: 12px;
   padding: 0.75rem 1rem;
-  box-shadow: 0 4px 12px rgba(63, 51, 38, 0.25);
+  box-shadow: 0 6px 16px rgba(63, 51, 38, 0.22);
 }
 .help-close {
   position: absolute;
