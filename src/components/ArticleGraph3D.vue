@@ -14,6 +14,36 @@ const BASE_RADIUS = 6;
 const CENTER_SCALE = 1.5;
 const NODE_SCALE = 1;
 const TRANSITION_MS = 380;
+// Label sizing is a *budget*, not a fixed size: a label is capped on both axes
+// and takes whichever scale is smaller, so a long title shrinks to stay inside
+// its width budget instead of sprawling across its neighbours. Sized in the
+// same world units as LINK_DISTANCE, which is what actually separates labels.
+const LABEL_HEIGHT = 5;
+const LABEL_MAX_WIDTH = 34;
+const LABEL_MAX_CHARS = 24;
+// Gap between the bottom of a node's sphere and the top of its label.
+const LABEL_GAP = 6;
+// The fit solves for the distance where the outermost node sits exactly on the
+// frame edge, so without a margin that node's label touches the boundary and
+// any rounding clips it. Proportional rather than a fixed world-unit amount so
+// the visual margin stays the same however far out the camera ends up.
+const FIT_MARGIN = 1.06;
+// Caps how far the user can scroll/pinch-zoom out: a multiple of whatever
+// distance the current graph actually needs to fit on screen, so "zoom out"
+// gives a bit of breathing room around the graph without ever letting it
+// shrink to a lost speck in an empty void.
+const MAX_DISTANCE_FACTOR = 3;
+// Narrow (phone) viewports fit fewer world units across the screen, so the
+// same label eats proportionally more of the frame — tighten the budget there.
+const NARROW_VIEWPORT_PX = 600;
+const NARROW_LABEL_SCALE = 0.72;
+// Radius of the sphere leaf nodes are placed on around whichever node they
+// hang off (the center, or an expanded leaf).
+const LINK_DISTANCE = 100;
+// Golden-angle spiral: successive points advance by this angle in longitude
+// while stepping evenly in latitude, which is the standard way to place N
+// points roughly evenly across a sphere for arbitrary N with no clumping.
+const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 
 function easeOutCubic(t) {
   return 1 - (1 - t) ** 3;
@@ -33,7 +63,70 @@ function tween(duration, onUpdate) {
   requestAnimationFrame(step);
 }
 
-function makeLabelSprite(text, heightWorldUnits) {
+// Wikipedia titles run long ("Producer–consumer problem"); past a couple of
+// dozen characters the extra width buys no legibility once the width budget
+// has scaled the glyphs down, so spend the budget on fewer, bigger characters.
+function truncateLabel(text, maxChars) {
+  if (text.length <= maxChars) return text;
+  return `${text.slice(0, maxChars - 1).trimEnd()}…`;
+}
+
+// How far the layout stays from being aligned with the camera: 0 would allow
+// points right up against the view axis (where they'd project on top of the
+// node they orbit); 1 would spread all the way to the poles. 0.35 keeps every
+// point at least ~58° off-axis, comfortably clear in screen space.
+const POLAR_BAND = 0.35;
+
+// Deterministic stand-in for letting the d3-force simulation find a resting
+// spot for each leaf: places `count` points evenly around `origin` on a
+// sphere of `radius`, confined to a band around the equator relative to
+// `viewAxis` (the direction from `origin` toward the camera). Points spread
+// over a *full* sphere have no regard for where the camera is looking, so for
+// small counts it's easy for one to land almost exactly on the view axis —
+// invisible from the side, but overlapping `origin` head-on. Nodes render in
+// their final position on the very first frame — no settle-in animation, no
+// waiting on the physics engine to stop before the camera can be framed.
+function sphereLayout(origin, count, radius, viewAxis) {
+  if (count === 0) return [];
+  // Any helper vector not parallel to viewAxis, just to seed a basis for the
+  // plane perpendicular to it.
+  const helper = Math.abs(viewAxis.y) < 0.9 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0);
+  const u = new THREE.Vector3().crossVectors(viewAxis, helper).normalize();
+  const v = new THREE.Vector3().crossVectors(viewAxis, u).normalize();
+
+  const positions = [];
+  const dir = new THREE.Vector3();
+  for (let i = 0; i < count; i += 1) {
+    const t = count === 1 ? 0.5 : i / (count - 1); // 0 .. 1
+    // Polar angle measured from viewAxis, confined to a band around 90° (the
+    // equator) so it never approaches 0° or 180° (the view axis itself).
+    const polar = Math.PI / 2 + (t * 2 - 1) * (Math.PI / 2) * POLAR_BAND;
+    const azimuth = GOLDEN_ANGLE * i;
+    dir.set(0, 0, 0)
+      .addScaledVector(viewAxis, Math.cos(polar))
+      .addScaledVector(u, Math.sin(polar) * Math.cos(azimuth))
+      .addScaledVector(v, Math.sin(polar) * Math.sin(azimuth));
+    positions.push({
+      x: origin.x + dir.x * radius,
+      y: origin.y + dir.y * radius,
+      z: origin.z + dir.z * radius,
+    });
+  }
+  return positions;
+}
+
+// Fixes a node at an exact position: d3-force forces a pinned node's x/y/z to
+// match fx/fy/fz on every tick regardless of simulated forces, so this is
+// permanent until something explicitly un-pins it (which nothing here does —
+// every node in this graph stays exactly where it's deterministically placed,
+// unless the user drags it).
+function pinNodeAt(node, pos) {
+  node.x = node.fx = pos.x;
+  node.y = node.fy = pos.y;
+  node.z = node.fz = pos.z;
+}
+
+function makeLabelSprite(text, heightWorldUnits, maxWidthWorldUnits) {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   // Baked at a fairly high resolution since zoomToFit can bring the camera
@@ -52,10 +145,16 @@ function makeLabelSprite(text, heightWorldUnits) {
   ctx.fillText(text, canvas.width / 2, canvas.height / 2);
 
   const texture = new THREE.CanvasTexture(canvas);
-  texture.minFilter = THREE.LinearFilter;
+  // Labels are baked well above their on-screen size, and nodes further from
+  // the camera sample them far below it, which aliases badly without mipmaps.
+  // Non-power-of-two mipmaps are fine on the WebGL2 context three renders with.
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.generateMipmaps = true;
   const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false });
   const sprite = new THREE.Sprite(material);
-  const scale = heightWorldUnits / canvas.height;
+  // Fit inside *both* budgets rather than scaling by height alone: height alone
+  // lets a long title grow arbitrarily wide and overlap neighbouring nodes.
+  const scale = Math.min(heightWorldUnits / canvas.height, maxWidthWorldUnits / canvas.width);
   sprite.scale.set(canvas.width * scale, canvas.height * scale, 1);
   return sprite;
 }
@@ -112,6 +211,7 @@ export default {
     const isTouchPrimary = window.matchMedia('(pointer: coarse)').matches;
     this.zoomToFitDuration = reducedMotion ? 0 : 400;
     this.reducedMotion = reducedMotion;
+    this.labelBudget = this.computeLabelBudget();
 
     this.graph = ForceGraph3D()(this.$refs.container)
       .backgroundColor('#0c1220')
@@ -132,8 +232,9 @@ export default {
         group.add(sphere);
         this.spheres.push(sphere);
 
-        const label = makeLabelSprite(node.id, 5);
-        label.position.set(0, -(BASE_RADIUS + 6), 0);
+        const { height, maxWidth, maxChars } = this.labelBudget;
+        const label = makeLabelSprite(truncateLabel(node.id, maxChars), height, maxWidth);
+        label.position.set(0, -(BASE_RADIUS + LABEL_GAP), 0);
         group.add(label);
 
         const moonRadius = BASE_RADIUS * 0.35;
@@ -168,19 +269,19 @@ export default {
       })
       .linkColor(() => 'rgba(116, 128, 74, 0.6)')
       .linkWidth(1)
-      .cooldownTicks(reducedMotion ? 0 : 150)
-      .d3AlphaDecay(reducedMotion ? 1 : 0.012)
-      .d3VelocityDecay(0.3)
-      .onEngineStop(() => this.graph.zoomToFit(this.zoomToFitDuration, 50))
+      // Every node is pinned (fx/fy/fz) to a deterministic position the
+      // instant it's created, so the physics simulation never has anything
+      // to do — cooldownTicks(0) just lets the engine take its one
+      // obligatory tick and stop, which is what fires onEngineStop below.
+      // That wiring stays useful for the one case nodes AREN'T pre-placed:
+      // dragging one reheats the simulation, and this is what re-fits the
+      // camera once the drag settles.
+      .cooldownTicks(0)
+      .onEngineStop(() => this.fitView(this.zoomToFitDuration))
       .onNodeClick(node => this.navigateToNode(node))
       .onNodeHover(node => {
         this.$refs.container.style.cursor = node ? 'pointer' : 'default';
       });
-
-    // Spread nodes out further than the library defaults so their labels
-    // have room to not overlap each other.
-    this.graph.d3Force('link').distance(100);
-    this.graph.d3Force('charge').strength(-90);
 
     this.graph.scene().add(new THREE.AmbientLight(0xffffff, 0.6));
     const keyLight = new THREE.DirectionalLight(0xfff2d9, 1.1);
@@ -237,6 +338,7 @@ export default {
     this.syncSize();
   },
   beforeUnmount() {
+    clearTimeout(this.zoomToFitTimer);
     if (this.resizeObserver) this.resizeObserver.disconnect();
     if (this.handleMoonClick) this.$refs.container.removeEventListener('pointerup', this.handleMoonClick, true);
     if (this.handlePointerMove) this.$refs.container.removeEventListener('pointermove', this.handlePointerMove);
@@ -248,11 +350,127 @@ export default {
     },
   },
   methods: {
+    computeLabelBudget() {
+      // Orientation-independent: the short edge is what constrains how many
+      // world units fit across the frame, whichever way the phone is held.
+      const narrow = Math.min(window.innerWidth, window.innerHeight) < NARROW_VIEWPORT_PX;
+      const scale = narrow ? NARROW_LABEL_SCALE : 1;
+      return {
+        height: LABEL_HEIGHT * scale,
+        maxWidth: LABEL_MAX_WIDTH * scale,
+        maxChars: narrow ? Math.round(LABEL_MAX_CHARS * NARROW_LABEL_SCALE) : LABEL_MAX_CHARS,
+      };
+    },
+    // Direction from the camera's current position toward the origin, used
+    // as sphereLayout's axis to avoid — approximate (it ignores wherever the
+    // camera is actually looking versus its raw position vector), but good
+    // enough since camera distance is always much larger than the graph's
+    // extent, and it naturally tracks wherever the user has orbited to.
+    currentViewAxis() {
+      const pos = this.graph.camera().position;
+      const axis = new THREE.Vector3(pos.x, pos.y, pos.z);
+      return axis.lengthSq() > 0 ? axis.normalize() : new THREE.Vector3(0, 0, 1);
+    },
+    // Replaces the library's zoomToFit, which frames the graph by its largest
+    // bounding-box axis — including the axis pointing at the camera, which
+    // contributes nothing to what you actually see — and then divides by the
+    // aspect ratio on top. On a tall narrow phone (aspect ~0.46) those compound
+    // into a camera parked far too far back, leaving the graph a small clump in
+    // the middle of the frame; on desktop (aspect > 1) the penalty disappears,
+    // which is why this only ever looked wrong on mobile.
+    //
+    // Instead, project every node onto the current view axes and solve for the
+    // nearest camera distance that still contains them all. A sparse star graph
+    // is mostly empty space, so fitting what is actually on screen frames it far
+    // tighter than any bounding-volume approximation can.
+    fitView(durationMs) {
+      if (!this.graph || !this.$refs.container) return;
+      const rect = this.$refs.container.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      const { nodes } = this.graph.graphData();
+      if (!nodes.length) return;
+
+      // Cheap fingerprint of everything the fit depends on (container size +
+      // every node position). onEngineStop and the resize-settle debounce can
+      // both call fitView repeatedly for reasons unrelated to the graph's
+      // actual layout — skip the recompute, and critically the
+      // cameraPosition() call (which reassigns OrbitControls' target object
+      // every time), when nothing that would change the result has moved.
+      let fingerprint = `${Math.round(rect.width)}x${Math.round(rect.height)}|${nodes.length}`;
+      for (const node of nodes) {
+        fingerprint += `|${(node.x || 0).toFixed(1)},${(node.y || 0).toFixed(1)},${(node.z || 0).toFixed(1)}`;
+      }
+      if (fingerprint === this.lastFitFingerprint) return;
+      this.lastFitFingerprint = fingerprint;
+
+      const box = new THREE.Box3();
+      const point = new THREE.Vector3();
+      nodes.forEach(node => box.expandByPoint(point.set(node.x || 0, node.y || 0, node.z || 0)));
+      const center = box.getCenter(new THREE.Vector3());
+
+      const camera = this.graph.camera();
+      const current = this.graph.cameraPosition();
+      const axis = new THREE.Vector3(current.x, current.y, current.z).sub(center);
+      // Degenerate only if the camera sits exactly on the centre; fall back to
+      // the library's default viewing axis rather than producing NaN.
+      if (axis.lengthSq() === 0) axis.set(0, 0, 1);
+      axis.normalize();
+
+      // Screen right/up in world space. camera.up is what OrbitControls keeps
+      // the camera rolled against, so the basis matches what gets rendered.
+      const right = new THREE.Vector3().crossVectors(camera.up, axis);
+      if (right.lengthSq() < 1e-8) right.set(1, 0, 0);
+      right.normalize();
+      const up = new THREE.Vector3().crossVectors(axis, right).normalize();
+
+      const tanV = Math.tan(((camera.fov * Math.PI) / 180) / 2);
+      const tanH = tanV * (rect.width / rect.height);
+
+      // A node at screen offset `off` and depth `depth` along the view axis is
+      // inside the frustum when distance >= depth + off / tan(halfFov). Take
+      // the binding node on each axis.
+      const offset = new THREE.Vector3();
+      let distance = 0;
+      nodes.forEach(node => {
+        const scale = node.isCenter ? CENTER_SCALE : NODE_SCALE;
+        // Sphere mesh and label sprite both stick out past the node centre.
+        const padH = scale * Math.max(BASE_RADIUS, this.labelBudget.maxWidth / 2);
+        const padV = scale * (BASE_RADIUS + LABEL_GAP + this.labelBudget.height / 2);
+        offset.set(node.x || 0, node.y || 0, node.z || 0).sub(center);
+        const depth = offset.dot(axis);
+        distance = Math.max(
+          distance,
+          depth + (Math.abs(offset.dot(right)) + padH) / tanH,
+          depth + (Math.abs(offset.dot(up)) + padV) / tanV,
+        );
+      });
+
+      distance = Math.max(distance * FIT_MARGIN, this.graph.controls().minDistance || 0);
+      // Keep the zoom-out ceiling in step with the graph's current extent —
+      // it grows as expandNode() adds more nodes, rather than staying fixed
+      // at whatever it was on initial load.
+      this.graph.controls().maxDistance = distance * MAX_DISTANCE_FACTOR;
+      axis.setLength(distance).add(center);
+      this.graph.cameraPosition({ x: axis.x, y: axis.y, z: axis.z }, center, durationMs);
+    },
     syncSize() {
       const rect = this.$refs.container.getBoundingClientRect();
-      if (this.graph && rect.width && rect.height) {
-        this.graph.width(rect.width).height(rect.height);
-      }
+      if (!this.graph || !rect.width || !rect.height) return;
+      const sizeChanged = rect.width !== this.lastSyncedWidth || rect.height !== this.lastSyncedHeight;
+      this.graph.width(rect.width).height(rect.height);
+      if (!sizeChanged) return;
+      this.lastSyncedWidth = rect.width;
+      this.lastSyncedHeight = rect.height;
+      // The container can go through several intermediate sizes in quick
+      // succession (fullscreen flex layout settling, mobile browser chrome
+      // animating away) before landing on its final size. Debounce so we only
+      // ever fit against the size that actually sticks, and wait a frame past
+      // that so the renderer has committed the matching camera aspect ratio
+      // before we compute the fit against it.
+      clearTimeout(this.zoomToFitTimer);
+      this.zoomToFitTimer = setTimeout(() => {
+        requestAnimationFrame(() => this.fitView(0));
+      }, 150);
     },
     setGraphData(title, linkTitles) {
       const previousCenterId = this.currentCenterId;
@@ -267,7 +485,17 @@ export default {
         ? this.nodeVisuals.get(title).group.position.clone()
         : null;
 
-      const nodes = [{ id: title, isCenter: true }, ...linkTitles.map(id => ({ id }))];
+      const center = { id: title, isCenter: true };
+      const leaves = linkTitles.map(id => ({ id }));
+      // Place deterministically rather than leaving it to the physics
+      // simulation: the center always sits at the origin fitView frames
+      // around, and leaves are spaced evenly on a sphere at LINK_DISTANCE —
+      // so the graph is already in its final layout before the first paint.
+      pinNodeAt(center, { x: 0, y: 0, z: 0 });
+      sphereLayout({ x: 0, y: 0, z: 0 }, leaves.length, LINK_DISTANCE, this.currentViewAxis())
+        .forEach((pos, i) => pinNodeAt(leaves[i], pos));
+
+      const nodes = [center, ...leaves];
       const links = linkTitles.map(id => ({ source: title, target: id }));
       const nextIds = new Set(nodes.map(n => n.id));
 
@@ -292,39 +520,28 @@ export default {
         }
         this.animateRecenterMove(title, fromPosition);
       }
+      // Positions are already final (pinned above), so frame them right now
+      // instead of waiting a frame for onEngineStop to fire.
+      this.fitView(this.zoomToFitDuration);
     },
-    // Rather than letting the force simulation yank the recentered node
-    // toward the origin at whatever speed its forces dictate (which is what
-    // read as a "jump"), pin it at its last known position and manually tween
-    // that pin to (0, 0, 0) ourselves — a fully controlled, eased move that
-    // doesn't depend on simulation internals. Everything else (new sibling
-    // nodes, links) still settles normally via the physics simulation.
+    // The recentering node is already pinned (every node always is); this
+    // just manually tweens that pin from its last known position to the
+    // origin — a fully controlled, eased move — instead of snapping straight
+    // there the instant setGraphData() re-pins it, which read as a "jump".
     animateRecenterMove(nodeId, fromPosition) {
       const liveNode = this.graph.graphData().nodes.find(n => n.id === nodeId);
       if (!liveNode) return;
       if (this.reducedMotion) {
-        liveNode.fx = 0;
-        liveNode.fy = 0;
-        liveNode.fz = 0;
-        requestAnimationFrame(() => {
-          liveNode.fx = null;
-          liveNode.fy = null;
-          liveNode.fz = null;
-        });
+        pinNodeAt(liveNode, { x: 0, y: 0, z: 0 });
         return;
       }
-      liveNode.fx = fromPosition.x;
-      liveNode.fy = fromPosition.y;
-      liveNode.fz = fromPosition.z;
+      pinNodeAt(liveNode, fromPosition);
       tween(TRANSITION_MS, (t) => {
-        liveNode.fx = fromPosition.x * (1 - t);
-        liveNode.fy = fromPosition.y * (1 - t);
-        liveNode.fz = fromPosition.z * (1 - t);
-        if (t >= 1) {
-          liveNode.fx = null;
-          liveNode.fy = null;
-          liveNode.fz = null;
-        }
+        pinNodeAt(liveNode, {
+          x: fromPosition.x * (1 - t),
+          y: fromPosition.y * (1 - t),
+          z: fromPosition.z * (1 - t),
+        });
       });
     },
     animateNodeRoleChange(nodeId, isCenter) {
@@ -424,19 +641,25 @@ export default {
         const linkTitles = await this.fetchLinksFor(node.id);
         const { nodes, links } = this.graph.graphData();
         const existingIds = new Set(nodes.map(n => n.id));
-        let added = 0;
+        const newTitles = linkTitles.filter(title => !existingIds.has(title));
+        // Place new leaves around the expanded node's own (already pinned)
+        // position, same as any other leaf — deterministic, no simulation.
+        const origin = { x: node.x || 0, y: node.y || 0, z: node.z || 0 };
+        sphereLayout(origin, newTitles.length, LINK_DISTANCE, this.currentViewAxis()).forEach((pos, i) => {
+          const leaf = { id: newTitles[i] };
+          pinNodeAt(leaf, pos);
+          nodes.push(leaf);
+          existingIds.add(newTitles[i]);
+        });
         linkTitles.forEach(title => {
-          if (!existingIds.has(title)) {
-            nodes.push({ id: title });
-            existingIds.add(title);
-            added += 1;
-          }
           if (!links.some(l => (l.source.id ?? l.source) === node.id && (l.target.id ?? l.target) === title)) {
             links.push({ source: node.id, target: title });
           }
         });
         this.graph.graphData({ nodes, links });
         this.listNodes = nodes;
+        this.fitView(this.zoomToFitDuration);
+        const added = newTitles.length;
         this.announcement = `Added ${added} new link${added === 1 ? '' : 's'} from ${node.id}.`;
       } catch {
         this.errorNodeId = node.id;
