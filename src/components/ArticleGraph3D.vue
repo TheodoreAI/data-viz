@@ -28,6 +28,11 @@ const LABEL_GAP = 6;
 // any rounding clips it. Proportional rather than a fixed world-unit amount so
 // the visual margin stays the same however far out the camera ends up.
 const FIT_MARGIN = 1.06;
+// Caps how far the user can scroll/pinch-zoom out: a multiple of whatever
+// distance the current graph actually needs to fit on screen, so "zoom out"
+// gives a bit of breathing room around the graph without ever letting it
+// shrink to a lost speck in an empty void.
+const MAX_DISTANCE_FACTOR = 3;
 // Narrow (phone) viewports fit fewer world units across the screen, so the
 // same label eats proportionally more of the frame — tighten the budget there.
 const NARROW_VIEWPORT_PX = 600;
@@ -379,20 +384,11 @@ export default {
     // is mostly empty space, so fitting what is actually on screen frames it far
     // tighter than any bounding-volume approximation can.
     fitView(durationMs) {
-      if (!this.graph || !this.$refs.container) {
-        console.warn('[Graph3D] fitView skipped: no graph/container', { hasGraph: !!this.graph });
-        return;
-      }
+      if (!this.graph || !this.$refs.container) return;
       const rect = this.$refs.container.getBoundingClientRect();
-      if (!rect.width || !rect.height) {
-        console.warn('[Graph3D] fitView skipped: zero-size container', { w: rect.width, h: rect.height });
-        return;
-      }
+      if (!rect.width || !rect.height) return;
       const { nodes } = this.graph.graphData();
-      if (!nodes.length) {
-        console.warn('[Graph3D] fitView skipped: no nodes');
-        return;
-      }
+      if (!nodes.length) return;
 
       // Cheap fingerprint of everything the fit depends on (container size +
       // every node position). onEngineStop and the resize-settle debounce can
@@ -450,33 +446,19 @@ export default {
       });
 
       distance = Math.max(distance * FIT_MARGIN, this.graph.controls().minDistance || 0);
+      // Keep the zoom-out ceiling in step with the graph's current extent —
+      // it grows as expandNode() adds more nodes, rather than staying fixed
+      // at whatever it was on initial load.
+      this.graph.controls().maxDistance = distance * MAX_DISTANCE_FACTOR;
       axis.setLength(distance).add(center);
-      console.log('[Graph3D] fitView', {
-        durationMs,
-        nodeCount: nodes.length,
-        containerRect: { w: Math.round(rect.width), h: Math.round(rect.height) },
-        aspect: camera.aspect,
-        fov: camera.fov,
-        distance,
-        center: { x: center.x, y: center.y, z: center.z },
-        cameraPosition: { x: axis.x, y: axis.y, z: axis.z },
-      });
       this.graph.cameraPosition({ x: axis.x, y: axis.y, z: axis.z }, center, durationMs);
     },
     syncSize() {
       const rect = this.$refs.container.getBoundingClientRect();
-      if (!this.graph || !rect.width || !rect.height) {
-        console.warn('[Graph3D] syncSize skipped', { hasGraph: !!this.graph, w: rect.width, h: rect.height });
-        return;
-      }
+      if (!this.graph || !rect.width || !rect.height) return;
       const sizeChanged = rect.width !== this.lastSyncedWidth || rect.height !== this.lastSyncedHeight;
       this.graph.width(rect.width).height(rect.height);
       if (!sizeChanged) return;
-      console.log('[Graph3D] syncSize changed', {
-        from: { w: this.lastSyncedWidth, h: this.lastSyncedHeight },
-        to: { w: rect.width, h: rect.height },
-        devicePixelRatio: window.devicePixelRatio,
-      });
       this.lastSyncedWidth = rect.width;
       this.lastSyncedHeight = rect.height;
       // The container can go through several intermediate sizes in quick
