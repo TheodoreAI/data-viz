@@ -228,6 +228,8 @@ export default {
     const pixelRatio = Math.min(window.devicePixelRatio || 1, MAX_PIXEL_RATIO);
     this.graph.renderer().setPixelRatio(pixelRatio);
     if (reducedMotion) this.graph.controls().autoRotate = false;
+    // Prevent zooming/panning the camera inside node geometry (BASE_RADIUS-scale spheres).
+    this.graph.controls().minDistance = BASE_RADIUS * 6;
 
     this.setGraphData(this.seedTitle, this.seedLinks);
     this.resizeObserver = new ResizeObserver(() => this.syncSize());
