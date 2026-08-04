@@ -10,6 +10,28 @@ const MOON_COLOR = 0xcfd3da;
 const STAR_COUNT = 1800;
 const STAR_FIELD_MIN_RADIUS = 700;
 const STAR_FIELD_MAX_RADIUS = 1600;
+const BASE_RADIUS = 6;
+const CENTER_SCALE = 1.5;
+const NODE_SCALE = 1;
+const TRANSITION_MS = 380;
+
+function easeOutCubic(t) {
+  return 1 - (1 - t) ** 3;
+}
+
+// Animates an arbitrary set of numeric/color props from their current value
+// to a target over a fixed duration, used both for a new node's entrance
+// (scale 0 -> target) and for an existing node smoothly restyling itself
+// when it becomes (or stops being) the center node, instead of popping.
+function tween(duration, onUpdate) {
+  const start = performance.now();
+  const step = (now) => {
+    const t = Math.min((now - start) / duration, 1);
+    onUpdate(easeOutCubic(t));
+    if (t < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
 
 function makeLabelSprite(text, heightWorldUnits) {
   const canvas = document.createElement('canvas');
@@ -82,19 +104,22 @@ export default {
     this.moons = [];
     this.spheres = [];
     this.hoveredMesh = null;
+    this.nodeVisuals = new Map();
+    this.currentCenterId = null;
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const isTouchPrimary = window.matchMedia('(pointer: coarse)').matches;
     this.zoomToFitDuration = reducedMotion ? 0 : 400;
+    this.reducedMotion = reducedMotion;
 
     this.graph = ForceGraph3D()(this.$refs.container)
       .backgroundColor('#0c1220')
       .showNavInfo(!isTouchPrimary)
       .nodeLabel(node => node.id)
       .nodeThreeObject(node => {
-        const radius = node.isCenter ? 9 : 6;
         const group = new THREE.Group();
+        const targetScale = node.isCenter ? CENTER_SCALE : NODE_SCALE;
 
-        const geometry = new THREE.SphereGeometry(radius, 24, 24);
+        const geometry = new THREE.SphereGeometry(BASE_RADIUS, 24, 24);
         const material = new THREE.MeshStandardMaterial({
           color: node.isCenter ? CENTER_COLOR : NODE_COLOR,
           metalness: node.isCenter ? 0.75 : 0.4,
@@ -105,11 +130,11 @@ export default {
         group.add(sphere);
         this.spheres.push(sphere);
 
-        const label = makeLabelSprite(node.id, node.isCenter ? 6 : 4);
-        label.position.set(0, -(radius + 6), 0);
+        const label = makeLabelSprite(node.id, 5);
+        label.position.set(0, -(BASE_RADIUS + 6), 0);
         group.add(label);
 
-        const moonRadius = radius * 0.35;
+        const moonRadius = BASE_RADIUS * 0.35;
         const moonGeometry = new THREE.SphereGeometry(moonRadius, 12, 12);
         const moonMaterial = new THREE.MeshStandardMaterial({
           color: MOON_COLOR,
@@ -120,15 +145,30 @@ export default {
         });
         const moon = new THREE.Mesh(moonGeometry, moonMaterial);
         moon.userData = { isMoon: true, nodeId: node.id };
-        moon.position.set(radius + moonRadius + 1.5, 0, 0);
+        moon.position.set(BASE_RADIUS + moonRadius + 1.5, 0, 0);
         group.add(moon);
         this.moons.push(moon);
+
+        this.nodeVisuals.set(node.id, { group, sphere, material, moon });
+
+        // Entrance: pop in from nothing rather than snapping to full size —
+        // this only runs for genuinely new nodes (3d-force-graph reuses the
+        // existing object, without calling this factory again, for any node
+        // id that persists across a graphData() update).
+        if (reducedMotion) {
+          group.scale.setScalar(targetScale);
+        } else {
+          group.scale.setScalar(0.001);
+          tween(TRANSITION_MS, (t) => group.scale.setScalar(0.001 + (targetScale - 0.001) * t));
+        }
 
         return group;
       })
       .linkColor(() => 'rgba(116, 128, 74, 0.6)')
       .linkWidth(1)
-      .cooldownTicks(reducedMotion ? 0 : 200)
+      .cooldownTicks(reducedMotion ? 0 : 150)
+      .d3AlphaDecay(reducedMotion ? 1 : 0.012)
+      .d3VelocityDecay(0.3)
       .onEngineStop(() => this.graph.zoomToFit(this.zoomToFitDuration, 20))
       .onNodeClick(node => this.navigateToNode(node))
       .onNodeHover(node => {
@@ -211,13 +251,63 @@ export default {
       }
     },
     setGraphData(title, linkTitles) {
-      this.moons = [];
-      this.spheres = [];
-      this.hoveredMesh = null;
+      const previousCenterId = this.currentCenterId;
+      // 3d-force-graph reuses (rather than recreates) any node whose id
+      // persists across this update, so if the new center already existed
+      // as a sibling, nodeThreeObject won't run for it again — we have to
+      // restyle it ourselves for a smooth transform instead of a hard swap.
+      const centerAlreadyExisted = this.nodeVisuals.has(title);
+
       const nodes = [{ id: title, isCenter: true }, ...linkTitles.map(id => ({ id }))];
       const links = linkTitles.map(id => ({ source: title, target: id }));
+      const nextIds = new Set(nodes.map(n => n.id));
+
+      // Nodes dropping out of this update: forget them so raycasting/hover
+      // never targets a mesh the library has already removed from the scene.
+      this.nodeVisuals.forEach((visual, id) => {
+        if (nextIds.has(id)) return;
+        this.spheres = this.spheres.filter(s => s !== visual.sphere);
+        this.moons = this.moons.filter(m => m !== visual.moon);
+        this.nodeVisuals.delete(id);
+      });
+      this.hoveredMesh = null;
+
       this.graph.graphData({ nodes, links });
       this.listNodes = nodes;
+      this.currentCenterId = title;
+
+      if (centerAlreadyExisted) {
+        this.animateNodeRoleChange(title, true);
+        if (previousCenterId && previousCenterId !== title && this.nodeVisuals.has(previousCenterId)) {
+          this.animateNodeRoleChange(previousCenterId, false);
+        }
+      }
+    },
+    animateNodeRoleChange(nodeId, isCenter) {
+      const visual = this.nodeVisuals.get(nodeId);
+      if (!visual) return;
+      const { group, material } = visual;
+      const targetScale = isCenter ? CENTER_SCALE : NODE_SCALE;
+      const targetColor = new THREE.Color(isCenter ? CENTER_COLOR : NODE_COLOR);
+      const targetMetalness = isCenter ? 0.75 : 0.4;
+      const targetRoughness = isCenter ? 0.3 : 0.6;
+      if (this.reducedMotion) {
+        group.scale.setScalar(targetScale);
+        material.color.copy(targetColor);
+        material.metalness = targetMetalness;
+        material.roughness = targetRoughness;
+        return;
+      }
+      const fromScale = group.scale.x;
+      const fromColor = material.color.clone();
+      const fromMetalness = material.metalness;
+      const fromRoughness = material.roughness;
+      tween(TRANSITION_MS, (t) => {
+        group.scale.setScalar(fromScale + (targetScale - fromScale) * t);
+        material.color.lerpColors(fromColor, targetColor, t);
+        material.metalness = fromMetalness + (targetMetalness - fromMetalness) * t;
+        material.roughness = fromRoughness + (targetRoughness - fromRoughness) * t;
+      });
     },
     async fetchLinksFor(title) {
       if (this.linksCache[title]) return this.linksCache[title];
