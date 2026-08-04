@@ -36,7 +36,9 @@ function tween(duration, onUpdate) {
 function makeLabelSprite(text, heightWorldUnits) {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
-  const fontSize = 48;
+  // Baked at a fairly high resolution since zoomToFit can bring the camera
+  // close enough for a low-res label texture to look visibly blurry/pixelated.
+  const fontSize = 112;
   ctx.font = `${fontSize}px sans-serif`;
   canvas.width = Math.ceil(ctx.measureText(text).width) + 24;
   canvas.height = fontSize + 24;
@@ -169,7 +171,7 @@ export default {
       .cooldownTicks(reducedMotion ? 0 : 150)
       .d3AlphaDecay(reducedMotion ? 1 : 0.012)
       .d3VelocityDecay(0.3)
-      .onEngineStop(() => this.graph.zoomToFit(this.zoomToFitDuration, 20))
+      .onEngineStop(() => this.graph.zoomToFit(this.zoomToFitDuration, 50))
       .onNodeClick(node => this.navigateToNode(node))
       .onNodeHover(node => {
         this.$refs.container.style.cursor = node ? 'pointer' : 'default';
