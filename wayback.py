@@ -14,6 +14,12 @@ def _parse_timestamp(ts):
     return datetime.strptime(ts, '%Y%m%d%H%M%S')
 
 
+def _format_date(dt):
+    """dt.strftime('%B %-d, %Y') without relying on the non-portable %-d
+    directive, which isn't supported by Python's C runtime on Windows."""
+    return f'{dt.strftime("%B")} {dt.day}, {dt.strftime("%Y")}'
+
+
 def fetch_snapshots(url, max_per_year=1, max_years=40):
     """Returns a list of {timestamp, date, archiveUrl} dicts, roughly one
     representative snapshot per year, newest first. Raises requests.RequestException
@@ -47,7 +53,7 @@ def fetch_snapshots(url, max_per_year=1, max_years=40):
     for year, timestamp in sorted(by_year.items(), reverse=True)[:max_years]:
         snapshots.append({
             'timestamp': timestamp,
-            'date': _parse_timestamp(timestamp).strftime('%B %-d, %Y'),
+            'date': _format_date(_parse_timestamp(timestamp)),
             'year': year,
             'archiveUrl': f'https://web.archive.org/web/{timestamp}/{url}',
         })
@@ -151,7 +157,7 @@ def fetch_popular_pages(url, limit=POPULAR_LIMIT):
             'url': key,
             'captureCount': info['count'],
             'timestamp': info['timestamp'],
-            'date': _parse_timestamp(info['timestamp']).strftime('%B %-d, %Y'),
+            'date': _format_date(_parse_timestamp(info['timestamp'])),
             'archiveUrl': f'https://web.archive.org/web/{info["timestamp"]}/{info["original"]}',
         })
     return pages
@@ -170,6 +176,6 @@ def fetch_closest_snapshot(url, date_str=None):
         return None
     return {
         'timestamp': snapshot['timestamp'],
-        'date': _parse_timestamp(snapshot['timestamp']).strftime('%B %-d, %Y'),
+        'date': _format_date(_parse_timestamp(snapshot['timestamp'])),
         'archiveUrl': snapshot['url'],
     }
