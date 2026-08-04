@@ -6,9 +6,57 @@ import ArticleTooltip from './ArticleTooltip.vue';
 const MAX_PIXEL_RATIO = 2;
 const CENTER_COLOR = 0xb8935a; // gold/bronze
 const NODE_COLOR = 0x2f6690; // blue
+const MOON_COLOR = 0xcfd3da;
 const STAR_COUNT = 1800;
 const STAR_FIELD_MIN_RADIUS = 700;
 const STAR_FIELD_MAX_RADIUS = 1600;
+const BASE_RADIUS = 6;
+const CENTER_SCALE = 1.5;
+const NODE_SCALE = 1;
+const TRANSITION_MS = 380;
+
+function easeOutCubic(t) {
+  return 1 - (1 - t) ** 3;
+}
+
+// Animates an arbitrary set of numeric/color props from their current value
+// to a target over a fixed duration, used both for a new node's entrance
+// (scale 0 -> target) and for an existing node smoothly restyling itself
+// when it becomes (or stops being) the center node, instead of popping.
+function tween(duration, onUpdate) {
+  const start = performance.now();
+  const step = (now) => {
+    const t = Math.min((now - start) / duration, 1);
+    onUpdate(easeOutCubic(t));
+    if (t < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+function makeLabelSprite(text, heightWorldUnits) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  const fontSize = 48;
+  ctx.font = `${fontSize}px sans-serif`;
+  canvas.width = Math.ceil(ctx.measureText(text).width) + 24;
+  canvas.height = fontSize + 24;
+  // Re-set font: changing canvas.width/height resets the 2D context state.
+  ctx.font = `${fontSize}px sans-serif`;
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+  ctx.fillText(text, canvas.width / 2 + 1, canvas.height / 2 + 1);
+  ctx.fillStyle = '#f3ecd8';
+  ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.minFilter = THREE.LinearFilter;
+  const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false });
+  const sprite = new THREE.Sprite(material);
+  const scale = heightWorldUnits / canvas.height;
+  sprite.scale.set(canvas.width * scale, canvas.height * scale, 1);
+  return sprite;
+}
 
 function buildStarfield() {
   const positions = new Float32Array(STAR_COUNT * 3);
@@ -53,33 +101,127 @@ export default {
   mounted() {
     this.linksCache = {};
     this.summaryCache = {};
+    this.moons = [];
+    this.spheres = [];
+    this.hoveredMesh = null;
+    this.nodeVisuals = new Map();
+    this.currentCenterId = null;
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const isTouchPrimary = window.matchMedia('(pointer: coarse)').matches;
+    this.zoomToFitDuration = reducedMotion ? 0 : 400;
+    this.reducedMotion = reducedMotion;
 
     this.graph = ForceGraph3D()(this.$refs.container)
       .backgroundColor('#0c1220')
+      .showNavInfo(!isTouchPrimary)
       .nodeLabel(node => node.id)
       .nodeThreeObject(node => {
-        const geometry = new THREE.SphereGeometry(node.isCenter ? 9 : 6, 24, 24);
+        const group = new THREE.Group();
+        const targetScale = node.isCenter ? CENTER_SCALE : NODE_SCALE;
+
+        const geometry = new THREE.SphereGeometry(BASE_RADIUS, 24, 24);
         const material = new THREE.MeshStandardMaterial({
           color: node.isCenter ? CENTER_COLOR : NODE_COLOR,
           metalness: node.isCenter ? 0.75 : 0.4,
           roughness: node.isCenter ? 0.3 : 0.6,
         });
-        return new THREE.Mesh(geometry, material);
+        const sphere = new THREE.Mesh(geometry, material);
+        sphere.userData = { isSphere: true, nodeId: node.id };
+        group.add(sphere);
+        this.spheres.push(sphere);
+
+        const label = makeLabelSprite(node.id, 5);
+        label.position.set(0, -(BASE_RADIUS + 6), 0);
+        group.add(label);
+
+        const moonRadius = BASE_RADIUS * 0.35;
+        const moonGeometry = new THREE.SphereGeometry(moonRadius, 12, 12);
+        const moonMaterial = new THREE.MeshStandardMaterial({
+          color: MOON_COLOR,
+          roughness: 0.9,
+          metalness: 0.05,
+          emissive: 0x22262b,
+          emissiveIntensity: 0.2,
+        });
+        const moon = new THREE.Mesh(moonGeometry, moonMaterial);
+        moon.userData = { isMoon: true, nodeId: node.id };
+        moon.position.set(BASE_RADIUS + moonRadius + 1.5, 0, 0);
+        group.add(moon);
+        this.moons.push(moon);
+
+        this.nodeVisuals.set(node.id, { group, sphere, material, moon });
+
+        // Entrance: pop in from nothing rather than snapping to full size —
+        // this only runs for genuinely new nodes (3d-force-graph reuses the
+        // existing object, without calling this factory again, for any node
+        // id that persists across a graphData() update).
+        if (reducedMotion) {
+          group.scale.setScalar(targetScale);
+        } else {
+          group.scale.setScalar(0.001);
+          tween(TRANSITION_MS, (t) => group.scale.setScalar(0.001 + (targetScale - 0.001) * t));
+        }
+
+        return group;
       })
       .linkColor(() => 'rgba(116, 128, 74, 0.6)')
       .linkWidth(1)
-      .cooldownTicks(reducedMotion ? 0 : 200)
+      .cooldownTicks(reducedMotion ? 0 : 150)
+      .d3AlphaDecay(reducedMotion ? 1 : 0.012)
+      .d3VelocityDecay(0.3)
+      .onEngineStop(() => this.graph.zoomToFit(this.zoomToFitDuration, 20))
       .onNodeClick(node => this.navigateToNode(node))
       .onNodeHover(node => {
         this.$refs.container.style.cursor = node ? 'pointer' : 'default';
       });
+
+    // Spread nodes out further than the library defaults so their labels
+    // have room to not overlap each other.
+    this.graph.d3Force('link').distance(100);
+    this.graph.d3Force('charge').strength(-90);
 
     this.graph.scene().add(new THREE.AmbientLight(0xffffff, 0.6));
     const keyLight = new THREE.DirectionalLight(0xfff2d9, 1.1);
     keyLight.position.set(1, 1, 1);
     this.graph.scene().add(keyLight);
     this.graph.scene().add(buildStarfield());
+
+    this.raycaster = new THREE.Raycaster();
+    this.pointer = new THREE.Vector2();
+    const pickMesh = (clientX, clientY) => {
+      const rect = this.$refs.container.getBoundingClientRect();
+      this.pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+      this.pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+      this.raycaster.setFromCamera(this.pointer, this.graph.camera());
+      const hit = this.raycaster.intersectObjects([...this.spheres, ...this.moons], false)[0];
+      return hit ? hit.object : null;
+    };
+
+    this.handleMoonClick = (event) => {
+      const hit = pickMesh(event.clientX, event.clientY);
+      if (!hit || !hit.userData.isMoon) return;
+      event.stopPropagation();
+      event.preventDefault();
+      this.showTooltip(hit.userData.nodeId);
+    };
+    // Capture-phase pointerup: the library's own click handling also listens
+    // for pointerup (not pointerdown/click), so intercepting here — before it
+    // reaches the library's inner container — is what actually lets us swallow
+    // the event and stop a moon click from also firing the node's onNodeClick.
+    this.$refs.container.addEventListener('pointerup', this.handleMoonClick, true);
+
+    // Independent hover highlight per mesh (sphere vs moon), rather than
+    // relying on the library's onNodeHover, which only knows about the whole
+    // node group and would scale the sphere and moon together.
+    this.handlePointerMove = (event) => {
+      const hit = pickMesh(event.clientX, event.clientY);
+      if (this.hoveredMesh && this.hoveredMesh !== hit) {
+        this.hoveredMesh.scale.setScalar(1);
+      }
+      if (hit) hit.scale.setScalar(hit.userData.isMoon ? 1.4 : 1.15);
+      this.hoveredMesh = hit;
+    };
+    this.$refs.container.addEventListener('pointermove', this.handlePointerMove);
 
     const pixelRatio = Math.min(window.devicePixelRatio || 1, MAX_PIXEL_RATIO);
     this.graph.renderer().setPixelRatio(pixelRatio);
@@ -92,12 +234,13 @@ export default {
   },
   beforeUnmount() {
     if (this.resizeObserver) this.resizeObserver.disconnect();
+    if (this.handleMoonClick) this.$refs.container.removeEventListener('pointerup', this.handleMoonClick, true);
+    if (this.handlePointerMove) this.$refs.container.removeEventListener('pointermove', this.handlePointerMove);
     if (this.graph) this.graph._destructor();
   },
   watch: {
     seedTitle(title) {
       this.setGraphData(title, this.seedLinks);
-      this.showTooltip(title);
     },
   },
   methods: {
@@ -108,10 +251,63 @@ export default {
       }
     },
     setGraphData(title, linkTitles) {
+      const previousCenterId = this.currentCenterId;
+      // 3d-force-graph reuses (rather than recreates) any node whose id
+      // persists across this update, so if the new center already existed
+      // as a sibling, nodeThreeObject won't run for it again — we have to
+      // restyle it ourselves for a smooth transform instead of a hard swap.
+      const centerAlreadyExisted = this.nodeVisuals.has(title);
+
       const nodes = [{ id: title, isCenter: true }, ...linkTitles.map(id => ({ id }))];
       const links = linkTitles.map(id => ({ source: title, target: id }));
+      const nextIds = new Set(nodes.map(n => n.id));
+
+      // Nodes dropping out of this update: forget them so raycasting/hover
+      // never targets a mesh the library has already removed from the scene.
+      this.nodeVisuals.forEach((visual, id) => {
+        if (nextIds.has(id)) return;
+        this.spheres = this.spheres.filter(s => s !== visual.sphere);
+        this.moons = this.moons.filter(m => m !== visual.moon);
+        this.nodeVisuals.delete(id);
+      });
+      this.hoveredMesh = null;
+
       this.graph.graphData({ nodes, links });
       this.listNodes = nodes;
+      this.currentCenterId = title;
+
+      if (centerAlreadyExisted) {
+        this.animateNodeRoleChange(title, true);
+        if (previousCenterId && previousCenterId !== title && this.nodeVisuals.has(previousCenterId)) {
+          this.animateNodeRoleChange(previousCenterId, false);
+        }
+      }
+    },
+    animateNodeRoleChange(nodeId, isCenter) {
+      const visual = this.nodeVisuals.get(nodeId);
+      if (!visual) return;
+      const { group, material } = visual;
+      const targetScale = isCenter ? CENTER_SCALE : NODE_SCALE;
+      const targetColor = new THREE.Color(isCenter ? CENTER_COLOR : NODE_COLOR);
+      const targetMetalness = isCenter ? 0.75 : 0.4;
+      const targetRoughness = isCenter ? 0.3 : 0.6;
+      if (this.reducedMotion) {
+        group.scale.setScalar(targetScale);
+        material.color.copy(targetColor);
+        material.metalness = targetMetalness;
+        material.roughness = targetRoughness;
+        return;
+      }
+      const fromScale = group.scale.x;
+      const fromColor = material.color.clone();
+      const fromMetalness = material.metalness;
+      const fromRoughness = material.roughness;
+      tween(TRANSITION_MS, (t) => {
+        group.scale.setScalar(fromScale + (targetScale - fromScale) * t);
+        material.color.lerpColors(fromColor, targetColor, t);
+        material.metalness = fromMetalness + (targetMetalness - fromMetalness) * t;
+        material.roughness = fromRoughness + (targetRoughness - fromRoughness) * t;
+      });
     },
     async fetchLinksFor(title) {
       if (this.linksCache[title]) return this.linksCache[title];
@@ -171,11 +367,7 @@ export default {
       this.tooltip.visible = false;
     },
     navigateToNode(node) {
-      if (this.loadingNodeId) return;
-      if (node.isCenter) {
-        this.showTooltip(node.id);
-        return;
-      }
+      if (this.loadingNodeId || node.isCenter) return;
       this.hideTooltip();
       this.$emit('select', node.id);
     },
