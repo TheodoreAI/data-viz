@@ -2,6 +2,7 @@ import json
 import random
 import re
 import time
+from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from pathlib import Path
 
@@ -117,6 +118,31 @@ def commons_thumbnail_url(file_path_url):
     return file_path_url.replace('http://', 'https://') + '?width=600'
 
 
+# Special:FilePath is a convenience redirect (two hops: Special:FilePath ->
+# Special:Redirect/file -> the actual upload.wikimedia.org CDN URL) that
+# Wikidata's P18 values point at. Resolving it costs a couple hundred ms per
+# image, so doing that resolution here — once per film, when the disk cache
+# is (re)built — means every real page load links straight to the CDN and
+# skips both redirects, instead of every visitor's browser paying that cost
+# for every poster on every visit.
+def _resolve_thumbnail_url(thumbnail_url):
+    try:
+        response = requests.head(
+            thumbnail_url, headers=WIKIDATA_HEADERS, allow_redirects=True, timeout=10,
+        )
+        return response.url
+    except requests.RequestException:
+        return thumbnail_url
+
+
+def _resolve_thumbnail_urls(films):
+    with ThreadPoolExecutor(max_workers=16) as executor:
+        resolved = list(executor.map(lambda f: _resolve_thumbnail_url(f['image']), films))
+    for film, url in zip(films, resolved):
+        film['image'] = url
+    return films
+
+
 def label_or_none(value):
     if not value or value.startswith('http://www.wikidata.org/') or QID_PATTERN.match(value):
         return None
@@ -174,6 +200,7 @@ def fetch_film_pool(genre_id=None):
 
     films = [p for p in (parse_film_row(row) for row in bindings) if p]
     random.shuffle(films)
+    films = _resolve_thumbnail_urls(films)
 
     _write_disk_cache(cache_key, films)
     return films

@@ -164,7 +164,13 @@ export default {
     sourceUrl(image) {
       try {
         const url = new URL(image);
-        const filename = decodeURIComponent(url.pathname.split('/').pop());
+        // Resolved CDN thumbnail URLs look like .../thumb/9/98/Filename.jpg/960px-Filename.jpg —
+        // the real filename is the second-to-last segment, not the last one.
+        const segments = url.pathname.split('/').filter(Boolean);
+        const thumbIndex = segments.indexOf('thumb');
+        const filename = decodeURIComponent(
+          thumbIndex !== -1 ? segments[thumbIndex + 3] : segments[segments.length - 1],
+        );
         return `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(filename)}`;
       } catch {
         return image;
