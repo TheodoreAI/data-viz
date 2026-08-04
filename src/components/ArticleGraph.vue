@@ -520,6 +520,13 @@ export default {
     <header class="graph-header">
       <div class="graph-header-row">
         <h1>Article Link Graph</h1>
+      </div>
+      <p v-if="!graphMode" class="subtitle">
+        Starting from “{{ currentSeedTitle }}”. Click a node to recenter on it, + to expand its links, ⓘ for a summary.
+        Drag a node to pin it in place — tap 📌 to release it. Pinch/scroll to zoom, swipe right for a new article, swipe left to go back.
+      </p>
+      <ArticleSearch v-if="!graphMode" :disabled="loadingSeed" @select="selectSearchResult" />
+      <div class="mode-toggle-row">
         <button class="mode-toggle" type="button" @click="view3D = !view3D">
           {{ view3D ? '🕸 2D view' : '🧊 3D view' }}
         </button>
@@ -527,11 +534,6 @@ export default {
           {{ graphMode ? '✕ Exit graph mode' : '⛶ Graph mode' }}
         </button>
       </div>
-      <p v-if="!graphMode" class="subtitle">
-        Starting from “{{ currentSeedTitle }}”. Click a node to recenter on it, + to expand its links, ⓘ for a summary.
-        Drag a node to pin it in place — tap 📌 to release it. Pinch/scroll to zoom, swipe right for a new article, swipe left to go back.
-      </p>
-      <ArticleSearch v-if="!graphMode" :disabled="loadingSeed" @select="selectSearchResult" />
       <!-- TODO: known Firefox bug — selecting a new option here sometimes doesn't
            fire `change` at all (reproduced via screen recording, persists after
            hard refresh; works fine in Safari). v-model didn't fix it since it
@@ -744,6 +746,12 @@ export default {
   color: var(--blue);
   text-transform: uppercase;
   letter-spacing: 0.08em;
+}
+.mode-toggle-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 0.6rem 0 1rem;
 }
 .mode-toggle {
   height: 2.75rem;
