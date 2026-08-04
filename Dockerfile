@@ -24,4 +24,4 @@ ENV PYTHONUNBUFFERED=1
 ENV FLASK_APP=app.py
 EXPOSE 8081
 
-CMD ["sh", "-c", "flask db upgrade && gunicorn --bind 0.0.0.0:${PORT:-8081} app:app"]
+CMD ["sh", "-c", "flask db upgrade && flask warm-cache && gunicorn --bind 0.0.0.0:${PORT:-8081} --timeout 90 app:app"]

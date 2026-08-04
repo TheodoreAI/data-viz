@@ -49,6 +49,7 @@ from saved_items import save_item
 from vite import vite_asset_tags
 from wikidata import fetch_film_feed_page
 from wikidata import fetch_film_genres
+from wikidata import warm_film_pool
 from wayback import fetch_popular_pages
 from wayback import fetch_snapshots
 
@@ -753,6 +754,21 @@ def bubbles():
             break
 
     return render_template('bubbles.html', articles=articles, date=day.isoformat())
+
+
+@app.cli.command('warm-cache')
+def warm_cache():
+    """Fetch and disk-cache the Wikidata film feed before the app starts serving.
+
+    The /movies route's cold-cache path (SPARQL query + thumbnail resolution)
+    can take 30s+, which is unsafe to let a live request pay for on a fresh
+    deploy — run it once here instead, as part of the container's startup
+    sequence, before gunicorn binds and starts accepting traffic.
+    """
+    print('Warming film cache...')
+    fetch_film_genres()
+    warm_film_pool(None)
+    print('Film cache warm.')
 
 
 if __name__ == '__main__':

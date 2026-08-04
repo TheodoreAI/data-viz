@@ -1,6 +1,7 @@
 import json
 import random
 import re
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
@@ -121,10 +122,19 @@ def commons_thumbnail_url(file_path_url):
 # Special:FilePath is a convenience redirect (two hops: Special:FilePath ->
 # Special:Redirect/file -> the actual upload.wikimedia.org CDN URL) that
 # Wikidata's P18 values point at. Resolving it costs a couple hundred ms per
-# image, so doing that resolution here — once per film, when the disk cache
-# is (re)built — means every real page load links straight to the CDN and
-# skips both redirects, instead of every visitor's browser paying that cost
-# for every poster on every visit.
+# image, so doing that resolution here means real page loads can link
+# straight to the CDN and skip both redirects, instead of every visitor's
+# browser paying that cost for every poster on every visit.
+#
+# This must never run on a request thread: resolving ~100 images is easily
+# tens of seconds, which combined with the SPARQL query already blew past
+# Gunicorn's worker timeout in production (single sync worker + no request
+# should ever take that long). So films are cached and returned with their
+# original URLs immediately, and resolution happens in a background thread
+# afterwards — cache_key's list of dicts is mutated in place, so the
+# lru_cache-held reference (and a same-process disk-cache rewrite) both pick
+# up the resolved URLs for free as soon as it finishes, with no request ever
+# waiting on it.
 def _resolve_thumbnail_url(thumbnail_url):
     try:
         response = requests.head(
@@ -135,12 +145,15 @@ def _resolve_thumbnail_url(thumbnail_url):
         return thumbnail_url
 
 
-def _resolve_thumbnail_urls(films):
-    with ThreadPoolExecutor(max_workers=16) as executor:
-        resolved = list(executor.map(lambda f: _resolve_thumbnail_url(f['image']), films))
-    for film, url in zip(films, resolved):
-        film['image'] = url
-    return films
+def _resolve_thumbnails_in_background(films, cache_key):
+    def worker():
+        with ThreadPoolExecutor(max_workers=16) as executor:
+            resolved = list(executor.map(lambda f: _resolve_thumbnail_url(f['image']), films))
+        for film, url in zip(films, resolved):
+            film['image'] = url
+        _write_disk_cache(cache_key, films)
+
+    threading.Thread(target=worker, daemon=True).start()
 
 
 def label_or_none(value):
@@ -185,13 +198,7 @@ def parse_film_row(row):
     }
 
 
-@lru_cache(maxsize=64)
-def fetch_film_pool(genre_id=None):
-    cache_key = f'film_pool_{genre_id or "all"}'
-    cached = _read_disk_cache(cache_key)
-    if cached is not None:
-        return cached
-
+def _run_film_pool_query(genre_id):
     genre_clause = f'wd:{genre_id}' if genre_id and QID_PATTERN.match(genre_id) else '?genre'
     query = FILM_POOL_QUERY.format(genre_clause=genre_clause, limit=FILM_POOL_SIZE)
     response = requests.get(WIKIDATA_SPARQL_URL, headers=WIKIDATA_HEADERS, params={'query': query})
@@ -200,8 +207,40 @@ def fetch_film_pool(genre_id=None):
 
     films = [p for p in (parse_film_row(row) for row in bindings) if p]
     random.shuffle(films)
-    films = _resolve_thumbnail_urls(films)
+    return films
 
+
+@lru_cache(maxsize=64)
+def fetch_film_pool(genre_id=None):
+    cache_key = f'film_pool_{genre_id or "all"}'
+    cached = _read_disk_cache(cache_key)
+    if cached is not None:
+        return cached
+
+    films = _run_film_pool_query(genre_id)
+    _write_disk_cache(cache_key, films)
+    _resolve_thumbnails_in_background(films, cache_key)
+    return films
+
+
+def warm_film_pool(genre_id=None):
+    """Like fetch_film_pool, but resolves thumbnail CDN URLs synchronously
+    before writing the disk cache and returning.
+
+    Only call this from a short-lived startup/warmup process (e.g. the
+    `flask warm-cache` CLI command), never from a request handler — a
+    request must never block on ~100 outbound HTTP calls. fetch_film_pool's
+    background thread can't be waited on from outside it, and if this
+    process exits before that thread finishes, the disk cache is left with
+    unresolved URLs *and* fetch_film_pool never retries resolution on a
+    cache hit — so warming needs its own synchronous path.
+    """
+    cache_key = f'film_pool_{genre_id or "all"}'
+    films = _run_film_pool_query(genre_id)
+    with ThreadPoolExecutor(max_workers=16) as executor:
+        resolved = list(executor.map(lambda f: _resolve_thumbnail_url(f['image']), films))
+    for film, url in zip(films, resolved):
+        film['image'] = url
     _write_disk_cache(cache_key, films)
     return films
 
