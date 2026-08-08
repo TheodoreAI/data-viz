@@ -43,10 +43,31 @@ function resizeImageFile(file) {
 
 import LoadingSpinner from './LoadingSpinner.vue';
 import { parseJsonResponse } from '../api';
+import { useClipboard, useIntersectionObserver } from '@vueuse/core';
+
+const revealOnScroll = {
+  mounted(el) {
+    const { stop } = useIntersectionObserver(
+      el,
+      ([{ isIntersecting }]) => {
+        if (isIntersecting) {
+          el.classList.add('is-visible');
+          stop();
+        }
+      },
+      { threshold: 0.15 },
+    );
+  },
+};
 
 export default {
   name: 'Essays',
   components: { LoadingSpinner },
+  directives: { revealOnScroll },
+  setup() {
+    const { copy, isSupported: clipboardSupported } = useClipboard();
+    return { copy, clipboardSupported };
+  },
   data() {
     return {
       user: null,
@@ -216,6 +237,7 @@ export default {
         this.body = '';
         this.selectedSavedItemId = null;
         this.removeImage();
+        this.resetComposerHeight();
       } catch {
         this.postError = 'Could not create essay.';
       } finally {
@@ -249,15 +271,25 @@ export default {
         }
         return;
       }
+      if (!this.clipboardSupported) return;
       try {
-        await navigator.clipboard.writeText(url);
+        await this.copy(url);
         this.copiedId = essay.id;
         setTimeout(() => {
           if (this.copiedId === essay.id) this.copiedId = null;
         }, 2000);
       } catch {
-        // Clipboard API unavailable (e.g. insecure context); nothing more we can do.
+        // Clipboard write rejected (e.g. insecure context); nothing more we can do.
       }
+    },
+    autoGrow(event) {
+      const el = event.target;
+      el.style.height = 'auto';
+      el.style.height = `${el.scrollHeight}px`;
+    },
+    resetComposerHeight() {
+      const el = this.$refs.composerTextarea;
+      if (el) el.style.height = '';
     },
     isLongEssay(essay) {
       return essay.body.length > COLLAPSE_LENGTH;
@@ -294,10 +326,12 @@ export default {
 
       <section class="composer">
         <textarea
+          ref="composerTextarea"
           v-model="body"
           :maxlength="MAX_BODY_LENGTH"
           placeholder="Share something…"
           rows="6"
+          @input="autoGrow"
         ></textarea>
 
         <div v-if="selectedSavedItem" class="attached-item">
@@ -347,7 +381,7 @@ export default {
         <p v-else-if="essaysError" class="status form-error">Couldn't load essays.</p>
         <p v-else-if="!essays.length" class="status">No essays yet — be the first to share something.</p>
         <ul v-else class="post-list">
-          <li v-for="essay in essays" :key="essay.id" class="post">
+          <li v-for="essay in essays" :key="essay.id" v-reveal-on-scroll class="post">
             <img :src="essay.author.avatarUrl" :alt="essay.author.username" class="post-avatar">
             <div class="post-body">
               <div class="post-header">
@@ -431,13 +465,21 @@ h1 {
   width: 100%;
   resize: vertical;
   font-family: inherit;
-  font-size: 0.9rem;
-  padding: 0.5rem;
+  font-size: 1rem;
+  line-height: 1.6;
+  padding: 0.75rem;
   border: 1px solid var(--gridline, #d8c9a3);
   border-radius: 4px;
   background: var(--surface-1, #fcfcfb);
   color: inherit;
   box-sizing: border-box;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+@media (max-width: 480px) {
+  .composer textarea {
+    font-size: 16px; /* prevents iOS Safari from zooming in on focus */
+  }
 }
 .attached-item {
   display: flex;
@@ -564,6 +606,20 @@ h1 {
   border: none;
   border-radius: var(--card-radius, 16px);
   box-shadow: 0 8px 24px rgba(20, 23, 31, 0.08);
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.post.is-visible {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .post {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
 }
 .post-avatar {
   width: 40px;
