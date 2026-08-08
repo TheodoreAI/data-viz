@@ -1,11 +1,8 @@
 <script>
 import { forceSimulation, forceLink, forceManyBody, forceCenter, forceCollide, quadtree } from 'd3';
-import { defineAsyncComponent } from 'vue';
 import ArticleTooltip from './ArticleTooltip.vue';
 import ArticleSearch from './ArticleSearch.vue';
 import LoadingSpinner from './LoadingSpinner.vue';
-
-const ArticleGraph3D = defineAsyncComponent(() => import('./ArticleGraph3D.vue'));
 
 const BASE_WIDTH = 800;
 const BASE_HEIGHT = 600;
@@ -23,7 +20,7 @@ function computeDefaultZoom(width, height) {
 
 export default {
   name: 'ArticleGraph',
-  components: { ArticleTooltip, ArticleSearch, ArticleGraph3D, LoadingSpinner },
+  components: { ArticleTooltip, ArticleSearch, LoadingSpinner },
   props: {
     seedTitle: { type: String, required: true },
     seedLinks: { type: Array, required: true },
@@ -53,7 +50,6 @@ export default {
       selectedTopic: this.defaultTopic,
       smoothPan: false,
       helpOpen: false,
-      view3D: false,
     };
   },
   computed: {
@@ -527,9 +523,6 @@ export default {
       </p>
       <ArticleSearch v-if="!graphMode" :disabled="loadingSeed" @select="selectSearchResult" />
       <div class="mode-toggle-row">
-        <button class="mode-toggle" type="button" @click="view3D = !view3D">
-          {{ view3D ? '🕸 2D view' : '🧊 3D view' }}
-        </button>
         <button class="mode-toggle" type="button" @click="toggleGraphMode">
           {{ graphMode ? '✕ Exit graph mode' : '⛶ Graph mode' }}
         </button>
@@ -553,14 +546,7 @@ export default {
       <p v-else-if="atNodeLimit && !graphMode" class="subtitle loading">Node limit reached ({{ maxNodes }}) — swipe for a new article to keep exploring.</p>
     </header>
 
-    <ArticleGraph3D
-      v-if="view3D"
-      class="graph-3d"
-      :seed-title="currentSeedTitle"
-      :seed-links="nodes.filter(n => !n.isCenter).map(n => n.id)"
-      @select="selectSearchResult"
-    />
-    <div v-else class="graph-canvas">
+    <div class="graph-canvas">
       <svg
         ref="svg"
         class="graph-svg"
@@ -798,19 +784,10 @@ export default {
   box-shadow: inset 0 0 40px rgba(184, 147, 90, 0.18);
   cursor: grab;
 }
-.graph-3d {
-  width: 100%;
-  height: 70vh;
-  display: block;
-  background: #0c1220;
-  border: 1px solid var(--olive);
-  border-radius: 16px;
-}
 .fullscreen .graph-header {
   flex: none;
 }
-.fullscreen .graph-svg,
-.fullscreen .graph-3d {
+.fullscreen .graph-svg {
   flex: 1;
   height: auto;
   border: none;

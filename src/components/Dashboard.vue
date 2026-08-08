@@ -163,17 +163,13 @@ export default {
       </p>
 
       <div class="quick-links">
-        <a href="/art" class="quick-link">
-          <span class="quick-link-title">Movies</span>
-          <span class="quick-link-copy">Browse films by genre</span>
+        <a href="/nodes" class="quick-link">
+          <span class="quick-link-title">Nodes</span>
+          <span class="quick-link-copy">Explore article link graphs</span>
         </a>
-        <a href="/graph" class="quick-link">
-          <span class="quick-link-title">Graph</span>
-          <span class="quick-link-copy">Explore article link graphs in 2D or 3D</span>
-        </a>
-        <a href="/bubbles" class="quick-link">
-          <span class="quick-link-title">Bubbles</span>
-          <span class="quick-link-copy">See yesterday's most-viewed articles</span>
+        <a href="/trending" class="quick-link">
+          <span class="quick-link-title">Trending</span>
+          <span class="quick-link-copy">See what's hot on Wikipedia, Hacker News, Reddit, and Stack Overflow</span>
         </a>
         <a href="/profile" class="quick-link">
           <span class="quick-link-title">Profile</span>
@@ -186,7 +182,7 @@ export default {
         <p v-if="savedItemsLoading" class="status">Loading…</p>
         <p v-else-if="savedItemsError" class="status form-error">Couldn't load your saved items.</p>
         <p v-else-if="!savedItems.length" class="status">
-          Nothing saved yet — look for a Save button on films in Movies or articles on Home.
+          Nothing saved yet — look for a Save button on articles on Home.
         </p>
         <ul v-else class="saved-list">
           <li v-for="item in savedItems" :key="item.id" class="saved-item">
@@ -212,10 +208,6 @@ export default {
           <div class="stat">
             <span class="stat-value">{{ stats.totalUsers }}</span>
             <span class="stat-label">registered users</span>
-          </div>
-          <div class="stat">
-            <span class="stat-value">{{ stats.filmGenres ?? '—' }}</span>
-            <span class="stat-label">film genres available</span>
           </div>
         </div>
       </section>
