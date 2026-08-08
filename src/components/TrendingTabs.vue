@@ -31,6 +31,8 @@ export default {
         { id: 'hackernews', label: 'Hacker News' },
         { id: 'reddit', label: 'Reddit' },
         { id: 'stackoverflow', label: 'Stack Overflow' },
+        { id: 'devto', label: 'DEV' },
+        { id: 'lobsters', label: 'Lobsters' },
       ],
       trendingCache: {},
       loading: false,
