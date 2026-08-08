@@ -1,6 +1,6 @@
 from models import Post, SavedItem, db
 
-MAX_BODY_LENGTH = 1000
+MAX_BODY_LENGTH = 3000
 PAGE_SIZE = 20
 
 
