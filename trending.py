@@ -1,6 +1,6 @@
 import os
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from html import unescape
 
 import requests
@@ -15,10 +15,20 @@ STACKOVERFLOW_URL = 'https://api.stackexchange.com/2.3/questions'
 DEVTO_URL = 'https://dev.to/api/articles'
 LOBSTERS_URL = 'https://lobste.rs/hottest.json'
 YOUTUBE_URL = 'https://www.googleapis.com/youtube/v3/videos'
+NPM_DOWNLOADS_URL_POINT = 'https://api.npmjs.org/downloads/point/{range}/{package}'
+NPM_REGISTRY_URL = 'https://registry.npmjs.org/{package}'
 
 YOUTUBE_API_KEY = os.environ.get('YOUTUBE_API_KEY')
 
 ITEM_COUNT = 12
+
+# npm has no "trending" endpoint, so we track weekly download counts for a
+# curated set of widely-used packages and rank them by that count.
+NPM_PACKAGES = [
+    'react', 'vue', 'svelte', 'next', 'vite', 'webpack', 'typescript',
+    'eslint', 'tailwindcss', 'express', 'axios', 'lodash', 'zod', 'prisma',
+    'jest', 'vitest', 'playwright', 'redux', 'graphql', 'electron',
+]
 
 
 def fetch_hacker_news():
@@ -115,6 +125,51 @@ def fetch_lobsters():
     return items
 
 
+def fetch_npm():
+    """Weekly npm download counts for a curated set of popular packages, ranked by growth vs. the prior week."""
+    today = datetime.utcnow().date()
+    # npm download-range endpoints only accept full past weeks (Sun-Sat).
+    last_week_end = today - timedelta(days=today.weekday() + 2)
+    last_week_start = last_week_end - timedelta(days=6)
+    prev_week_end = last_week_start - timedelta(days=1)
+    prev_week_start = prev_week_end - timedelta(days=6)
+
+    items = []
+    for package in NPM_PACKAGES:
+        downloads_resp = requests.get(
+            NPM_DOWNLOADS_URL_POINT.format(
+                range=f'{last_week_start.isoformat()}:{last_week_end.isoformat()}', package=package
+            )
+        )
+        if not downloads_resp.ok:
+            continue
+        last_week = downloads_resp.json().get('downloads') or 0
+
+        prev_resp = requests.get(
+            NPM_DOWNLOADS_URL_POINT.format(
+                range=f'{prev_week_start.isoformat()}:{prev_week_end.isoformat()}', package=package
+            )
+        )
+        prev_week = prev_resp.json().get('downloads') if prev_resp.ok else None
+
+        growth_pct = round((last_week - prev_week) / prev_week * 100, 1) if prev_week else 0
+
+        registry_resp = requests.get(NPM_REGISTRY_URL.format(package=package) + '/latest')
+        registry = registry_resp.json() if registry_resp.ok else {}
+
+        items.append({
+            'title': package,
+            'description': registry.get('description') or '',
+            'version': registry.get('version') or '',
+            'downloads': last_week,
+            'growth_pct': growth_pct,
+            'url': f'https://www.npmjs.com/package/{package}',
+        })
+
+    items.sort(key=lambda i: i['downloads'], reverse=True)
+    return items[:ITEM_COUNT]
+
+
 def fetch_youtube():
     """Current trending videos (US), from the YouTube Data API."""
     response = requests.get(YOUTUBE_URL, params={
@@ -170,5 +225,6 @@ SOURCES = {
         'stackoverflow': fetch_stackoverflow,
         'devto': fetch_devto,
         'lobsters': fetch_lobsters,
+        'npm': fetch_npm,
     }.items()
 }

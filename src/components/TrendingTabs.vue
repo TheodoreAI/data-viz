@@ -16,6 +16,20 @@ const TRENDING_CHART_PROPS = {
   ],
 };
 
+const NPM_CHART_PROPS = {
+  xField: 'growth_pct',
+  yField: 'downloads',
+  sizeField: 'downloads',
+  xLabel: 'Growth vs. prior week (%)',
+  yLabel: 'Weekly downloads',
+  columns: [
+    { field: 'title', label: 'Package', link: true },
+    { field: 'downloads', label: 'Weekly downloads', format: 'number' },
+    { field: 'growth_pct', label: 'Growth (%)' },
+    { field: 'version', label: 'Version' },
+  ],
+};
+
 export default {
   name: 'TrendingTabs',
   components: { BubbleChart, LoadingSpinner },
@@ -33,6 +47,7 @@ export default {
         { id: 'stackoverflow', label: 'Stack Overflow' },
         { id: 'devto', label: 'DEV' },
         { id: 'lobsters', label: 'Lobsters' },
+        { id: 'npm', label: 'npm' },
       ],
       trendingCache: {},
       loading: false,
@@ -57,7 +72,7 @@ export default {
           }
         : {
             items: this.trendingCache[this.activeTab] || [],
-            ...TRENDING_CHART_PROPS,
+            ...(this.activeTab === 'npm' ? NPM_CHART_PROPS : TRENDING_CHART_PROPS),
           };
     },
   },
