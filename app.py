@@ -275,7 +275,9 @@ def posts_page():
 def post_detail_page(post_id):
     post = get_post(post_id)
     if not post:
-        return render_template('post_not_found.html'), 404
+        return render_template(
+            'error.html', title='Post not found', message="This post doesn't exist or was deleted."
+        ), 404
 
     post_dict = post.to_dict()
     post_dict['displayDate'] = post.created_at.strftime('%B %-d, %Y at %-I:%M %p') if post.created_at else ''
@@ -459,18 +461,29 @@ def api_delete_account():
     return response
 
 
+WIKIPEDIA_UNAVAILABLE_ERROR = "Couldn't reach Wikipedia right now. Please try again."
+
+
 @app.route('/api/random-article')
 def api_random_article():
     topic = request.args.get('topic') or None
-    return jsonify(fetch_random_article(topic))
+    try:
+        return jsonify(fetch_random_article(topic))
+    except requests.RequestException:
+        return jsonify({'error': WIKIPEDIA_UNAVAILABLE_ERROR}), 502
 
 
 @app.route('/nodes')
 def nodes():
     default_topic = 'computer-science'
-    article = fetch_random_article(default_topic)
-    title = article['title']
-    links = fetch_article_links(title)
+    try:
+        article = fetch_random_article(default_topic)
+        title = article['title']
+        links = fetch_article_links(title)
+    except requests.RequestException:
+        return render_template(
+            'error.html', title='Something went wrong', message=WIKIPEDIA_UNAVAILABLE_ERROR
+        ), 502
     return render_template(
         'graph.html', title=title, links=links, topics=TOPIC_CATEGORIES, default_topic=default_topic
     )
@@ -479,7 +492,10 @@ def nodes():
 @app.route('/api/article-links')
 def api_article_links():
     title = request.args.get('title', '')
-    return jsonify({'title': title, 'links': fetch_article_links(title)})
+    try:
+        return jsonify({'title': title, 'links': fetch_article_links(title)})
+    except requests.RequestException:
+        return jsonify({'error': WIKIPEDIA_UNAVAILABLE_ERROR}), 502
 
 
 @app.route('/api/article-search')
@@ -487,25 +503,31 @@ def api_article_search():
     query = request.args.get('q', '').strip()
     if not query:
         return jsonify([])
-    response = requests.get(WIKIPEDIA_ACTION_API_URL, headers=WIKIPEDIA_HEADERS, params={
-        'action': 'opensearch',
-        'search': query,
-        'limit': 8,
-        'namespace': 0,
-        'format': 'json',
-    })
-    response.raise_for_status()
-    titles = response.json()[1]
+    try:
+        response = requests.get(WIKIPEDIA_ACTION_API_URL, headers=WIKIPEDIA_HEADERS, params={
+            'action': 'opensearch',
+            'search': query,
+            'limit': 8,
+            'namespace': 0,
+            'format': 'json',
+        })
+        response.raise_for_status()
+        titles = response.json()[1]
+    except requests.RequestException:
+        return jsonify({'error': WIKIPEDIA_UNAVAILABLE_ERROR}), 502
     return jsonify(titles)
 
 
 @app.route('/api/article-summary')
 def api_article_summary():
     title = request.args.get('title', '')
-    response = requests.get(
-        WIKIPEDIA_SUMMARY_URL.format(title=quote(title.replace(' ', '_'))),
-        headers=WIKIPEDIA_HEADERS,
-    )
+    try:
+        response = requests.get(
+            WIKIPEDIA_SUMMARY_URL.format(title=quote(title.replace(' ', '_'))),
+            headers=WIKIPEDIA_HEADERS,
+        )
+    except requests.RequestException:
+        return jsonify({'error': WIKIPEDIA_UNAVAILABLE_ERROR}), 502
     if not response.ok:
         return jsonify({'title': title, 'extract': '', 'thumbnail': None})
     summary = response.json()
@@ -728,6 +750,24 @@ def api_trending(source):
         return jsonify({'error': f"Couldn't reach {source} right now. Please try again."}), 502
 
     return jsonify({'source': source, 'items': items})
+
+
+@app.errorhandler(404)
+def handle_not_found(error):
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'Not found'}), 404
+    return render_template(
+        'error.html', title='Page not found', message="This page doesn't exist. Check the URL and try again."
+    ), 404
+
+
+@app.errorhandler(500)
+def handle_server_error(error):
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'Something went wrong. Please try again.'}), 500
+    return render_template(
+        'error.html', title='Something went wrong', message='An unexpected error occurred. Please try again.'
+    ), 500
 
 
 if __name__ == '__main__':

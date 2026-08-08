@@ -86,7 +86,7 @@ def change_password(user, current_password, new_password):
 def delete_account(user, password):
     """Returns errors dict; {} on success, in which case the user is deleted."""
     if not user.check_password(password):
-        return {'password': 'Incorrect password.'}
+        return {'password': 'Current password is incorrect.'}
     db.session.delete(user)
     db.session.commit()
     return {}
