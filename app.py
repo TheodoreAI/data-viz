@@ -444,8 +444,8 @@ def api_random_article():
     return jsonify(fetch_random_article(topic))
 
 
-@app.route('/graph')
-def graph():
+@app.route('/nodes')
+def nodes():
     default_topic = 'computer-science'
     article = fetch_random_article(default_topic)
     title = article['title']
@@ -656,8 +656,8 @@ def fetch_latest_top_viewed_articles():
     raise last_error
 
 
-@app.route('/bubbles')
-def bubbles():
+@app.route('/live-data')
+def live_data():
     try:
         day, top_articles = fetch_latest_top_viewed_articles()
     except requests.RequestException:

@@ -1,7 +1,7 @@
 {
   "name": "Data Viz",
   "short_name": "Data Viz",
-  "description": "Explore Wikipedia article graphs, movies, and viewership trends.",
+  "description": "Explore Wikipedia article graphs and viewership trends.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

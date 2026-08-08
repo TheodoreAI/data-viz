@@ -163,12 +163,12 @@ export default {
       </p>
 
       <div class="quick-links">
-        <a href="/graph" class="quick-link">
-          <span class="quick-link-title">Graph</span>
+        <a href="/nodes" class="quick-link">
+          <span class="quick-link-title">Nodes</span>
           <span class="quick-link-copy">Explore article link graphs</span>
         </a>
-        <a href="/bubbles" class="quick-link">
-          <span class="quick-link-title">Bubbles</span>
+        <a href="/live-data" class="quick-link">
+          <span class="quick-link-title">Live data</span>
           <span class="quick-link-copy">See yesterday's most-viewed articles</span>
         </a>
         <a href="/profile" class="quick-link">
