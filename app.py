@@ -239,6 +239,26 @@ def dashboard_page():
     return render_template('dashboard.html')
 
 
+def current_admin():
+    """Returns the logged-in User if they're an admin, else None."""
+    try:
+        verify_jwt_in_request(optional=True)
+        identity = get_jwt_identity()
+    except Exception:
+        return None
+    if not identity:
+        return None
+    user = db.session.get(User, int(identity))
+    return user if user and user.is_admin else None
+
+
+@app.route('/admin')
+def admin_page():
+    if not current_admin():
+        return redirect(url_for('login_page'))
+    return render_template('admin.html')
+
+
 @app.route('/posts')
 def posts_page():
     try:
@@ -539,6 +559,14 @@ def api_stats():
     return jsonify({
         'totalUsers': User.query.count(),
     })
+
+
+@app.route('/api/admin/users')
+def api_admin_users():
+    if not current_admin():
+        return jsonify({'error': 'Not found'}), 404
+    users = User.query.order_by(User.created_at.desc()).all()
+    return jsonify([u.to_dict() for u in users])
 
 
 @app.route('/api/saved-items', methods=['GET', 'POST'])

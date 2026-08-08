@@ -24,6 +24,7 @@ export default defineConfig(({ command }) => ({
         profile: 'src/entries/profile.js',
         dashboard: 'src/entries/dashboard.js',
         posts: 'src/entries/posts.js',
+        admin: 'src/entries/admin.js',
         'forgot-password': 'src/entries/forgot-password.js',
         'reset-password': 'src/entries/reset-password.js',
       },
