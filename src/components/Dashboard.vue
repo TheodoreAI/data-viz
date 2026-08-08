@@ -167,9 +167,9 @@ export default {
           <span class="quick-link-title">Nodes</span>
           <span class="quick-link-copy">Explore article link graphs</span>
         </a>
-        <a href="/live-data" class="quick-link">
-          <span class="quick-link-title">Live data</span>
-          <span class="quick-link-copy">See yesterday's most-viewed articles</span>
+        <a href="/trending" class="quick-link">
+          <span class="quick-link-title">Trending</span>
+          <span class="quick-link-copy">See what's hot on Wikipedia, Hacker News, Reddit, and Stack Overflow</span>
         </a>
         <a href="/profile" class="quick-link">
           <span class="quick-link-title">Profile</span>

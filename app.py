@@ -497,7 +497,7 @@ def api_article_summary():
 
 
 def fetch_top_viewed_titles(year, month, day, limit=10):
-    """Lightweight version of the /bubbles fetch — just title/views/url, no
+    """Lightweight version of the /trending fetch — just title/views/url, no
     per-article summary lookups, so it's fast enough for a dashboard widget."""
     top_url = WIKIPEDIA_TOP_VIEWED_URL.format(year=year, month=f'{month:02d}', day=day)
     response = requests.get(top_url, headers=WIKIPEDIA_HEADERS, timeout=10)
@@ -657,8 +657,8 @@ def fetch_latest_top_viewed_articles():
     raise last_error
 
 
-@app.route('/live-data')
-def live_data():
+@app.route('/trending')
+def trending_page():
     try:
         day, top_articles = fetch_latest_top_viewed_articles()
     except requests.RequestException:

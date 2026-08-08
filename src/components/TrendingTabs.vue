@@ -17,7 +17,7 @@ const TRENDING_CHART_PROPS = {
 };
 
 export default {
-  name: 'LiveDataTabs',
+  name: 'TrendingTabs',
   components: { BubbleChart, LoadingSpinner },
   props: {
     initialArticles: { type: Array, default: () => [] },
@@ -88,13 +88,13 @@ export default {
       <h1 v-else>What's hot on {{ tabs.find(t => t.id === activeTab).label }}</h1>
     </div>
 
-    <div class="live-data-tabs" role="tablist">
+    <div class="trending-tabs" role="tablist">
       <button
         v-for="tab in tabs"
         :key="tab.id"
         type="button"
         role="tab"
-        class="live-data-tab"
+        class="trending-tab"
         :class="{ active: activeTab === tab.id }"
         :aria-selected="activeTab === tab.id"
         @click="selectTab(tab.id)"
@@ -113,13 +113,13 @@ export default {
   font-size: 1.1rem;
   margin: 0 0 0.75rem;
 }
-.live-data-tabs {
+.trending-tabs {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-bottom: 1rem;
 }
-.live-data-tab {
+.trending-tab {
   background: transparent;
   border: 1px solid var(--gridline, #e2e5eb);
   color: var(--text-secondary, #6b5d47);
@@ -130,11 +130,11 @@ export default {
   cursor: pointer;
   transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
 }
-.live-data-tab:hover {
+.trending-tab:hover {
   border-color: var(--series-1, #2f6690);
   color: var(--series-1, #2f6690);
 }
-.live-data-tab.active {
+.trending-tab.active {
   background: var(--series-1, #2f6690);
   border-color: var(--series-1, #2f6690);
   color: var(--surface-1, #fff);

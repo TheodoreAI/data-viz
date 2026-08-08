@@ -14,7 +14,7 @@
 
   <div id="nav-links" class="nav-links">
     <a href="{{ url_for('hello_world') }}" class="{{ 'active' if request.path == url_for('hello_world') }}" {{ 'aria-current="page"' if request.path == url_for('hello_world') }}>Home</a>
-    <a href="{{ url_for('live_data') }}" class="{{ 'active' if request.path == url_for('live_data') }}" {{ 'aria-current="page"' if request.path == url_for('live_data') }}>Live data</a>
+    <a href="{{ url_for('trending_page') }}" class="{{ 'active' if request.path == url_for('trending_page') }}" {{ 'aria-current="page"' if request.path == url_for('trending_page') }}>Trending</a>
     <a href="{{ url_for('nodes') }}" class="{{ 'active' if request.path == url_for('nodes') }}" {{ 'aria-current="page"' if request.path == url_for('nodes') }}>Nodes</a>
     {% if current_user %}
       <a href="{{ url_for('dashboard_page') }}" class="{{ 'active' if request.path == url_for('dashboard_page') }}" {{ 'aria-current="page"' if request.path == url_for('dashboard_page') }}>Dashboard</a>
