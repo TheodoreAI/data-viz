@@ -36,11 +36,11 @@ from email_utils import init_mail
 from email_utils import send_password_reset_email
 from models import User
 from models import db
-from og_image import render_post_card
-from posts import create_post
-from posts import delete_post
-from posts import get_post
-from posts import list_posts
+from og_image import render_essay_card
+from essays import create_essay
+from essays import delete_essay
+from essays import get_essay
+from essays import list_essays
 from storage import upload_image
 from saved_items import delete_saved_item
 from saved_items import list_saved_items
@@ -260,7 +260,17 @@ def admin_page():
 
 
 @app.route('/posts')
-def posts_page():
+def posts_page_redirect():
+    return redirect(url_for('essays_page'), code=301)
+
+
+@app.route('/posts/<int:essay_id>')
+def post_detail_page_redirect(essay_id):
+    return redirect(url_for('essay_detail_page', essay_id=essay_id), code=301)
+
+
+@app.route('/essays')
+def essays_page():
     try:
         verify_jwt_in_request(optional=True)
         identity = get_jwt_identity()
@@ -268,44 +278,44 @@ def posts_page():
         identity = None
     if not identity:
         return redirect(url_for('login_page'))
-    return render_template('posts.html')
+    return render_template('essays.html')
 
 
-@app.route('/posts/<int:post_id>')
-def post_detail_page(post_id):
-    post = get_post(post_id)
-    if not post:
+@app.route('/essays/<int:essay_id>')
+def essay_detail_page(essay_id):
+    essay = get_essay(essay_id)
+    if not essay:
         return render_template(
-            'error.html', title='Post not found', message="This post doesn't exist or was deleted."
+            'error.html', title='Essay not found', message="This essay doesn't exist or was deleted."
         ), 404
 
-    post_dict = post.to_dict()
-    post_dict['displayDate'] = post.created_at.strftime('%B %-d, %Y at %-I:%M %p') if post.created_at else ''
-    author_name = post_dict['author']['displayName'] or post_dict['author']['username']
-    body_excerpt = post_dict['body'] if len(post_dict['body']) <= 200 else post_dict['body'][:199] + '…'
+    essay_dict = essay.to_dict()
+    essay_dict['displayDate'] = essay.created_at.strftime('%B %-d, %Y at %-I:%M %p') if essay.created_at else ''
+    author_name = essay_dict['author']['displayName'] or essay_dict['author']['username']
+    body_excerpt = essay_dict['body'] if len(essay_dict['body']) <= 200 else essay_dict['body'][:199] + '…'
     return render_template(
-        'post_detail.html',
-        post=post_dict,
+        'essay_detail.html',
+        essay=essay_dict,
         og_title=f'{author_name} on Data Viz',
         og_description=body_excerpt,
-        og_image=url_for('api_post_og_image', post_id=post_id, _external=True),
+        og_image=url_for('api_essay_og_image', essay_id=essay_id, _external=True),
     )
 
 
-def _generated_og_path(post_id):
-    return os.path.join(GENERATED_OG_DIR, f'{post_id}.png')
+def _generated_og_path(essay_id):
+    return os.path.join(GENERATED_OG_DIR, f'{essay_id}.png')
 
 
-@app.route('/api/posts/<int:post_id>/og-image.png')
+@app.route('/api/essays/<int:essay_id>/og-image.png')
 @limiter.limit('30 per minute')
-def api_post_og_image(post_id):
-    post = get_post(post_id)
-    if not post:
+def api_essay_og_image(essay_id):
+    essay = get_essay(essay_id)
+    if not essay:
         return jsonify({'error': 'Not found'}), 404
 
-    cache_path = _generated_og_path(post_id)
+    cache_path = _generated_og_path(essay_id)
     if not os.path.exists(cache_path):
-        image_bytes = render_post_card(post.to_dict())
+        image_bytes = render_essay_card(essay.to_dict())
         with open(cache_path, 'wb') as f:
             f.write(image_bytes)
 
@@ -629,16 +639,16 @@ def api_delete_saved_item(item_id):
     return jsonify({'ok': True})
 
 
-@app.route('/api/posts', methods=['GET', 'POST'])
+@app.route('/api/essays', methods=['GET', 'POST'])
 @jwt_required()
-def api_posts():
+def api_essays():
     user = db.session.get(User, int(get_jwt_identity()))
     if not user:
         return jsonify({'error': 'Not found'}), 404
 
     if request.method == 'POST':
         data = request.get_json(silent=True) or {}
-        post, errors = create_post(
+        essay, errors = create_essay(
             user,
             body=data.get('body') or '',
             saved_item_id=data.get('savedItemId'),
@@ -646,11 +656,11 @@ def api_posts():
         )
         if errors:
             return jsonify({'errors': errors}), 400
-        return jsonify(post.to_dict()), 201
+        return jsonify(essay.to_dict()), 201
 
     before_id = request.args.get('beforeId', type=int)
-    posts = list_posts(before_id=before_id)
-    return jsonify([post.to_dict() for post in posts])
+    essays = list_essays(before_id=before_id)
+    return jsonify([essay.to_dict() for essay in essays])
 
 
 @app.route('/api/uploads', methods=['POST'])
@@ -661,23 +671,23 @@ def api_upload_image():
     if not file_storage:
         return jsonify({'errors': {'file': 'No file provided.'}}), 400
 
-    url, errors = upload_image(file_storage, folder=f'posts/{get_jwt_identity()}')
+    url, errors = upload_image(file_storage, folder=f'essays/{get_jwt_identity()}')
     if errors:
         return jsonify({'errors': errors}), 400
     return jsonify({'url': url}), 201
 
 
-@app.route('/api/posts/<int:post_id>', methods=['DELETE'])
+@app.route('/api/essays/<int:essay_id>', methods=['DELETE'])
 @jwt_required()
-def api_delete_post(post_id):
+def api_delete_essay(essay_id):
     user = db.session.get(User, int(get_jwt_identity()))
     if not user:
         return jsonify({'error': 'Not found'}), 404
 
-    if not delete_post(user, post_id):
+    if not delete_essay(user, essay_id):
         return jsonify({'error': 'Not found'}), 404
 
-    cache_path = _generated_og_path(post_id)
+    cache_path = _generated_og_path(essay_id)
     if os.path.exists(cache_path):
         os.remove(cache_path)
 

@@ -18,7 +18,7 @@
     <a href="{{ url_for('nodes') }}" class="{{ 'active' if request.path == url_for('nodes') }}" {{ 'aria-current="page"' if request.path == url_for('nodes') }}>Nodes</a>
     {% if current_user %}
       <a href="{{ url_for('dashboard_page') }}" class="{{ 'active' if request.path == url_for('dashboard_page') }}" {{ 'aria-current="page"' if request.path == url_for('dashboard_page') }}>Dashboard</a>
-      <a href="{{ url_for('posts_page') }}" class="{{ 'active' if request.path == url_for('posts_page') }}" {{ 'aria-current="page"' if request.path == url_for('posts_page') }}>Posts</a>
+      <a href="{{ url_for('essays_page') }}" class="{{ 'active' if request.path == url_for('essays_page') }}" {{ 'aria-current="page"' if request.path == url_for('essays_page') }}>Essays</a>
       {% if current_user.is_admin %}
         <a href="{{ url_for('admin_page') }}" class="{{ 'active' if request.path == url_for('admin_page') }}" {{ 'aria-current="page"' if request.path == url_for('admin_page') }}>Admin</a>
       {% endif %}
