@@ -1,0 +1,16 @@
+<!doctype html>
+{% set og_title = "Admin — Data Viz" %}
+{% set og_description = "Manage registered users." %}
+<title>{{ og_title }}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{% include '_theme_init.html' %}
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+{% include '_pwa_head.html' %}
+
+{% include '_navbar.html' %}
+
+<div id="app"></div>
+
+{% include '_footer.html' %}
+
+{{ vite_asset('admin') }}

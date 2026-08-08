@@ -175,6 +175,10 @@ export default {
           <span class="quick-link-title">Profile</span>
           <span class="quick-link-copy">Edit your bio, password, and account</span>
         </a>
+        <a v-if="user.isAdmin" href="/admin" class="quick-link">
+          <span class="quick-link-title">Admin</span>
+          <span class="quick-link-copy">View registered users</span>
+        </a>
       </div>
 
       <section class="widget">
