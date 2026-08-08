@@ -12,6 +12,7 @@ function formatDate(iso) {
 }
 
 import LoadingSpinner from './LoadingSpinner.vue';
+import { parseJsonResponse } from '../api';
 
 export default {
   name: 'Profile',
@@ -26,12 +27,14 @@ export default {
       bioDraft: '',
       bioErrors: {},
       savingBio: false,
+      bioSuccess: false,
       bioMax: BIO_MAX_LENGTH,
 
       editingDisplayName: false,
       displayNameDraft: '',
       displayNameErrors: {},
       savingDisplayName: false,
+      displayNameSuccess: false,
       activeTab: 'profile',
       changingPassword: false,
       currentPassword: '',
@@ -78,6 +81,7 @@ export default {
     startEditingBio() {
       this.bioDraft = this.user.bio;
       this.bioErrors = {};
+      this.bioSuccess = false;
       this.editingBio = true;
     },
     cancelEditingBio() {
@@ -104,6 +108,7 @@ export default {
         }
         this.user = data;
         this.editingBio = false;
+        this.bioSuccess = true;
       } catch {
         this.bioErrors = { bio: "Couldn't reach the server. Check your connection and try again." };
       } finally {
@@ -113,6 +118,7 @@ export default {
     startEditingDisplayName() {
       this.displayNameDraft = this.user.displayName || '';
       this.displayNameErrors = {};
+      this.displayNameSuccess = false;
       this.editingDisplayName = true;
     },
     cancelEditingDisplayName() {
@@ -139,6 +145,7 @@ export default {
         }
         this.user = data;
         this.editingDisplayName = false;
+        this.displayNameSuccess = true;
       } catch {
         this.displayNameErrors = { displayName: "Couldn't reach the server. Check your connection and try again." };
       } finally {
@@ -192,7 +199,7 @@ export default {
             newPassword: this.newPassword,
           }),
         });
-        const data = await response.json();
+        const data = await parseJsonResponse(response);
         if (!response.ok) {
           this.passwordErrors = data.errors || { form: 'Something went wrong. Please try again.' };
           return;
@@ -228,7 +235,7 @@ export default {
           },
           body: JSON.stringify({ password: this.deletePassword }),
         });
-        const data = await response.json();
+        const data = await parseJsonResponse(response);
         if (!response.ok) {
           this.deleteErrors = data.errors || { form: 'Something went wrong. Please try again.' };
           return;
@@ -289,6 +296,7 @@ export default {
 
       <section v-show="activeTab === 'profile'" role="tabpanel">
         <div v-if="!editingDisplayName" class="display-name-row">
+          <p v-if="displayNameSuccess" class="success-message" role="status">Display name updated.</p>
           <button type="button" class="edit-button" @click="startEditingDisplayName">
             {{ user.displayName ? 'Edit display name' : 'Set a display name' }}
           </button>
@@ -318,6 +326,7 @@ export default {
 
         <div class="bio-section">
           <template v-if="!editingBio">
+            <p v-if="bioSuccess" class="success-message" role="status">Bio updated.</p>
             <p v-if="user.bio" class="bio-text">{{ user.bio }}</p>
             <p v-else class="bio-text bio-empty">No bio yet.</p>
             <button type="button" class="edit-button" @click="startEditingBio">Edit bio</button>

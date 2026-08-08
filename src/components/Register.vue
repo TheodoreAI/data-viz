@@ -1,4 +1,6 @@
 <script>
+import { parseJsonResponse } from '../api';
+
 export default {
   name: 'Register',
   data() {
@@ -34,7 +36,7 @@ export default {
             password: this.password,
           }),
         });
-        const data = await response.json();
+        const data = await parseJsonResponse(response);
         if (!response.ok) {
           this.errors = data.errors || { form: 'Something went wrong. Please try again.' };
           return;

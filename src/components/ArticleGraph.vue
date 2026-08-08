@@ -50,6 +50,7 @@ export default {
       selectedTopic: this.defaultTopic,
       smoothPan: false,
       helpOpen: false,
+      graphError: '',
     };
   },
   computed: {
@@ -67,11 +68,16 @@ export default {
     async selectedTopic(topic) {
       if (this.loadingSeed) return;
       this.loadingSeed = true;
+      this.graphError = '';
       try {
         this.history.push(this.currentSeedTitle);
         const randomResponse = await fetch(this.randomArticleUrl());
         const article = await randomResponse.json();
+        if (!randomResponse.ok) throw new Error(article.error);
         await this.rebuildGraph(article.title);
+      } catch (err) {
+        this.history.pop();
+        this.graphError = err.message || 'Could not load a new article. Please try again.';
       } finally {
         this.loadingSeed = false;
       }
@@ -178,9 +184,11 @@ export default {
     async expandNode(node) {
       if (node.expanded || this.expandingId || this.nodes.length >= MAX_NODES) return;
       this.expandingId = node.id;
+      this.graphError = '';
       try {
         const response = await fetch(`/api/article-links?title=${encodeURIComponent(node.id)}`);
         const data = await response.json();
+        if (!response.ok) throw new Error(data.error);
         node.expanded = true;
         data.links.forEach((title, i) => {
           if (this.nodes.length >= MAX_NODES) return;
@@ -196,6 +204,8 @@ export default {
         this.simulation.force('link', forceLink(this.links).id(d => d.id).distance(90));
         this.simulation.force('center', forceCenter(this.canvasWidth / 2, this.canvasHeight / 2));
         this.simulation.alpha(0.35).restart();
+      } catch (err) {
+        this.graphError = err.message || "Couldn't expand that article. Please try again.";
       } finally {
         this.expandingId = null;
       }
@@ -208,11 +218,16 @@ export default {
     async loadNewSeed() {
       if (this.loadingSeed) return;
       this.loadingSeed = true;
+      this.graphError = '';
       try {
         this.history.push(this.currentSeedTitle);
         const randomResponse = await fetch(this.randomArticleUrl());
         const article = await randomResponse.json();
+        if (!randomResponse.ok) throw new Error(article.error);
         await this.rebuildGraph(article.title);
+      } catch (err) {
+        this.history.pop();
+        this.graphError = err.message || 'Could not load a new article. Please try again.';
       } finally {
         this.loadingSeed = false;
       }
@@ -221,9 +236,13 @@ export default {
       if (this.loadingSeed) return;
       this.selectedTopic = '';
       this.loadingSeed = true;
+      this.graphError = '';
       try {
         this.history.push(this.currentSeedTitle);
         await this.rebuildGraph(title);
+      } catch (err) {
+        this.history.pop();
+        this.graphError = err.message || 'Could not load that article. Please try again.';
       } finally {
         this.loadingSeed = false;
       }
@@ -231,9 +250,13 @@ export default {
     async goToPreviousSeed() {
       if (this.loadingSeed || this.history.length === 0) return;
       this.loadingSeed = true;
+      this.graphError = '';
+      const title = this.history[this.history.length - 1];
       try {
-        const title = this.history.pop();
         await this.rebuildGraph(title);
+        this.history.pop();
+      } catch (err) {
+        this.graphError = err.message || 'Could not load that article. Please try again.';
       } finally {
         this.loadingSeed = false;
       }
@@ -241,6 +264,7 @@ export default {
     async rebuildGraph(title) {
       const response = await fetch(`/api/article-links?title=${encodeURIComponent(title)}`);
       const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
       this.nodes = [];
       this.links = [];
       this.canvasWidth = this.baseWidth;
@@ -527,23 +551,20 @@ export default {
           {{ graphMode ? '✕ Exit graph mode' : '⛶ Graph mode' }}
         </button>
       </div>
-      <!-- TODO: known Firefox bug — selecting a new option here sometimes doesn't
-           fire `change` at all (reproduced via screen recording, persists after
-           hard refresh; works fine in Safari). v-model didn't fix it since it
-           relies on the same native `change` event. Needs a Firefox-specific
-           workaround (e.g. also listen for `input`, or replace with a custom
-           listbox) — not yet implemented. -->
       <select
         v-if="!graphMode"
-        v-model="selectedTopic"
+        :value="selectedTopic"
         class="topic-select"
         :disabled="loadingSeed"
+        @change="selectedTopic = $event.target.value"
+        @input="selectedTopic = $event.target.value"
       >
         <option value="">Random</option>
         <option v-for="topic in topics" :key="topic" :value="topic">{{ topic }}</option>
       </select>
       <LoadingSpinner v-if="loadingSeed" class="subtitle loading" size="sm" inline />
       <p v-else-if="atNodeLimit && !graphMode" class="subtitle loading">Node limit reached ({{ maxNodes }}) — swipe for a new article to keep exploring.</p>
+      <p v-if="graphError" class="subtitle graph-error" role="alert">{{ graphError }}</p>
     </header>
 
     <div class="graph-canvas">
@@ -744,6 +765,9 @@ export default {
   margin-top: -0.5rem;
   justify-content: flex-start;
   padding: 0;
+}
+.subtitle.graph-error {
+  color: #b0413e;
 }
 .topic-select {
   display: block;

@@ -25,6 +25,7 @@ export default {
       atStartFlash: false,
       savedTitles: new Set(),
       savingTitle: '',
+      feedError: '',
     };
   },
   computed: {
@@ -109,14 +110,18 @@ export default {
     },
     async appendRandomArticle() {
       this.loading = true;
+      this.feedError = '';
       try {
         const url = this.selectedTopic
           ? `/api/random-article?topic=${encodeURIComponent(this.selectedTopic)}`
           : '/api/random-article';
         const response = await fetch(url);
         const article = await response.json();
+        if (!response.ok) throw new Error(article.error || 'Could not load an article.');
         this.history.push(article);
         this.currentIndex = this.history.length - 1;
+      } catch (err) {
+        this.feedError = err.message || 'Could not load an article. Please try again.';
       } finally {
         this.loading = false;
       }
@@ -160,12 +165,12 @@ export default {
     <header class="feed-header">
       <h1>Hello!</h1>
       <p class="subtitle">Swipe up for a new article, down to go back.</p>
-      <!-- TODO: known Firefox bug — same topic-select issue as ArticleGraph.vue,
-           selecting an option sometimes doesn't fire `change`. Not yet fixed. -->
       <select
-        v-model="selectedTopic"
+        :value="selectedTopic"
         class="topic-select"
         :disabled="loading"
+        @change="selectedTopic = $event.target.value"
+        @input="selectedTopic = $event.target.value"
       >
         <option value="">All topics</option>
         <option v-for="topic in topics" :key="topic" :value="topic">{{ topic }}</option>
@@ -195,6 +200,7 @@ export default {
     <div class="swipe-hint swipe-hint-down" aria-hidden="true">﹀</div>
 
     <div v-if="atStartFlash" class="edge-message">You're at the start</div>
+    <p v-if="feedError" class="status feed-error" role="alert">{{ feedError }}</p>
     <LoadingSpinner v-if="loading" class="feed-loading" inline />
   </div>
 </template>
@@ -248,6 +254,13 @@ export default {
   font-size: 0.8rem;
   box-shadow: 0 2px 8px rgba(63, 51, 38, 0.2);
   pointer-events: none;
+}
+.feed-error {
+  flex: none;
+  text-align: center;
+  color: #b0413e;
+  font-size: 0.85rem;
+  padding: 0.5rem 1.25rem;
 }
 .feed-header {
   flex: none;

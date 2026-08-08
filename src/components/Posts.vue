@@ -41,6 +41,7 @@ function resizeImageFile(file) {
 }
 
 import LoadingSpinner from './LoadingSpinner.vue';
+import { parseJsonResponse } from '../api';
 
 export default {
   name: 'Posts',
@@ -167,9 +168,9 @@ export default {
           headers: { 'X-CSRF-TOKEN': readCookie('csrf_access_token') },
           body: formData,
         });
-        const data = await response.json();
+        const data = await parseJsonResponse(response);
         if (!response.ok) {
-          this.imageError = data.errors?.file || 'Could not upload image.';
+          this.imageError = data.errors?.file || data.errors?.form || 'Could not upload image.';
           this.removeImage();
           return;
         }
@@ -221,6 +222,7 @@ export default {
     },
     async removePost(post) {
       if (this.removingId) return;
+      if (!window.confirm('Delete this post? This cannot be undone.')) return;
       this.removingId = post.id;
       try {
         const response = await fetch(`/api/posts/${post.id}`, {
@@ -320,7 +322,7 @@ export default {
       </section>
 
       <section class="feed">
-        <p v-if="postsLoading" class="status">Loading…</p>
+        <LoadingSpinner v-if="postsLoading" size="sm" inline />
         <p v-else-if="postsError" class="status form-error">Couldn't load posts.</p>
         <p v-else-if="!posts.length" class="status">No posts yet — be the first to share something.</p>
         <ul v-else class="post-list">
@@ -358,7 +360,7 @@ export default {
                   class="remove-button"
                   :disabled="removingId === post.id"
                   @click="removePost(post)"
-                >{{ removingId === post.id ? 'Removing…' : 'Delete' }}</button>
+                >{{ removingId === post.id ? 'Deleting…' : 'Delete' }}</button>
               </div>
             </div>
           </li>

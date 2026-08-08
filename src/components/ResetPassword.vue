@@ -1,4 +1,6 @@
 <script>
+import { parseJsonResponse } from '../api';
+
 export default {
   name: 'ResetPassword',
   data() {
@@ -36,7 +38,7 @@ export default {
           credentials: 'same-origin',
           body: JSON.stringify({ token: this.token, newPassword: this.newPassword }),
         });
-        const data = await response.json();
+        const data = await parseJsonResponse(response);
         if (!response.ok) {
           this.errors = data.errors || { form: 'Something went wrong. Please try again.' };
           return;
@@ -99,7 +101,7 @@ export default {
         </label>
 
         <button type="submit" class="submit-button" :disabled="submitting">
-          {{ submitting ? 'Saving…' : 'Reset password' }}
+          {{ submitting ? 'Resetting…' : 'Reset password' }}
         </button>
       </form>
       <template v-else>

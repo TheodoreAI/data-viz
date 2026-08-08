@@ -36,6 +36,7 @@ export default {
       error: false,
 
       stats: null,
+      statsLoading: true,
       statsError: false,
 
       articlesMode: 'yesterday',
@@ -96,6 +97,7 @@ export default {
     },
     async removeSavedItem(item) {
       if (this.removingId) return;
+      if (!window.confirm(`Remove "${item.title}" from your saves?`)) return;
       this.removingId = item.id;
       try {
         const response = await fetch(`/api/saved-items/${item.id}`, {
@@ -111,6 +113,7 @@ export default {
       }
     },
     async loadStats() {
+      this.statsLoading = true;
       this.statsError = false;
       try {
         const response = await fetch('/api/stats', { credentials: 'same-origin' });
@@ -118,6 +121,8 @@ export default {
         this.stats = await response.json();
       } catch {
         this.statsError = true;
+      } finally {
+        this.statsLoading = false;
       }
     },
     async loadArticles() {
@@ -183,7 +188,7 @@ export default {
 
       <section class="widget">
         <h2>Your saves</h2>
-        <p v-if="savedItemsLoading" class="status">Loading…</p>
+        <LoadingSpinner v-if="savedItemsLoading" size="sm" inline />
         <p v-else-if="savedItemsError" class="status form-error">Couldn't load your saved items.</p>
         <p v-else-if="!savedItems.length" class="status">
           Nothing saved yet — look for a Save button on articles on Home.
@@ -207,7 +212,8 @@ export default {
 
       <section class="widget">
         <h2>App stats</h2>
-        <p v-if="statsError" class="status form-error">Couldn't load stats.</p>
+        <LoadingSpinner v-if="statsLoading" size="sm" inline />
+        <p v-else-if="statsError" class="status form-error">Couldn't load stats.</p>
         <div v-else-if="stats" class="stat-row">
           <div class="stat">
             <span class="stat-value">{{ stats.totalUsers }}</span>
@@ -247,7 +253,7 @@ export default {
           </label>
         </div>
 
-        <p v-if="articlesLoading" class="status">Loading…</p>
+        <LoadingSpinner v-if="articlesLoading" size="sm" inline />
         <p v-else-if="articlesError" class="status form-error">Couldn't load article data for that period.</p>
         <div v-else-if="articles.length" class="table-scroll">
           <table class="articles-table">
