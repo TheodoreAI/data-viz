@@ -1,9 +1,3 @@
-databases:
-  - name: data-viz-db
-    plan: free
-    databaseName: data_viz
-    user: data_viz
-
 services:
   - type: web
     name: data-viz
@@ -16,6 +10,4 @@ services:
       - key: JWT_SECRET_KEY
         generateValue: true
       - key: DATABASE_URL
-        fromDatabase:
-          name: data-viz-db
-          property: connectionString
+        sync: false
