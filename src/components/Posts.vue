@@ -11,7 +11,8 @@ function formatDate(iso) {
   });
 }
 
-const MAX_BODY_LENGTH = 1000;
+const MAX_BODY_LENGTH = 3000;
+const COLLAPSE_LENGTH = 500;
 const MAX_IMAGE_DIMENSION = 1600;
 const IMAGE_JPEG_QUALITY = 0.82;
 
@@ -71,6 +72,7 @@ export default {
       loadingMore: false,
       removingId: null,
       copiedId: null,
+      expandedIds: new Set(),
     };
   },
   computed: {
@@ -257,6 +259,25 @@ export default {
         // Clipboard API unavailable (e.g. insecure context); nothing more we can do.
       }
     },
+    isLongPost(post) {
+      return post.body.length > COLLAPSE_LENGTH;
+    },
+    isExpanded(post) {
+      return this.expandedIds.has(post.id);
+    },
+    displayBody(post) {
+      if (!this.isLongPost(post) || this.isExpanded(post)) return post.body;
+      return `${post.body.slice(0, COLLAPSE_LENGTH).trimEnd()}…`;
+    },
+    toggleExpanded(post) {
+      const expanded = new Set(this.expandedIds);
+      if (expanded.has(post.id)) {
+        expanded.delete(post.id);
+      } else {
+        expanded.add(post.id);
+      }
+      this.expandedIds = expanded;
+    },
     formatDate,
   },
 };
@@ -276,7 +297,7 @@ export default {
           v-model="body"
           :maxlength="MAX_BODY_LENGTH"
           placeholder="Share something…"
-          rows="3"
+          rows="6"
         ></textarea>
 
         <div v-if="selectedSavedItem" class="attached-item">
@@ -333,7 +354,13 @@ export default {
                 <span class="post-author">{{ post.author.displayName || post.author.username }}</span>
                 <span class="post-date">{{ formatDate(post.createdAt) }}</span>
               </div>
-              <p class="post-text">{{ post.body }}</p>
+              <p class="post-text">{{ displayBody(post) }}</p>
+              <button
+                v-if="isLongPost(post)"
+                type="button"
+                class="read-more"
+                @click="toggleExpanded(post)"
+              >{{ isExpanded(post) ? 'Show less' : 'Read more' }}</button>
               <img v-if="post.imageUrl" :src="post.imageUrl" alt="" class="post-image">
               <a
                 v-if="post.sharedItem"
@@ -566,8 +593,25 @@ h1 {
 .post-text {
   margin: 0.3rem 0 0;
   font-size: 0.9rem;
+  line-height: 1.6;
+  max-width: 65ch;
   white-space: pre-wrap;
   overflow-wrap: break-word;
+}
+.read-more {
+  display: inline-block;
+  margin-top: 0.4rem;
+  padding: 0;
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--series-1, #2f6690);
+  cursor: pointer;
+}
+.read-more:hover {
+  text-decoration: underline;
 }
 .post-image {
   display: block;

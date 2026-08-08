@@ -66,7 +66,7 @@ class SavedItem(db.Model):
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
-    body = db.Column(db.String(1000), nullable=False)
+    body = db.Column(db.String(3000), nullable=False)
     saved_item_id = db.Column(db.Integer, db.ForeignKey('saved_item.id'), nullable=True)
     image_url = db.Column(db.String(1024), nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
