@@ -1,6 +1,5 @@
 import os
 import random
-from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta, timezone
 from urllib.parse import quote
 
@@ -47,11 +46,6 @@ from saved_items import delete_saved_item
 from saved_items import list_saved_items
 from saved_items import save_item
 from vite import vite_asset_tags
-from wikidata import fetch_film_feed_page
-from wikidata import fetch_film_genres
-from wikidata import warm_film_pool
-from wayback import fetch_popular_pages
-from wayback import fetch_snapshots
 
 load_dotenv()
 
@@ -450,35 +444,6 @@ def api_random_article():
     return jsonify(fetch_random_article(topic))
 
 
-@app.route('/art')
-def art_redirect():
-    return redirect(url_for('movies'))
-
-
-@app.route('/movies')
-def movies():
-    # These are independent Wikidata SPARQL calls that can each take several
-    # seconds on a cold cache — run them concurrently instead of back to back.
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        genres_future = executor.submit(fetch_film_genres)
-        films_future = executor.submit(fetch_film_feed_page, offset=0)
-        genres = genres_future.result()
-        films = films_future.result()
-    return render_template('movies.html', films=films, genres=genres)
-
-
-@app.route('/api/film-feed')
-def api_film_feed():
-    offset = request.args.get('offset', 0, type=int)
-    genre = request.args.get('genre') or None
-    return jsonify(fetch_film_feed_page(offset=offset, genre=genre))
-
-
-@app.route('/api/film-genres')
-def api_film_genres():
-    return jsonify(fetch_film_genres())
-
-
 @app.route('/graph')
 def graph():
     default_topic = 'computer-science'
@@ -488,36 +453,6 @@ def graph():
     return render_template(
         'graph.html', title=title, links=links, topics=TOPIC_CATEGORIES, default_topic=default_topic
     )
-
-
-@app.route('/time-travel')
-def time_travel_page():
-    return render_template('time_travel.html')
-
-
-@app.route('/api/wayback/snapshots')
-@limiter.limit('20 per minute')
-def api_wayback_snapshots():
-    url = (request.args.get('url') or '').strip()
-    if not url:
-        return jsonify({'error': 'A url is required.'}), 400
-
-    try:
-        snapshots = fetch_snapshots(url)
-        if snapshots:
-            return jsonify({'mode': 'timeline', 'url': url, 'snapshots': snapshots})
-
-        # No exact-match capture — the CDX index is keyed by exact URL, and a
-        # bare domain almost never has one. Fall back to sampling the domain's
-        # deep pages and ranking them by how often each was recaptured.
-        pages = fetch_popular_pages(url)
-    except requests.RequestException:
-        return jsonify({'error': "Couldn't reach the Wayback Machine. Please try again."}), 502
-
-    if not pages:
-        return jsonify({'error': 'No archived snapshots found for that URL.'}), 404
-
-    return jsonify({'mode': 'popular', 'url': url, 'pages': pages})
 
 
 @app.route('/api/article-links')
@@ -600,13 +535,8 @@ def api_top_articles():
 
 @app.route('/api/stats')
 def api_stats():
-    try:
-        film_genres = len(fetch_film_genres())
-    except requests.RequestException:
-        film_genres = None
     return jsonify({
         'totalUsers': User.query.count(),
-        'filmGenres': film_genres,
     })
 
 
@@ -754,21 +684,6 @@ def bubbles():
             break
 
     return render_template('bubbles.html', articles=articles, date=day.isoformat())
-
-
-@app.cli.command('warm-cache')
-def warm_cache():
-    """Fetch and disk-cache the Wikidata film feed before the app starts serving.
-
-    The /movies route's cold-cache path (SPARQL query + thumbnail resolution)
-    can take 30s+, which is unsafe to let a live request pay for on a fresh
-    deploy — run it once here instead, as part of the container's startup
-    sequence, before gunicorn binds and starts accepting traffic.
-    """
-    print('Warming film cache...')
-    fetch_film_genres()
-    warm_film_pool(None)
-    print('Film cache warm.')
 
 
 if __name__ == '__main__':
