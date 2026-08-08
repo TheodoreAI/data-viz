@@ -1,3 +1,4 @@
+import os
 import time
 from datetime import datetime
 from html import unescape
@@ -5,16 +6,17 @@ from html import unescape
 import requests
 
 HN_HEADERS = {'User-Agent': 'data-viz-app/1.0 (mateoej12@gmail.com)'}
-REDDIT_HEADERS = {'User-Agent': 'data-viz-app/1.0 (by /u/mateoej12)'}
 STACKOVERFLOW_HEADERS = {'User-Agent': 'data-viz-app/1.0 (mateoej12@gmail.com)'}
 DEVTO_HEADERS = {'User-Agent': 'data-viz-app/1.0 (mateoej12@gmail.com)'}
 LOBSTERS_HEADERS = {'User-Agent': 'data-viz-app/1.0 (mateoej12@gmail.com)'}
 
 HN_ALGOLIA_URL = 'https://hn.algolia.com/api/v1/search'
-REDDIT_URL = 'https://www.reddit.com/r/all/top.json'
 STACKOVERFLOW_URL = 'https://api.stackexchange.com/2.3/questions'
 DEVTO_URL = 'https://dev.to/api/articles'
 LOBSTERS_URL = 'https://lobste.rs/hottest.json'
+YOUTUBE_URL = 'https://www.googleapis.com/youtube/v3/videos'
+
+YOUTUBE_API_KEY = os.environ.get('YOUTUBE_API_KEY')
 
 ITEM_COUNT = 12
 
@@ -41,29 +43,6 @@ def fetch_hacker_news():
             'comments': hit.get('num_comments') or 0,
             'age_hours': round((now - hit['created_at_i']) / 3600, 1),
             'url': hit.get('url') or f'https://news.ycombinator.com/item?id={hit["objectID"]}',
-        })
-    return items
-
-
-def fetch_reddit():
-    """Top current posts across r/all, from Reddit's public JSON listing (no auth required)."""
-    response = requests.get(REDDIT_URL, headers=REDDIT_HEADERS, params={
-        't': 'day',
-        'limit': ITEM_COUNT,
-    })
-    response.raise_for_status()
-    children = response.json()['data']['children']
-
-    now = time.time()
-    items = []
-    for child in children[:ITEM_COUNT]:
-        post = child['data']
-        items.append({
-            'title': post['title'],
-            'score': post.get('score') or 0,
-            'comments': post.get('num_comments') or 0,
-            'age_hours': round((now - post['created_utc']) / 3600, 1),
-            'url': f'https://reddit.com{post["permalink"]}',
         })
     return items
 
@@ -136,9 +115,37 @@ def fetch_lobsters():
     return items
 
 
-# These are free third-party APIs with their own rate limits (Reddit
-# already 403s intermittently) — an in-process TTL cache means a burst of
-# page loads doesn't fan out to five upstream requests per visitor.
+def fetch_youtube():
+    """Current trending videos (US), from the YouTube Data API."""
+    response = requests.get(YOUTUBE_URL, params={
+        'chart': 'mostPopular',
+        'regionCode': 'US',
+        'maxResults': ITEM_COUNT,
+        'part': 'snippet,statistics',
+        'key': YOUTUBE_API_KEY,
+    })
+    response.raise_for_status()
+    videos = response.json()['items']
+
+    now = time.time()
+    items = []
+    for video in videos[:ITEM_COUNT]:
+        snippet = video['snippet']
+        stats = video.get('statistics', {})
+        published = datetime.fromisoformat(snippet['publishedAt'].replace('Z', '+00:00'))
+        items.append({
+            'title': snippet['title'],
+            'score': int(stats.get('viewCount') or 0),
+            'comments': int(stats.get('commentCount') or 0),
+            'age_hours': round((now - published.timestamp()) / 3600, 1),
+            'url': f'https://www.youtube.com/watch?v={video["id"]}',
+        })
+    return items
+
+
+# These are free third-party APIs with their own rate limits — an
+# in-process TTL cache means a burst of page loads doesn't fan out to
+# five upstream requests per visitor.
 CACHE_TTL_SECONDS = 5 * 60
 _cache = {}
 
@@ -159,7 +166,7 @@ SOURCES = {
     source: _cached(source, fetch)
     for source, fetch in {
         'hackernews': fetch_hacker_news,
-        'reddit': fetch_reddit,
+        'youtube': fetch_youtube,
         'stackoverflow': fetch_stackoverflow,
         'devto': fetch_devto,
         'lobsters': fetch_lobsters,

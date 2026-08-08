@@ -174,7 +174,7 @@ export default {
         </a>
         <a href="/trending" class="quick-link">
           <span class="quick-link-title">Trending</span>
-          <span class="quick-link-copy">See what's hot on Wikipedia, Hacker News, Reddit, and Stack Overflow</span>
+          <span class="quick-link-copy">See what's hot on Wikipedia, Hacker News, YouTube, and Stack Overflow</span>
         </a>
         <a href="/profile" class="quick-link">
           <span class="quick-link-title">Profile</span>

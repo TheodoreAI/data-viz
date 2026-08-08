@@ -29,7 +29,7 @@ export default {
       tabs: [
         { id: 'wikipedia', label: 'Wikipedia' },
         { id: 'hackernews', label: 'Hacker News' },
-        { id: 'reddit', label: 'Reddit' },
+        { id: 'youtube', label: 'YouTube' },
         { id: 'stackoverflow', label: 'Stack Overflow' },
         { id: 'devto', label: 'DEV' },
         { id: 'lobsters', label: 'Lobsters' },
