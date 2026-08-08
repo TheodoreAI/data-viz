@@ -1,4 +1,5 @@
 import time
+from datetime import datetime
 from html import unescape
 
 import requests
@@ -6,10 +7,14 @@ import requests
 HN_HEADERS = {'User-Agent': 'data-viz-app/1.0 (mateoej12@gmail.com)'}
 REDDIT_HEADERS = {'User-Agent': 'data-viz-app/1.0 (by /u/mateoej12)'}
 STACKOVERFLOW_HEADERS = {'User-Agent': 'data-viz-app/1.0 (mateoej12@gmail.com)'}
+DEVTO_HEADERS = {'User-Agent': 'data-viz-app/1.0 (mateoej12@gmail.com)'}
+LOBSTERS_HEADERS = {'User-Agent': 'data-viz-app/1.0 (mateoej12@gmail.com)'}
 
 HN_ALGOLIA_URL = 'https://hn.algolia.com/api/v1/search'
 REDDIT_URL = 'https://www.reddit.com/r/all/top.json'
 STACKOVERFLOW_URL = 'https://api.stackexchange.com/2.3/questions'
+DEVTO_URL = 'https://dev.to/api/articles'
+LOBSTERS_URL = 'https://lobste.rs/hottest.json'
 
 ITEM_COUNT = 12
 
@@ -88,8 +93,75 @@ def fetch_stackoverflow():
     return items
 
 
+def fetch_devto():
+    """Top current articles from Dev.to, ranked by reactions."""
+    response = requests.get(DEVTO_URL, headers=DEVTO_HEADERS, params={
+        'top': 1,
+        'per_page': ITEM_COUNT,
+    })
+    response.raise_for_status()
+    articles = response.json()
+
+    now = time.time()
+    items = []
+    for article in articles[:ITEM_COUNT]:
+        published = datetime.fromisoformat(article['published_timestamp'].replace('Z', '+00:00'))
+        items.append({
+            'title': article['title'],
+            'score': article.get('positive_reactions_count') or 0,
+            'comments': article.get('comments_count') or 0,
+            'age_hours': round((now - published.timestamp()) / 3600, 1),
+            'url': article['url'],
+        })
+    return items
+
+
+def fetch_lobsters():
+    """Current front-page stories from Lobsters, ranked by score."""
+    response = requests.get(LOBSTERS_URL, headers=LOBSTERS_HEADERS)
+    response.raise_for_status()
+    stories = response.json()
+
+    now = time.time()
+    items = []
+    for story in stories[:ITEM_COUNT]:
+        created = datetime.fromisoformat(story['created_at'])
+        items.append({
+            'title': story['title'],
+            'score': story.get('score') or 0,
+            'comments': story.get('comment_count') or 0,
+            'age_hours': round((now - created.timestamp()) / 3600, 1),
+            'url': story.get('url') or story['comments_url'],
+        })
+    return items
+
+
+# These are free third-party APIs with their own rate limits (Reddit
+# already 403s intermittently) — an in-process TTL cache means a burst of
+# page loads doesn't fan out to five upstream requests per visitor.
+CACHE_TTL_SECONDS = 5 * 60
+_cache = {}
+
+
+def _cached(source, fetch):
+    def wrapped():
+        cached = _cache.get(source)
+        if cached and time.time() - cached[0] < CACHE_TTL_SECONDS:
+            return cached[1]
+
+        items = fetch()
+        _cache[source] = (time.time(), items)
+        return items
+    return wrapped
+
+
 SOURCES = {
-    'hackernews': fetch_hacker_news,
-    'reddit': fetch_reddit,
-    'stackoverflow': fetch_stackoverflow,
+    source: _cached(source, fetch)
+    for source, fetch in {
+        'hackernews': fetch_hacker_news,
+        'reddit': fetch_reddit,
+        'stackoverflow': fetch_stackoverflow,
+        'devto': fetch_devto,
+        'lobsters': fetch_lobsters,
+    }.items()
 }
