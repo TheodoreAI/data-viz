@@ -5,6 +5,7 @@ function readCookie(name) {
 }
 
 import LoadingSpinner from './LoadingSpinner.vue';
+import { useSwipe } from '@vueuse/core';
 
 export default {
   name: 'ArticleFeed',
@@ -47,13 +48,19 @@ export default {
   },
   mounted() {
     window.addEventListener('wheel', this.onWheel, { passive: true });
-    window.addEventListener('touchstart', this.onTouchStart, { passive: true });
-    window.addEventListener('touchend', this.onTouchEnd, { passive: true });
+    this.swipe = useSwipe(window, {
+      threshold: 40,
+      onSwipeEnd: (_event, direction) => {
+        if (this.loading || this.navigating) return;
+        const { atTop, atBottom } = this.cardScrollState();
+        if (direction === 'up' && atBottom) this.goNext();
+        else if (direction === 'down' && atTop) this.goBack();
+      },
+    });
   },
   beforeUnmount() {
     window.removeEventListener('wheel', this.onWheel);
-    window.removeEventListener('touchstart', this.onTouchStart);
-    window.removeEventListener('touchend', this.onTouchEnd);
+    this.swipe?.stop();
   },
   methods: {
     cardScrollState() {
@@ -69,17 +76,6 @@ export default {
       const { atTop, atBottom } = this.cardScrollState();
       if (event.deltaY > 20 && atBottom) this.goNext();
       else if (event.deltaY < -20 && atTop) this.goBack();
-    },
-    onTouchStart(event) {
-      this.touchStartY = event.touches[0].clientY;
-    },
-    onTouchEnd(event) {
-      if (this.loading || this.navigating || this.touchStartY == null) return;
-      const deltaY = this.touchStartY - event.changedTouches[0].clientY;
-      const { atTop, atBottom } = this.cardScrollState();
-      if (deltaY > 40 && atBottom) this.goNext();
-      else if (deltaY < -40 && atTop) this.goBack();
-      this.touchStartY = null;
     },
     startNavigationCooldown() {
       this.navigating = true;
