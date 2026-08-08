@@ -7,37 +7,37 @@
 
 {% include '_navbar.html' %}
 
-<main class="post-detail">
-  <article class="post-detail-card">
-    <div class="post-detail-header">
-      <img src="{{ post.author.avatarUrl }}" alt="{{ post.author.username }}" class="post-detail-avatar">
+<main class="essay-detail">
+  <article class="essay-detail-card">
+    <div class="essay-detail-header">
+      <img src="{{ essay.author.avatarUrl }}" alt="{{ essay.author.username }}" class="essay-detail-avatar">
       <div>
-        <p class="post-detail-author">{{ post.author.displayName or post.author.username }}</p>
-        <p class="post-detail-date">{{ post.displayDate }}</p>
+        <p class="essay-detail-author">{{ essay.author.displayName or essay.author.username }}</p>
+        <p class="essay-detail-date">{{ essay.displayDate }}</p>
       </div>
     </div>
-    <p class="post-detail-body">{{ post.body }}</p>
-    {% if post.imageUrl %}
-      <img src="{{ post.imageUrl }}" alt="" class="post-detail-image">
+    <p class="essay-detail-body">{{ essay.body }}</p>
+    {% if essay.imageUrl %}
+      <img src="{{ essay.imageUrl }}" alt="" class="essay-detail-image">
     {% endif %}
-    {% if post.sharedItem %}
-      <a href="{{ post.sharedItem.sourceUrl }}" target="_blank" rel="noopener" class="post-detail-shared">
-        {% if post.sharedItem.imageUrl %}
-          <img src="{{ post.sharedItem.imageUrl }}" alt="{{ post.sharedItem.title }}" class="post-detail-shared-thumb">
+    {% if essay.sharedItem %}
+      <a href="{{ essay.sharedItem.sourceUrl }}" target="_blank" rel="noopener" class="essay-detail-shared">
+        {% if essay.sharedItem.imageUrl %}
+          <img src="{{ essay.sharedItem.imageUrl }}" alt="{{ essay.sharedItem.title }}" class="essay-detail-shared-thumb">
         {% endif %}
         <span>
-          <span class="post-detail-shared-title">{{ post.sharedItem.title }}</span>
-          {% if post.sharedItem.subtitle %}<span class="post-detail-shared-subtitle">{{ post.sharedItem.subtitle }}</span>{% endif %}
+          <span class="essay-detail-shared-title">{{ essay.sharedItem.title }}</span>
+          {% if essay.sharedItem.subtitle %}<span class="essay-detail-shared-subtitle">{{ essay.sharedItem.subtitle }}</span>{% endif %}
         </span>
       </a>
     {% endif %}
   </article>
 
   {% if current_user %}
-    <a href="{{ url_for('posts_page') }}" class="post-detail-cta">View all posts</a>
+    <a href="{{ url_for('essays_page') }}" class="essay-detail-cta">View all essays</a>
   {% else %}
-    <p class="post-detail-cta-text">
-      <a href="{{ url_for('login_page') }}">Log in</a> to see more posts and share your own.
+    <p class="essay-detail-cta-text">
+      <a href="{{ url_for('login_page') }}">Log in</a> to see more essays and share your own.
     </p>
   {% endif %}
 </main>
@@ -45,44 +45,45 @@
 {% include '_footer.html' %}
 
 <style>
-  .post-detail {
+  .essay-detail {
     max-width: 640px;
     margin: 0 auto;
     padding: 2rem 1.25rem 3rem;
     font-family: "Palatino Linotype", "Palatino", Georgia, serif;
   }
-  .post-detail-card {
+  .essay-detail-card {
     padding: 1.25rem;
     border: 1px solid var(--gridline, #d8c9a3);
     border-radius: 6px;
   }
-  .post-detail-header {
+  .essay-detail-header {
     display: flex;
     align-items: center;
     gap: 0.75rem;
     margin-bottom: 0.75rem;
   }
-  .post-detail-avatar {
+  .essay-detail-avatar {
     width: 48px;
     height: 48px;
     border-radius: 50%;
     background: var(--surface-1, #fcfcfb);
   }
-  .post-detail-author {
+  .essay-detail-author {
     margin: 0;
     font-weight: 700;
   }
-  .post-detail-date {
+  .essay-detail-date {
     margin: 0;
     font-size: 0.85rem;
     color: var(--text-secondary, #6b5d47);
   }
-  .post-detail-body {
+  .essay-detail-body {
     font-size: 1.05rem;
+    line-height: 1.7;
     white-space: pre-wrap;
     overflow-wrap: break-word;
   }
-  .post-detail-image {
+  .essay-detail-image {
     display: block;
     width: 100%;
     max-height: 480px;
@@ -90,7 +91,7 @@
     border-radius: 6px;
     margin-top: 0.75rem;
   }
-  .post-detail-shared {
+  .essay-detail-shared {
     display: flex;
     align-items: center;
     gap: 0.75rem;
@@ -101,27 +102,27 @@
     text-decoration: none;
     color: inherit;
   }
-  .post-detail-shared:hover {
+  .essay-detail-shared:hover {
     border-color: var(--series-1, #2f6690);
   }
-  .post-detail-shared-thumb {
+  .essay-detail-shared-thumb {
     width: 56px;
     height: 56px;
     object-fit: cover;
     border-radius: 4px;
     flex: none;
   }
-  .post-detail-shared-title {
+  .essay-detail-shared-title {
     display: block;
     color: var(--series-1, #2f6690);
   }
-  .post-detail-shared-subtitle {
+  .essay-detail-shared-subtitle {
     display: block;
     font-size: 0.85rem;
     color: var(--text-secondary, #6b5d47);
   }
-  .post-detail-cta,
-  .post-detail-cta-text {
+  .essay-detail-cta,
+  .essay-detail-cta-text {
     display: block;
     margin-top: 1.25rem;
     text-align: center;

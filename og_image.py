@@ -84,13 +84,13 @@ def _avatar_png_url(avatar_url):
     return avatar_url.replace('/svg?', '/png?') + '&size=128'
 
 
-def render_post_card(post):
-    """post is the dict shape returned by Post.to_dict()."""
+def render_essay_card(essay):
+    """essay is the dict shape returned by Essay.to_dict()."""
     img = Image.new('RGB', (CARD_WIDTH, CARD_HEIGHT), BACKGROUND)
     draw = ImageDraw.Draw(img)
 
-    shared_item = post.get('sharedItem')
-    thumb_url = post.get('imageUrl') or (shared_item and shared_item.get('imageUrl'))
+    shared_item = essay.get('sharedItem')
+    thumb_url = essay.get('imageUrl') or (shared_item and shared_item.get('imageUrl'))
     has_thumb = bool(thumb_url)
     thumb_w = 340
     text_right_edge = (CARD_WIDTH - thumb_w - 40) if has_thumb else (CARD_WIDTH - 60)
@@ -101,7 +101,7 @@ def render_post_card(post):
 
     avatar_size = 64
     avatar_x, avatar_y = 60, 130
-    avatar_img = _fetch_image(_avatar_png_url(post['author']['avatarUrl']))
+    avatar_img = _fetch_image(_avatar_png_url(essay['author']['avatarUrl']))
     if avatar_img:
         avatar_img = avatar_img.resize((avatar_size, avatar_size), Image.LANCZOS)
         mask = Image.new('L', (avatar_size, avatar_size), 0)
@@ -109,11 +109,11 @@ def render_post_card(post):
         img.paste(avatar_img, (avatar_x, avatar_y), mask)
 
     name_font = _font(BOLD_FONT_PATH, 32)
-    author_name = post['author']['displayName'] or post['author']['username']
+    author_name = essay['author']['displayName'] or essay['author']['username']
     draw.text((avatar_x + avatar_size + 20, avatar_y + 14), author_name, font=name_font, fill=INK)
 
     body_font = _font(REGULAR_FONT_PATH, 40)
-    body_lines = _wrap_text(draw, post['body'], body_font, text_right_edge - 60, max_lines=5)
+    body_lines = _wrap_text(draw, essay['body'], body_font, text_right_edge - 60, max_lines=5)
     body_y = avatar_y + avatar_size + 50
     line_height = 54
     for i, line in enumerate(body_lines):

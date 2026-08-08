@@ -43,10 +43,31 @@ function resizeImageFile(file) {
 
 import LoadingSpinner from './LoadingSpinner.vue';
 import { parseJsonResponse } from '../api';
+import { useClipboard, useIntersectionObserver } from '@vueuse/core';
+
+const revealOnScroll = {
+  mounted(el) {
+    const { stop } = useIntersectionObserver(
+      el,
+      ([{ isIntersecting }]) => {
+        if (isIntersecting) {
+          el.classList.add('is-visible');
+          stop();
+        }
+      },
+      { threshold: 0.15 },
+    );
+  },
+};
 
 export default {
-  name: 'Posts',
+  name: 'Essays',
   components: { LoadingSpinner },
+  directives: { revealOnScroll },
+  setup() {
+    const { copy, isSupported: clipboardSupported } = useClipboard();
+    return { copy, clipboardSupported };
+  },
   data() {
     return {
       user: null,
@@ -65,9 +86,9 @@ export default {
       uploadingImage: false,
       imageError: '',
 
-      posts: [],
-      postsLoading: true,
-      postsError: false,
+      essays: [],
+      essaysLoading: true,
+      essaysError: false,
       hasMore: true,
       loadingMore: false,
       removingId: null,
@@ -105,7 +126,7 @@ export default {
     }
 
     this.loadSavedItems();
-    this.loadPosts();
+    this.loadEssays();
   },
   methods: {
     async loadSavedItems() {
@@ -120,30 +141,30 @@ export default {
         this.savedItemsLoading = false;
       }
     },
-    async loadPosts() {
-      this.postsLoading = true;
-      this.postsError = false;
+    async loadEssays() {
+      this.essaysLoading = true;
+      this.essaysError = false;
       try {
-        const response = await fetch('/api/posts', { credentials: 'same-origin' });
+        const response = await fetch('/api/essays', { credentials: 'same-origin' });
         if (!response.ok) throw new Error(`Request failed: ${response.status}`);
         const data = await response.json();
-        this.posts = data;
+        this.essays = data;
         this.hasMore = data.length > 0;
       } catch {
-        this.postsError = true;
+        this.essaysError = true;
       } finally {
-        this.postsLoading = false;
+        this.essaysLoading = false;
       }
     },
     async loadMore() {
-      if (this.loadingMore || !this.hasMore || !this.posts.length) return;
+      if (this.loadingMore || !this.hasMore || !this.essays.length) return;
       this.loadingMore = true;
       try {
-        const beforeId = this.posts[this.posts.length - 1].id;
-        const response = await fetch(`/api/posts?beforeId=${beforeId}`, { credentials: 'same-origin' });
+        const beforeId = this.essays[this.essays.length - 1].id;
+        const response = await fetch(`/api/essays?beforeId=${beforeId}`, { credentials: 'same-origin' });
         if (!response.ok) throw new Error(`Request failed: ${response.status}`);
         const data = await response.json();
-        this.posts = this.posts.concat(data);
+        this.essays = this.essays.concat(data);
         this.hasMore = data.length > 0;
       } catch {
         this.hasMore = false;
@@ -194,7 +215,7 @@ export default {
       this.posting = true;
       this.postError = '';
       try {
-        const response = await fetch('/api/posts', {
+        const response = await fetch('/api/essays', {
           method: 'POST',
           credentials: 'same-origin',
           headers: {
@@ -209,38 +230,39 @@ export default {
         });
         const data = await response.json();
         if (!response.ok) {
-          this.postError = data.errors?.body || data.errors?.savedItemId || 'Could not create post.';
+          this.postError = data.errors?.body || data.errors?.savedItemId || 'Could not create essay.';
           return;
         }
-        this.posts.unshift(data);
+        this.essays.unshift(data);
         this.body = '';
         this.selectedSavedItemId = null;
         this.removeImage();
+        this.resetComposerHeight();
       } catch {
-        this.postError = 'Could not create post.';
+        this.postError = 'Could not create essay.';
       } finally {
         this.posting = false;
       }
     },
-    async removePost(post) {
+    async removeEssay(essay) {
       if (this.removingId) return;
-      if (!window.confirm('Delete this post? This cannot be undone.')) return;
-      this.removingId = post.id;
+      if (!window.confirm('Delete this essay? This cannot be undone.')) return;
+      this.removingId = essay.id;
       try {
-        const response = await fetch(`/api/posts/${post.id}`, {
+        const response = await fetch(`/api/essays/${essay.id}`, {
           method: 'DELETE',
           credentials: 'same-origin',
           headers: { 'X-CSRF-TOKEN': readCookie('csrf_access_token') },
         });
         if (response.ok) {
-          this.posts = this.posts.filter((p) => p.id !== post.id);
+          this.essays = this.essays.filter((e) => e.id !== essay.id);
         }
       } finally {
         this.removingId = null;
       }
     },
-    async sharePost(post) {
-      const url = `${window.location.origin}/posts/${post.id}`;
+    async shareEssay(essay) {
+      const url = `${window.location.origin}/essays/${essay.id}`;
       if (navigator.share) {
         try {
           await navigator.share({ url });
@@ -249,32 +271,42 @@ export default {
         }
         return;
       }
+      if (!this.clipboardSupported) return;
       try {
-        await navigator.clipboard.writeText(url);
-        this.copiedId = post.id;
+        await this.copy(url);
+        this.copiedId = essay.id;
         setTimeout(() => {
-          if (this.copiedId === post.id) this.copiedId = null;
+          if (this.copiedId === essay.id) this.copiedId = null;
         }, 2000);
       } catch {
-        // Clipboard API unavailable (e.g. insecure context); nothing more we can do.
+        // Clipboard write rejected (e.g. insecure context); nothing more we can do.
       }
     },
-    isLongPost(post) {
-      return post.body.length > COLLAPSE_LENGTH;
+    autoGrow(event) {
+      const el = event.target;
+      el.style.height = 'auto';
+      el.style.height = `${el.scrollHeight}px`;
     },
-    isExpanded(post) {
-      return this.expandedIds.has(post.id);
+    resetComposerHeight() {
+      const el = this.$refs.composerTextarea;
+      if (el) el.style.height = '';
     },
-    displayBody(post) {
-      if (!this.isLongPost(post) || this.isExpanded(post)) return post.body;
-      return `${post.body.slice(0, COLLAPSE_LENGTH).trimEnd()}…`;
+    isLongEssay(essay) {
+      return essay.body.length > COLLAPSE_LENGTH;
     },
-    toggleExpanded(post) {
+    isExpanded(essay) {
+      return this.expandedIds.has(essay.id);
+    },
+    displayBody(essay) {
+      if (!this.isLongEssay(essay) || this.isExpanded(essay)) return essay.body;
+      return `${essay.body.slice(0, COLLAPSE_LENGTH).trimEnd()}…`;
+    },
+    toggleExpanded(essay) {
       const expanded = new Set(this.expandedIds);
-      if (expanded.has(post.id)) {
-        expanded.delete(post.id);
+      if (expanded.has(essay.id)) {
+        expanded.delete(essay.id);
       } else {
-        expanded.add(post.id);
+        expanded.add(essay.id);
       }
       this.expandedIds = expanded;
     },
@@ -284,20 +316,22 @@ export default {
 </script>
 
 <template>
-  <div class="posts-page">
+  <div class="essays-page">
     <LoadingSpinner v-if="loading" size="lg" />
     <template v-else-if="error">
-      <p class="status form-error">Couldn't load posts. Please refresh the page.</p>
+      <p class="status form-error">Couldn't load essays. Please refresh the page.</p>
     </template>
     <template v-else>
-      <h1>Posts</h1>
+      <h1>Essays</h1>
 
       <section class="composer">
         <textarea
+          ref="composerTextarea"
           v-model="body"
           :maxlength="MAX_BODY_LENGTH"
           placeholder="Share something…"
           rows="6"
+          @input="autoGrow"
         ></textarea>
 
         <div v-if="selectedSavedItem" class="attached-item">
@@ -343,57 +377,57 @@ export default {
       </section>
 
       <section class="feed">
-        <LoadingSpinner v-if="postsLoading" size="sm" inline />
-        <p v-else-if="postsError" class="status form-error">Couldn't load posts.</p>
-        <p v-else-if="!posts.length" class="status">No posts yet — be the first to share something.</p>
+        <LoadingSpinner v-if="essaysLoading" size="sm" inline />
+        <p v-else-if="essaysError" class="status form-error">Couldn't load essays.</p>
+        <p v-else-if="!essays.length" class="status">No essays yet — be the first to share something.</p>
         <ul v-else class="post-list">
-          <li v-for="post in posts" :key="post.id" class="post">
-            <img :src="post.author.avatarUrl" :alt="post.author.username" class="post-avatar">
+          <li v-for="essay in essays" :key="essay.id" v-reveal-on-scroll class="post">
+            <img :src="essay.author.avatarUrl" :alt="essay.author.username" class="post-avatar">
             <div class="post-body">
               <div class="post-header">
-                <span class="post-author">{{ post.author.displayName || post.author.username }}</span>
-                <span class="post-date">{{ formatDate(post.createdAt) }}</span>
+                <span class="post-author">{{ essay.author.displayName || essay.author.username }}</span>
+                <span class="post-date">{{ formatDate(essay.createdAt) }}</span>
               </div>
-              <p class="post-text">{{ displayBody(post) }}</p>
+              <p class="post-text">{{ displayBody(essay) }}</p>
               <button
-                v-if="isLongPost(post)"
+                v-if="isLongEssay(essay)"
                 type="button"
                 class="read-more"
-                @click="toggleExpanded(post)"
-              >{{ isExpanded(post) ? 'Show less' : 'Read more' }}</button>
-              <img v-if="post.imageUrl" :src="post.imageUrl" alt="" class="post-image">
+                @click="toggleExpanded(essay)"
+              >{{ isExpanded(essay) ? 'Show less' : 'Read more' }}</button>
+              <img v-if="essay.imageUrl" :src="essay.imageUrl" alt="" class="post-image">
               <a
-                v-if="post.sharedItem"
-                :href="post.sharedItem.sourceUrl"
+                v-if="essay.sharedItem"
+                :href="essay.sharedItem.sourceUrl"
                 target="_blank"
                 rel="noopener"
                 class="shared-item"
               >
-                <img v-if="post.sharedItem.imageUrl" :src="post.sharedItem.imageUrl" :alt="post.sharedItem.title" class="shared-thumb">
+                <img v-if="essay.sharedItem.imageUrl" :src="essay.sharedItem.imageUrl" :alt="essay.sharedItem.title" class="shared-thumb">
                 <div class="shared-info">
-                  <span class="shared-title">{{ post.sharedItem.title }}</span>
-                  <span v-if="post.sharedItem.subtitle" class="shared-subtitle">{{ post.sharedItem.subtitle }}</span>
+                  <span class="shared-title">{{ essay.sharedItem.title }}</span>
+                  <span v-if="essay.sharedItem.subtitle" class="shared-subtitle">{{ essay.sharedItem.subtitle }}</span>
                 </div>
               </a>
               <div class="post-actions">
                 <button
                   type="button"
                   class="share-button"
-                  @click="sharePost(post)"
-                >{{ copiedId === post.id ? 'Link copied!' : 'Share' }}</button>
+                  @click="shareEssay(essay)"
+                >{{ copiedId === essay.id ? 'Link copied!' : 'Share' }}</button>
                 <button
-                  v-if="user && post.author.id === user.id"
+                  v-if="user && essay.author.id === user.id"
                   type="button"
                   class="remove-button"
-                  :disabled="removingId === post.id"
-                  @click="removePost(post)"
-                >{{ removingId === post.id ? 'Deleting…' : 'Delete' }}</button>
+                  :disabled="removingId === essay.id"
+                  @click="removeEssay(essay)"
+                >{{ removingId === essay.id ? 'Deleting…' : 'Delete' }}</button>
               </div>
             </div>
           </li>
         </ul>
         <button
-          v-if="hasMore && posts.length"
+          v-if="hasMore && essays.length"
           type="button"
           class="load-more"
           :disabled="loadingMore"
@@ -405,7 +439,7 @@ export default {
 </template>
 
 <style scoped>
-.posts-page {
+.essays-page {
   max-width: 640px;
   margin: 0 auto;
   padding: 2rem 1.25rem 3rem;
@@ -431,13 +465,21 @@ h1 {
   width: 100%;
   resize: vertical;
   font-family: inherit;
-  font-size: 0.9rem;
-  padding: 0.5rem;
+  font-size: 1rem;
+  line-height: 1.6;
+  padding: 0.75rem;
   border: 1px solid var(--gridline, #d8c9a3);
   border-radius: 4px;
   background: var(--surface-1, #fcfcfb);
   color: inherit;
   box-sizing: border-box;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+@media (max-width: 480px) {
+  .composer textarea {
+    font-size: 16px; /* prevents iOS Safari from zooming in on focus */
+  }
 }
 .attached-item {
   display: flex;
@@ -564,6 +606,20 @@ h1 {
   border: none;
   border-radius: var(--card-radius, 16px);
   box-shadow: 0 8px 24px rgba(20, 23, 31, 0.08);
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.post.is-visible {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .post {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
 }
 .post-avatar {
   width: 40px;

@@ -63,7 +63,9 @@ class SavedItem(db.Model):
         }
 
 
-class Post(db.Model):
+class Essay(db.Model):
+    __tablename__ = 'essay'
+
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
     body = db.Column(db.String(3000), nullable=False)
