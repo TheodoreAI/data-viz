@@ -45,6 +45,7 @@ from storage import upload_image
 from saved_items import delete_saved_item
 from saved_items import list_saved_items
 from saved_items import save_item
+from trending import SOURCES as TRENDING_SOURCES
 from vite import vite_asset_tags
 
 load_dotenv()
@@ -684,6 +685,21 @@ def live_data():
             break
 
     return render_template('bubbles.html', articles=articles, date=day.isoformat())
+
+
+@app.route('/api/trending/<source>')
+@limiter.limit('30 per minute')
+def api_trending(source):
+    fetch = TRENDING_SOURCES.get(source)
+    if not fetch:
+        return jsonify({'error': 'Unknown source.'}), 404
+
+    try:
+        items = fetch()
+    except requests.RequestException:
+        return jsonify({'error': f"Couldn't reach {source} right now. Please try again."}), 502
+
+    return jsonify({'source': source, 'items': items})
 
 
 if __name__ == '__main__':

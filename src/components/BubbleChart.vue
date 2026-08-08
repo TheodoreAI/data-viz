@@ -4,8 +4,20 @@ import { scaleLinear, scaleSqrt, max } from 'd3';
 export default {
   name: 'BubbleChart',
   props: {
-    articles: { type: Array, required: true },
-    date: { type: String, required: true },
+    items: { type: Array, required: true },
+    xField: { type: String, default: 'extract_length' },
+    yField: { type: String, default: 'views' },
+    sizeField: { type: String, default: 'views' },
+    xLabel: { type: String, default: 'Summary length (characters)' },
+    yLabel: { type: String, default: 'Pageviews' },
+    columns: {
+      type: Array,
+      default: () => [
+        { field: 'title', label: 'Article', link: true },
+        { field: 'views', label: 'Views', format: 'number' },
+        { field: 'extract_length', label: 'Summary length' },
+      ],
+    },
   },
   data() {
     return {
@@ -24,17 +36,17 @@ export default {
   computed: {
     xScale() {
       return scaleLinear()
-        .domain([0, max(this.articles, a => a.extract_length) * 1.1 || 1])
+        .domain([0, max(this.items, i => i[this.xField]) * 1.1 || 1])
         .range([this.margin.left, this.margin.left + this.width]);
     },
     yScale() {
       return scaleLinear()
-        .domain([0, max(this.articles, a => a.views) * 1.1 || 1])
+        .domain([0, max(this.items, i => i[this.yField]) * 1.1 || 1])
         .range([this.margin.top + this.height, this.margin.top]);
     },
     rScale() {
       return scaleSqrt()
-        .domain([0, max(this.articles, a => a.views) || 1])
+        .domain([0, max(this.items, i => i[this.sizeField]) || 1])
         .range([8, 40]);
     },
     yTicks() {
@@ -44,35 +56,38 @@ export default {
       return this.xScale.ticks(4);
     },
     bubbles() {
-      return this.articles.map(a => ({
-        ...a,
-        cx: this.xScale(a.extract_length),
-        cy: this.yScale(a.views),
-        r: this.rScale(a.views),
+      return this.items.map(i => ({
+        ...i,
+        cx: this.xScale(i[this.xField]),
+        cy: this.yScale(i[this.yField]),
+        r: this.rScale(i[this.sizeField]),
       }));
     },
-    sortedByViews() {
-      return [...this.articles].sort((a, b) => b.views - a.views);
+    sortedByY() {
+      return [...this.items].sort((a, b) => b[this.yField] - a[this.yField]);
     },
   },
   methods: {
-    bubbleLabel(article) {
-      return `${article.title}, ${article.views.toLocaleString()} views, ${article.extract_length} characters`;
+    formatValue(value, format) {
+      return format === 'number' && typeof value === 'number' ? value.toLocaleString() : value;
     },
-    showTooltipAt(x, y, article) {
+    bubbleLabel(item) {
+      return `${item.title}, ${item[this.yField].toLocaleString()} ${this.yLabel.toLowerCase()}, ${item[this.xField]} ${this.xLabel.toLowerCase()}`;
+    },
+    showTooltipAt(x, y, item) {
       this.tooltip.visible = true;
       this.tooltip.x = x + 14;
       this.tooltip.y = y - 10;
       this.tooltip.html =
-        `<div class="t-title">${article.title}</div>` +
-        `<div class="t-meta">${article.views.toLocaleString()} views · ${article.extract_length} chars</div>`;
+        `<div class="t-title">${item.title}</div>` +
+        `<div class="t-meta">${item[this.yField].toLocaleString()} ${this.yLabel.toLowerCase()} · ${item[this.xField]} ${this.xLabel.toLowerCase()}</div>`;
     },
-    onHover(event, article) {
-      this.showTooltipAt(event.pageX, event.pageY, article);
+    onHover(event, item) {
+      this.showTooltipAt(event.pageX, event.pageY, item);
     },
-    onTouch(event, article) {
+    onTouch(event, item) {
       const touch = event.touches[0];
-      this.showTooltipAt(touch.pageX, touch.pageY, article);
+      this.showTooltipAt(touch.pageX, touch.pageY, item);
     },
     hideTooltip() {
       this.tooltip.visible = false;
@@ -82,14 +97,11 @@ export default {
 </script>
 
 <template>
-  <div class="viz-root">
+  <div class="viz-body">
     <div class="viz-header">
-      <div>
-        <h1>Most-viewed Wikipedia articles — {{ date }}</h1>
-        <p class="subtitle">
-          Bubble size and y-position both encode daily pageviews; x-position is article length (characters in summary).
-        </p>
-      </div>
+      <p class="subtitle">
+        Bubble size is {{ sizeField }}; y-position is {{ yLabel.toLowerCase() }}; x-position is {{ xLabel.toLowerCase() }}.
+      </p>
       <button type="button" class="table-toggle" @click="showTable = !showTable">
         {{ showTable ? 'View as chart' : 'View as table' }}
       </button>
@@ -125,7 +137,7 @@ export default {
         >{{ tick }}</text>
 
         <text class="axis-label" :x="margin.left + width / 2" y="410" text-anchor="middle">
-          Summary length (characters)
+          {{ xLabel }}
         </text>
         <text
           class="axis-label"
@@ -133,7 +145,7 @@ export default {
           :x="-(margin.top + height / 2)"
           y="14"
           text-anchor="middle"
-        >Pageviews</text>
+        >{{ yLabel }}</text>
 
         <a
           v-for="b in bubbles"
@@ -159,16 +171,15 @@ export default {
     <table v-else class="data-table">
       <thead>
         <tr>
-          <th scope="col">Article</th>
-          <th scope="col">Views</th>
-          <th scope="col">Summary length</th>
+          <th v-for="col in columns" :key="col.field" scope="col">{{ col.label }}</th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="a in sortedByViews" :key="a.title">
-          <td><a :href="a.url" target="_blank" rel="noopener">{{ a.title }}</a></td>
-          <td>{{ a.views.toLocaleString() }}</td>
-          <td>{{ a.extract_length }}</td>
+        <tr v-for="item in sortedByY" :key="item.title">
+          <td v-for="col in columns" :key="col.field">
+            <a v-if="col.link" :href="item.url" target="_blank" rel="noopener">{{ item[col.field] }}</a>
+            <template v-else>{{ formatValue(item[col.field], col.format) }}</template>
+          </td>
         </tr>
       </tbody>
     </table>

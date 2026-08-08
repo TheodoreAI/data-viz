@@ -1,6 +1,6 @@
 <!doctype html>
 {% set og_title = "Live Data — Data Viz" %}
-{% set og_description = "See the most-viewed Wikipedia articles as an interactive bubble chart." %}
+{% set og_description = "See what's trending right now on Wikipedia, Hacker News, Reddit, and Stack Overflow." %}
 <title>{{ og_title }}</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 {% include '_theme_init.html' %}
@@ -9,14 +9,8 @@
 
 {% include '_navbar.html' %}
 
-{% if articles is none %}
-  <p style="max-width: 900px; margin: 2rem auto; padding: 0 1.25rem; color: #b0413e; font-family: 'Palatino Linotype', Palatino, Georgia, serif;">
-    Couldn't load Wikipedia's most-viewed articles right now. Please try again later.
-  </p>
-{% else %}
-  <div id="app"></div>
-  <script id="chart-data" type="application/json">{{ {'articles': articles, 'date': date} | tojson }}</script>
-  {{ vite_asset('bubbles') }}
-{% endif %}
+<div id="app"></div>
+<script id="chart-data" type="application/json">{{ {'articles': articles or [], 'date': date or ''} | tojson }}</script>
+{{ vite_asset('bubbles') }}
 
 {% include '_footer.html' %}

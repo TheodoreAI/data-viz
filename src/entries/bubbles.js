@@ -1,7 +1,7 @@
 import { createApp } from 'vue';
-import BubbleChart from '../components/BubbleChart.vue';
+import LiveDataTabs from '../components/LiveDataTabs.vue';
 
 const el = document.getElementById('app');
 const data = JSON.parse(document.getElementById('chart-data').textContent);
 
-createApp(BubbleChart, { articles: data.articles, date: data.date }).mount(el);
+createApp(LiveDataTabs, { initialArticles: data.articles, initialDate: data.date }).mount(el);
