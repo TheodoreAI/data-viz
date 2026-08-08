@@ -30,6 +30,25 @@ const NPM_CHART_PROPS = {
   ],
 };
 
+const CARGO_CHART_PROPS = {
+  xField: 'total_downloads',
+  yField: 'downloads',
+  sizeField: 'downloads',
+  xLabel: 'All-time downloads',
+  yLabel: 'Recent downloads (90 days)',
+  columns: [
+    { field: 'title', label: 'Crate', link: true },
+    { field: 'downloads', label: 'Recent downloads', format: 'number' },
+    { field: 'total_downloads', label: 'All-time downloads', format: 'number' },
+    { field: 'version', label: 'Version' },
+  ],
+};
+
+const TRENDING_CHART_PROPS_BY_TAB = {
+  npm: NPM_CHART_PROPS,
+  cargo: CARGO_CHART_PROPS,
+};
+
 export default {
   name: 'TrendingTabs',
   components: { BubbleChart, LoadingSpinner },
@@ -48,6 +67,7 @@ export default {
         { id: 'devto', label: 'DEV' },
         { id: 'lobsters', label: 'Lobsters' },
         { id: 'npm', label: 'npm' },
+        { id: 'cargo', label: 'Cargo' },
       ],
       trendingCache: {},
       loading: false,
@@ -72,7 +92,7 @@ export default {
           }
         : {
             items: this.trendingCache[this.activeTab] || [],
-            ...(this.activeTab === 'npm' ? NPM_CHART_PROPS : TRENDING_CHART_PROPS),
+            ...(TRENDING_CHART_PROPS_BY_TAB[this.activeTab] || TRENDING_CHART_PROPS),
           };
     },
   },

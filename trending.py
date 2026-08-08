@@ -9,6 +9,7 @@ HN_HEADERS = {'User-Agent': 'data-viz-app/1.0 (mateoej12@gmail.com)'}
 STACKOVERFLOW_HEADERS = {'User-Agent': 'data-viz-app/1.0 (mateoej12@gmail.com)'}
 DEVTO_HEADERS = {'User-Agent': 'data-viz-app/1.0 (mateoej12@gmail.com)'}
 LOBSTERS_HEADERS = {'User-Agent': 'data-viz-app/1.0 (mateoej12@gmail.com)'}
+CARGO_HEADERS = {'User-Agent': 'data-viz-app/1.0 (mateoej12@gmail.com)'}
 
 HN_ALGOLIA_URL = 'https://hn.algolia.com/api/v1/search'
 STACKOVERFLOW_URL = 'https://api.stackexchange.com/2.3/questions'
@@ -17,6 +18,7 @@ LOBSTERS_URL = 'https://lobste.rs/hottest.json'
 YOUTUBE_URL = 'https://www.googleapis.com/youtube/v3/videos'
 NPM_DOWNLOADS_URL_POINT = 'https://api.npmjs.org/downloads/point/{range}/{package}'
 NPM_REGISTRY_URL = 'https://registry.npmjs.org/{package}'
+CARGO_URL = 'https://crates.io/api/v1/crates'
 
 YOUTUBE_API_KEY = os.environ.get('YOUTUBE_API_KEY')
 
@@ -170,6 +172,28 @@ def fetch_npm():
     return items[:ITEM_COUNT]
 
 
+def fetch_cargo():
+    """Top Rust crates ranked by recent (90-day) download count, from the crates.io registry."""
+    response = requests.get(CARGO_URL, headers=CARGO_HEADERS, params={
+        'sort': 'recent-downloads',
+        'per_page': ITEM_COUNT,
+    })
+    response.raise_for_status()
+    crates = response.json()['crates']
+
+    items = []
+    for crate in crates[:ITEM_COUNT]:
+        items.append({
+            'title': crate['name'],
+            'description': crate.get('description') or '',
+            'version': crate.get('max_stable_version') or crate.get('newest_version') or '',
+            'downloads': crate.get('recent_downloads') or 0,
+            'total_downloads': crate.get('downloads') or 0,
+            'url': f'https://crates.io/crates/{crate["name"]}',
+        })
+    return items
+
+
 def fetch_youtube():
     """Current trending videos (US), from the YouTube Data API."""
     response = requests.get(YOUTUBE_URL, params={
@@ -226,5 +250,6 @@ SOURCES = {
         'devto': fetch_devto,
         'lobsters': fetch_lobsters,
         'npm': fetch_npm,
+        'cargo': fetch_cargo,
     }.items()
 }
