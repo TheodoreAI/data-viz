@@ -2,3 +2,6 @@
     <p>&copy; 2026 Data Viz. All rights reserved.</p>
 </footer>
 <script src="{{ url_for('static', filename='js/register-sw.js') }}"></script>
+{% if is_dev and current_user and current_user.is_admin %}
+<script src="{{ url_for('static', filename='js/tweak-bar.js') }}"></script>
+{% endif %}

@@ -136,7 +136,7 @@ def inject_current_user():
             current_user = db.session.get(User, int(identity))
     except Exception:
         current_user = None
-    return {'current_user': current_user}
+    return {'current_user': current_user, 'is_dev': not IS_PRODUCTION}
 
 
 def fetch_category_members(category, member_type):
