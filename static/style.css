@@ -468,6 +468,14 @@ button, .tab, .save-btn, .filter-pill {
         background: var(--surface-1);
         box-shadow: 0 4px 14px rgba(63, 51, 38, 0.35);
     }
+    #tweak-bar-toggle {
+        right: auto;
+        left: 1rem;
+    }
+    #tweak-bar-panel {
+        right: auto;
+        left: 1rem;
+    }
     .nav-backdrop {
         position: fixed;
         inset: 0;
