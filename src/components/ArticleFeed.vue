@@ -176,11 +176,11 @@ export default {
     <div v-if="canGoBack" class="swipe-hint swipe-hint-up" aria-hidden="true">︿</div>
     <Transition v-if="currentArticle" :name="direction === 'up' ? 'slide-up' : 'slide-down'" mode="out-in">
       <article :key="currentIndex" ref="cardEl" class="feed-card" :class="{ cooling: navigating }">
-        <div v-if="currentArticle.thumbnail" class="feed-image">
+        <div v-if="currentArticle.thumbnail" class="feed-card-header">
           <img :src="currentArticle.thumbnail.source" :alt="currentArticle.title">
         </div>
-        <div class="feed-body">
-          <div class="feed-body-header">
+        <div class="feed-card-body">
+          <div class="feed-card-body-header">
             <h2><a :href="currentArticle.content_urls.desktop.page" target="_blank">{{ currentArticle.title }}</a></h2>
             <button
               type="button"
@@ -190,6 +190,9 @@ export default {
             >{{ savedTitles.has(currentArticle.title) ? 'Saved' : (savingTitle === currentArticle.title ? 'Saving…' : 'Save') }}</button>
           </div>
           <p>{{ currentArticle.extract }}</p>
+        </div>
+        <div class="feed-card-footer">
+          <a :href="currentArticle.content_urls.desktop.page" target="_blank" class="read-more-link">Read full article →</a>
         </div>
       </article>
     </Transition>
@@ -300,30 +303,49 @@ export default {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--gridline, #e1e0d9);
+  border-radius: var(--card-radius, 16px);
 }
-.feed-image {
+.feed-card-header {
   flex: none;
   max-height: 40vh;
   overflow: hidden;
+  border-radius: var(--card-radius, 16px) var(--card-radius, 16px) 0 0;
 }
-.feed-image img {
+.feed-card-header img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
-.feed-body {
-  padding: 1rem 1.25rem 2rem;
+.feed-card-body {
+  flex: 1;
+  padding: 1rem 1.25rem;
 }
-.feed-body-header {
+.feed-card-body-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 0.75rem;
   margin: 0 0 0.5rem;
 }
-.feed-body h2 {
+.feed-card-body h2 {
   margin: 0;
+}
+.feed-card-footer {
+  flex: none;
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--gridline, #e1e0d9);
+}
+.read-more-link {
+  color: var(--series-1, #2a78d6);
+  text-decoration: none;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.read-more-link:hover {
+  text-decoration: underline;
 }
 .save-button {
   flex: none;
@@ -331,8 +353,9 @@ export default {
   border: 1px solid var(--gridline, #e1e0d9);
   color: var(--series-1, #2a78d6);
   border-radius: 999px;
-  padding: 0.25rem 0.75rem;
-  font-size: 0.78rem;
+  padding: 0.5rem 1.1rem;
+  font-size: 0.92rem;
+  font-weight: 600;
   cursor: pointer;
 }
 .save-button:disabled {
@@ -366,9 +389,8 @@ export default {
   .feed-card {
     overflow-y: visible;
   }
-  .feed-image {
+  .feed-card-header {
     max-height: 320px;
-    border-radius: 6px;
     margin-top: 0.5rem;
   }
 }

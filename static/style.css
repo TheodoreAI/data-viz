@@ -527,3 +527,194 @@ button, .tab, .save-btn, .filter-pill {
         stroke-width: 2.4;
     }
 }
+
+/* -------------------------------------------------------------------------
+   5. Dev tool: Tweak Bar
+   ------------------------------------------------------------------------- */
+#tweak-bar-toggle {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    z-index: 100;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 50%;
+    border: 1px solid var(--gridline);
+    background: var(--card-bg);
+    color: var(--text-primary);
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+
+#tweak-bar-panel {
+    position: fixed;
+    right: 1rem;
+    bottom: calc(1rem + 3.25rem);
+    z-index: 100;
+    width: min(88vw, 300px);
+    max-height: min(78vh, 640px);
+    overflow-y: auto;
+    display: none;
+    flex-direction: column;
+    gap: 0.7rem;
+    padding: 0.9rem;
+    border: 1px solid var(--gridline);
+    border-radius: 12px;
+    background: var(--card-bg);
+    color: var(--text-primary);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 0.8rem;
+}
+
+#tweak-bar-panel.tb-open {
+    display: flex;
+}
+
+#tweak-bar-panel .tb-row.tb-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+#tweak-bar-panel .tb-title {
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+
+#tweak-bar-panel .tb-badge {
+    margin-left: 0.35rem;
+    padding: 0.05rem 0.4rem;
+    border-radius: 999px;
+    background: var(--accent-2);
+    color: #fff;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    vertical-align: middle;
+}
+
+#tweak-bar-panel .tb-btn-ghost {
+    border: 1px solid var(--gridline);
+    background: none;
+    color: var(--text-secondary);
+    border-radius: 6px;
+    padding: 0.2rem 0.55rem;
+    font-size: 0.72rem;
+    cursor: pointer;
+}
+
+#tweak-bar-panel .tb-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+#tweak-bar-panel .tb-field span {
+    display: flex;
+    justify-content: space-between;
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+}
+
+#tweak-bar-panel .tb-field b {
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+}
+
+#tweak-bar-panel select,
+#tweak-bar-panel input[type="range"],
+#tweak-bar-panel input[type="color"] {
+    width: 100%;
+}
+
+#tweak-bar-panel select {
+    font-family: inherit;
+    font-size: 0.78rem;
+    padding: 0.3rem 0.4rem;
+    border-radius: 6px;
+    border: 1px solid var(--gridline);
+    background: var(--surface-1);
+    color: var(--text-primary);
+}
+
+#tweak-bar-panel input[type="color"] {
+    height: 1.9rem;
+    padding: 0;
+    border: 1px solid var(--gridline);
+    border-radius: 6px;
+    background: none;
+    cursor: pointer;
+}
+
+#tweak-bar-panel .tb-btn-primary {
+    border: 1px solid var(--accent-1-strong);
+    background: var(--accent-1-strong);
+    color: #fff;
+    border-radius: 6px;
+    padding: 0.45rem 0.6rem;
+    font-size: 0.76rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+#tweak-bar-panel .tb-btn-primary[aria-pressed="true"] {
+    background: var(--accent-2);
+    border-color: var(--accent-2);
+}
+
+#tweak-bar-panel .tb-status {
+    margin: 0;
+    min-height: 1.1em;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+#tweak-bar-panel .tb-status.tb-status-visible {
+    opacity: 1;
+}
+
+body.tb-picking #tweak-bar-panel {
+    display: none;
+}
+
+body.tb-picking,
+body.tb-picking * {
+    cursor: crosshair !important;
+}
+
+#tweak-bar-picker-outline {
+    position: absolute;
+    z-index: 200;
+    pointer-events: none;
+    border: 2px solid var(--accent-2);
+    background: rgba(255, 92, 122, 0.12);
+    border-radius: 3px;
+    box-sizing: border-box;
+}
+
+#tweak-bar-picker-label {
+    position: absolute;
+    top: -1.4rem;
+    left: 0;
+    background: var(--accent-2);
+    color: #fff;
+    font-family: ui-monospace, "SF Mono", Consolas, monospace;
+    font-size: 0.68rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #tweak-bar-panel * {
+        animation: none !important;
+        transition: none !important;
+    }
+}
