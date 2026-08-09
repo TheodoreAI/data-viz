@@ -36,6 +36,17 @@
 
   var MOTION_PRESETS = ['none', 'fade-in', 'rise-in', 'pulse-accent'];
 
+  // Maps each live-override control to the real :root custom properties it
+  // touches, so the CSS override logic and the export logic read one list.
+  var TOKEN_MAP = {
+    headingWeight: { vars: ['--heading-weight'], format: function (v) { return String(v); } },
+    textColor: { vars: ['--text-primary'], format: function (v) { return v; } },
+    secondaryTextColor: { vars: ['--text-secondary', '--muted'], format: function (v) { return v; } },
+    surfaceColor: { vars: ['--surface-1'], format: function (v) { return v; } },
+    accentColor: { vars: ['--accent-1-strong', '--series-1'], format: function (v) { return v; } },
+    radius: { vars: ['--card-radius'], format: function (v) { return v + 'px'; }, skip: function (v) { return v === 16; } },
+  };
+
   var defaults = {
     enabled: true,
     open: false,
@@ -210,15 +221,24 @@
     document.body.removeChild(ta);
   }
 
+  function flashStatus(el, message, timerKey) {
+    if (!el) return;
+    el.textContent = message;
+    el.classList.add('tb-status-visible');
+    window.clearTimeout(flashStatus[timerKey]);
+    flashStatus[timerKey] = window.setTimeout(function () {
+      el.classList.remove('tb-status-visible');
+    }, 2200);
+  }
+
   var pickerStatusEl = null;
   function flashPickerStatus(message) {
-    if (!pickerStatusEl) return;
-    pickerStatusEl.textContent = message;
-    pickerStatusEl.classList.add('tb-status-visible');
-    window.clearTimeout(flashPickerStatus._t);
-    flashPickerStatus._t = window.setTimeout(function () {
-      pickerStatusEl.classList.remove('tb-status-visible');
-    }, 2200);
+    flashStatus(pickerStatusEl, message, '_pickerTimer');
+  }
+
+  var exportStatusEl = null;
+  function flashExportStatus(message) {
+    flashStatus(exportStatusEl, message, '_exportTimer');
   }
 
   function startPicking() {
@@ -256,26 +276,29 @@
     if (state.fontWeight) {
       rules.push('body, p, a, button, span, li { font-weight: ' + state.fontWeight + ' !important; }');
     }
-    if (state.headingWeight) {
-      rules.push(':root { --heading-weight: ' + state.headingWeight + ' !important; }');
-    }
     if (state.fontSize) {
       rules.push('html { font-size: ' + state.fontSize + 'px !important; }');
     }
+
+    Object.keys(TOKEN_MAP).forEach(function (key) {
+      var value = state[key];
+      var token = TOKEN_MAP[key];
+      if (!value || (token.skip && token.skip(value))) return;
+      var formatted = token.format(value);
+      var decls = token.vars.map(function (v) { return v + ': ' + formatted + ' !important;'; }).join(' ');
+      rules.push(':root { ' + decls + ' }');
+    });
+
     if (state.textColor) {
-      rules.push(':root { --text-primary: ' + state.textColor + ' !important; }');
       rules.push('body { color: ' + state.textColor + ' !important; }');
     }
     if (state.secondaryTextColor) {
-      rules.push(':root { --text-secondary: ' + state.secondaryTextColor + ' !important; --muted: ' + state.secondaryTextColor + ' !important; }');
       rules.push('.subtitle, .navbar a, .theme-toggle { color: ' + state.secondaryTextColor + ' !important; }');
     }
     if (state.surfaceColor) {
-      rules.push(':root { --surface-1: ' + state.surfaceColor + ' !important; }');
       rules.push('body { background: ' + state.surfaceColor + ' !important; }');
     }
     if (state.accentColor) {
-      rules.push(':root { --accent-1-strong: ' + state.accentColor + ' !important; --series-1: ' + state.accentColor + ' !important; }');
       rules.push('.navbar a.active, .save-button, .article-title a { color: ' + state.accentColor + ' !important; border-color: ' + state.accentColor + ' !important; }');
     }
     if (state.margin) {
@@ -283,9 +306,6 @@
     }
     if (state.padding) {
       rules.push('.viz-root { padding: ' + state.padding + 'px !important; }');
-    }
-    if (state.radius !== 16) {
-      rules.push(':root { --card-radius: ' + state.radius + 'px !important; }');
     }
 
     if (state.motion === 'fade-in') {
@@ -300,6 +320,21 @@
     }
 
     styleTag.textContent = rules.join('\n');
+  }
+
+  function buildExportCss() {
+    var lines = [];
+    Object.keys(TOKEN_MAP).forEach(function (key) {
+      var value = state[key];
+      var token = TOKEN_MAP[key];
+      if (!value || (token.skip && token.skip(value))) return;
+      var formatted = token.format(value);
+      token.vars.forEach(function (v) {
+        lines.push('  ' + v + ': ' + formatted + ';');
+      });
+    });
+    if (!lines.length) return '';
+    return ':root {\n' + lines.join('\n') + '\n}\n\n[data-theme="dark"] {\n' + lines.join('\n') + '\n}';
   }
 
   function buildPanel() {
@@ -328,7 +363,10 @@
     panel.innerHTML =
       '<div class="tb-row tb-head">' +
         '<span class="tb-title">Tweak Bar <span class="tb-badge">dev</span></span>' +
-        '<button type="button" id="tb-reset" class="tb-btn-ghost">Reset</button>' +
+        '<span class="tb-head-actions">' +
+          '<button type="button" id="tb-export" class="tb-btn-ghost">Export CSS</button>' +
+          '<button type="button" id="tb-reset" class="tb-btn-ghost">Reset</button>' +
+        '</span>' +
       '</div>' +
 
       '<div class="tb-field">' +
@@ -336,6 +374,7 @@
         '<button type="button" id="tb-select-el" class="tb-btn-primary" aria-pressed="false">Select element</button>' +
         '<p id="tb-select-status" class="tb-status"></p>' +
       '</div>' +
+      '<p id="tb-export-status" class="tb-status"></p>' +
 
       '<label class="tb-field">' +
         '<span>Font family</span>' +
@@ -455,6 +494,17 @@
       saveState(state);
       applyStyles();
       panel.replaceWith(buildAndWire());
+    });
+
+    exportStatusEl = panel.querySelector('#tb-export-status');
+    panel.querySelector('#tb-export').addEventListener('click', function () {
+      var css = buildExportCss();
+      if (!css) {
+        flashExportStatus('No token changes to export yet.');
+        return;
+      }
+      copyToClipboard(css);
+      flashExportStatus('Copied — paste over the token declarations in style.css.');
     });
 
     pickerStatusEl = panel.querySelector('#tb-select-status');

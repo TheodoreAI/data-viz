@@ -605,6 +605,11 @@ button, .tab, .save-btn, .filter-pill {
     vertical-align: middle;
 }
 
+#tweak-bar-panel .tb-head-actions {
+    display: flex;
+    gap: 0.4rem;
+}
+
 #tweak-bar-panel .tb-btn-ghost {
     border: 1px solid var(--gridline);
     background: none;
