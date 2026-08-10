@@ -440,7 +440,7 @@ export default {
 
 <style scoped>
 .essays-page {
-  max-width: 640px;
+  max-width: 960px;
   margin: 0 auto;
   padding: 2rem 1.25rem 3rem;
 }
