@@ -8,3 +8,4 @@ instance/
 .env
 .wikidata_cache/
 static/generated_og/
+package-lock.json
