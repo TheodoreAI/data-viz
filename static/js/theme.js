@@ -15,6 +15,12 @@
     var label = theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
     button.setAttribute('aria-label', label);
     button.setAttribute('title', label);
+
+    var color = theme === 'dark' ? '#0f1115' : '#f5f6f8';
+    document.querySelectorAll('meta[name="theme-color"]').forEach(function (meta) {
+      meta.removeAttribute('media');
+      meta.setAttribute('content', color);
+    });
   }
 
   applyTheme(currentTheme());
