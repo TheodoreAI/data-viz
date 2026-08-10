@@ -108,9 +108,11 @@ export default {
       this.loading = true;
       this.feedError = '';
       try {
-        const url = this.selectedTopic
-          ? `/api/random-article?topic=${encodeURIComponent(this.selectedTopic)}`
-          : '/api/random-article';
+        const params = new URLSearchParams();
+        if (this.selectedTopic) params.set('topic', this.selectedTopic);
+        const seenTitles = this.history.slice(-50).map((article) => article.title);
+        if (seenTitles.length) params.set('exclude', seenTitles.join('|'));
+        const url = `/api/random-article?${params.toString()}`;
         const response = await fetch(url);
         const article = await response.json();
         if (!response.ok) throw new Error(article.error || 'Could not load an article.');

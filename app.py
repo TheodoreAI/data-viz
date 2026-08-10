@@ -161,18 +161,25 @@ def get_topic_category_pool(topic):
     return _topic_category_pool_cache[topic]
 
 
-def fetch_random_article(topic=None):
+def fetch_random_article(topic=None, exclude_titles=()):
+    exclude = {t.lower() for t in exclude_titles}
+
     if topic not in TOPIC_CATEGORIES:
-        response = requests.get(WIKIPEDIA_RANDOM_SUMMARY_URL, headers=WIKIPEDIA_HEADERS)
-        response.raise_for_status()
-        return response.json()
+        for _ in range(5):
+            response = requests.get(WIKIPEDIA_RANDOM_SUMMARY_URL, headers=WIKIPEDIA_HEADERS)
+            response.raise_for_status()
+            article = response.json()
+            if article.get('title', '').lower() not in exclude:
+                return article
+        return article
 
     pool = list(get_topic_category_pool(topic))
     random.shuffle(pool)
     for category in pool:
-        members = fetch_category_members(category, 'page')
-        if members:
-            title = random.choice(members)['title']
+        members = [m for m in fetch_category_members(category, 'page') if m['title'].lower() not in exclude]
+        random.shuffle(members)
+        for member in members:
+            title = member['title']
             summary_response = requests.get(
                 WIKIPEDIA_SUMMARY_URL.format(title=quote(title.replace(' ', '_'))),
                 headers=WIKIPEDIA_HEADERS,
@@ -180,7 +187,7 @@ def fetch_random_article(topic=None):
             if summary_response.ok:
                 return summary_response.json()
 
-    # No category in the pool yielded an article; fall back to unrestricted random.
+    # No category in the pool yielded an unseen article; fall back to unrestricted random.
     response = requests.get(WIKIPEDIA_RANDOM_SUMMARY_URL, headers=WIKIPEDIA_HEADERS)
     response.raise_for_status()
     return response.json()
@@ -477,8 +484,9 @@ WIKIPEDIA_UNAVAILABLE_ERROR = "Couldn't reach Wikipedia right now. Please try ag
 @app.route('/api/random-article')
 def api_random_article():
     topic = request.args.get('topic') or None
+    exclude_titles = [t for t in request.args.get('exclude', '').split('|') if t]
     try:
-        return jsonify(fetch_random_article(topic))
+        return jsonify(fetch_random_article(topic, exclude_titles))
     except requests.RequestException:
         return jsonify({'error': WIKIPEDIA_UNAVAILABLE_ERROR}), 502
 
