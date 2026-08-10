@@ -264,6 +264,10 @@ export default {
 .feed-header {
   flex: none;
   padding: 1rem 1.25rem 0.5rem;
+  margin: 0.75rem 0;
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--gridline, #e1e0d9);
+  border-radius: var(--card-radius, 16px);
 }
 .topic-select {
   display: block;

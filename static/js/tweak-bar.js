@@ -43,6 +43,7 @@
     textColor: { vars: ['--text-primary'], format: function (v) { return v; } },
     secondaryTextColor: { vars: ['--text-secondary', '--muted'], format: function (v) { return v; } },
     surfaceColor: { vars: ['--surface-1'], format: function (v) { return v; } },
+    cardBgColor: { vars: ['--card-bg'], format: function (v) { return v; } },
     accentColor: { vars: ['--accent-1-strong', '--series-1'], format: function (v) { return v; } },
     radius: { vars: ['--card-radius'], format: function (v) { return v + 'px'; }, skip: function (v) { return v === 16; } },
   };
@@ -57,6 +58,7 @@
     textColor: '',
     secondaryTextColor: '',
     surfaceColor: '',
+    cardBgColor: '',
     accentColor: '',
     margin: 0,
     padding: 0,
@@ -412,6 +414,11 @@
       '</label>' +
 
       '<label class="tb-field">' +
+        '<span>Card background</span>' +
+        '<input type="color" id="tb-cardBgColor" value="' + (state.cardBgColor || '#ffffff') + '">' +
+      '</label>' +
+
+      '<label class="tb-field">' +
         '<span>Accent color</span>' +
         '<input type="color" id="tb-accentColor" value="' + (state.accentColor || '#5b5bf0') + '">' +
       '</label>' +
@@ -481,6 +488,7 @@
     bindColor('tb-textColor', 'textColor');
     bindColor('tb-secondaryTextColor', 'secondaryTextColor');
     bindColor('tb-surfaceColor', 'surfaceColor');
+    bindColor('tb-cardBgColor', 'cardBgColor');
     bindColor('tb-accentColor', 'accentColor');
     bindRange('tb-margin', 'margin', function (v) { return v + 'px'; });
     bindRange('tb-padding', 'padding', function (v) { return v + 'px'; });

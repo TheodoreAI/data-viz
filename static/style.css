@@ -8,22 +8,22 @@
     /* Surface & Text */
     --surface-1:      #f5f6f8;
     --text-primary:   #14171f;
-    --text-secondary: #5b6270;
-    --muted:          #8a90a0;
+    --text-secondary: #f08c8e;
+    --muted:          #f08c8e;
     --gridline:       #e2e5eb;
     --card-bg:        rgba(255, 255, 255, 0.98);
 
     /* Accents & Series */
-    --series-1:       #5b5bf0;
+    --series-1:       #76d3d6;
     --series-1-fill:  rgba(91, 91, 240, 0.24);
     --accent-1:       #8aa7b8;
     --accent-2:       #ff5c7a;
-    --accent-1-strong:#5b5bf0;
+    --accent-1-strong:#76d3d6;
     --accent-2-warm:  #ff5c7a;
     --accent-3-deep:  #7a513f;
 
     /* Card geometry */
-    --card-radius: 16px;
+    --card-radius: 18px;
     --pill-radius: 999px;
 
     /* Typography Weights */
@@ -47,13 +47,13 @@
         color-scheme: dark;
         --surface-1:      #0f1115;
         --text-primary:   #f0f1f4;
-        --text-secondary: #9ba1ae;
-        --muted:          #6b7280;
+        --text-secondary: #f08c8e;
+        --muted:          #f08c8e;
         --gridline:       #262a33;
         --card-bg:        rgba(26, 28, 34, 0.96);
-        --series-1:       #8686ff;
+        --series-1:       #76d3d6;
         --series-1-fill:  rgba(134, 134, 255, 0.28);
-        --accent-1-strong:#8686ff;
+        --accent-1-strong:#76d3d6;
         --accent-2-warm:  #ff7590;
 
         --surface:      #1c1a15;
@@ -72,13 +72,13 @@
     color-scheme: dark;
     --surface-1:      #0f1115;
     --text-primary:   #f0f1f4;
-    --text-secondary: #9ba1ae;
-    --muted:          #6b7280;
+    --text-secondary: #f08c8e;
+    --muted:          #f08c8e;
     --gridline:       #262a33;
     --card-bg:        rgba(26, 28, 34, 0.96);
-    --series-1:       #8686ff;
+    --series-1:       #76d3d6;
     --series-1-fill:  rgba(134, 134, 255, 0.28);
-    --accent-1-strong:#8686ff;
+    --accent-1-strong:#76d3d6;
     --accent-2-warm:  #ff7590;
 
     --surface:      #1c1a15;
