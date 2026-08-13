@@ -14,6 +14,7 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
+COPY package.json ./
 COPY *.py ./
 COPY migrations ./migrations
 COPY templates ./templates
