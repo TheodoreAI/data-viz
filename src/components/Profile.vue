@@ -478,7 +478,7 @@ export default {
   min-width: 0;
 }
 .avatar {
-  border-radius: 50%;
+  border-radius: var(--pill-radius, 9999px);
   border: 1px solid var(--gridline, #d8c9a3);
   background: var(--surface-1, #fcfcfb);
   flex: none;
@@ -510,7 +510,7 @@ h1 {
   margin: 1.25rem 0;
   padding: 1rem;
   border: 1px solid var(--gridline, #d8c9a3);
-  border-radius: 6px;
+  border-radius: var(--radius-md, 0.625rem);
 }
 .bio-text {
   margin: 0 0 0.6rem;
@@ -528,10 +528,15 @@ h1 {
   font-size: 0.9rem;
   padding: 0.5rem;
   border: 1px solid var(--gridline, #d8c9a3);
-  border-radius: 4px;
+  border-radius: var(--radius-sm, 0.5rem);
   background: var(--surface-1, #fcfcfb);
   color: inherit;
   resize: vertical;
+}
+.bio-input:focus {
+  outline: none;
+  border-color: var(--series-1, #2f6690);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--series-1, #2f6690) 18%, transparent);
 }
 .char-count {
   margin: 0.3rem 0 0;
@@ -549,7 +554,7 @@ h1 {
   font-size: 0.9rem;
 }
 .form-error {
-  color: #b0413e;
+  color: var(--danger-text, #99231d);
   font-size: 0.85rem;
   margin: 0 0 0.5rem;
 }
@@ -560,7 +565,7 @@ h1 {
   background: transparent;
   border: 1px solid var(--series-1, #2f6690);
   color: var(--series-1, #2f6690);
-  border-radius: 4px;
+  border-radius: var(--radius-sm, 0.5rem);
   padding: 0.4rem 0.9rem;
   font-size: 0.85rem;
   font-family: inherit;
@@ -569,12 +574,19 @@ h1 {
 .save-button {
   background: var(--series-1, #2f6690);
   color: #fff;
+  border-color: var(--series-1, #2f6690);
+  font-weight: 700;
+  box-shadow: var(--shadow-raised, none);
+  transition: opacity 0.15s ease, transform 0.1s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.save-button:active:not(:disabled) {
+  transform: scale(0.98);
 }
 .edit-button:disabled,
 .save-button:disabled,
 .cancel-button:disabled,
 .logout-button:disabled {
-  opacity: 0.6;
+  opacity: 0.4;
   cursor: default;
 }
 .tab-bar {
@@ -600,8 +612,8 @@ h1 {
   font-weight: 700;
 }
 .tab-button.danger.active {
-  color: #b0413e;
-  border-bottom-color: #b0413e;
+  color: var(--danger-text, #99231d);
+  border-bottom-color: var(--danger-text, #99231d);
 }
 .settings-section {
   margin: 1.5rem 0;
@@ -628,16 +640,17 @@ h1 {
   font-size: 1rem;
   padding: 0.5rem 0.65rem;
   border: 1px solid var(--gridline, #d8c9a3);
-  border-radius: 4px;
+  border-radius: var(--radius-sm, 0.5rem);
   background: var(--surface-1, #fcfcfb);
   color: inherit;
 }
 .field input:focus {
-  outline: 2px solid var(--series-1, #2f6690);
-  outline-offset: 1px;
+  outline: none;
+  border-color: var(--series-1, #2f6690);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--series-1, #2f6690) 18%, transparent);
 }
 .field input[aria-invalid="true"] {
-  border-color: #b0413e;
+  border-color: var(--danger, #cc2f26);
 }
 .password-row {
   display: flex;
@@ -652,27 +665,27 @@ h1 {
   background: transparent;
   border: 1px solid var(--gridline, #d8c9a3);
   color: var(--series-1, #2f6690);
-  border-radius: 4px;
+  border-radius: var(--radius-sm, 0.5rem);
   padding: 0 0.75rem;
   font-size: 0.8rem;
   cursor: pointer;
 }
 .field-error {
-  color: #b0413e;
+  color: var(--danger-text, #99231d);
   font-size: 0.78rem;
 }
 .success-message {
-  color: #3a7a4e;
+  color: var(--emphasis-text, #207b37);
   font-size: 0.85rem;
   margin: 0 0 0.5rem;
 }
 .danger-zone {
   padding: 1rem;
-  border: 1px solid rgba(176, 65, 62, 0.4);
-  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--danger, #cc2f26) 30%, transparent);
+  border-radius: var(--radius-md, 0.625rem);
 }
 .danger-zone h2 {
-  color: #b0413e;
+  color: var(--danger-text, #99231d);
 }
 .danger-copy {
   font-size: 0.85rem;
@@ -681,16 +694,20 @@ h1 {
 }
 .danger-button {
   background: transparent;
-  border: 1px solid #b0413e;
-  color: #b0413e;
-  border-radius: 4px;
+  border: 1px solid var(--danger, #cc2f26);
+  color: var(--danger-text, #99231d);
+  border-radius: var(--radius-sm, 0.5rem);
   padding: 0.4rem 0.9rem;
   font-size: 0.85rem;
   font-family: inherit;
   cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.1s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.danger-button:active:not(:disabled) {
+  transform: scale(0.98);
 }
 .danger-button:disabled {
-  opacity: 0.6;
+  opacity: 0.4;
   cursor: default;
 }
 </style>

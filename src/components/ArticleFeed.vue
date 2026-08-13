@@ -209,7 +209,7 @@ export default {
 <style scoped>
 .feed-root {
   position: relative;
-  height: calc(100dvh - var(--navbar-height, 44px));
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -227,7 +227,7 @@ export default {
   pointer-events: none;
 }
 .swipe-hint-up {
-  top: calc(var(--navbar-height, 44px) + 0.25rem);
+  top: 0.5rem;
 }
 .swipe-hint-down {
   bottom: 0.5rem;
@@ -250,16 +250,16 @@ export default {
   background: var(--surface-1, #fcfcfb);
   color: var(--text-primary, #0b0b0b);
   border: 1px solid var(--gridline, #e1e0d9);
-  border-radius: 999px;
+  border-radius: var(--pill-radius, 9999px);
   padding: 0.4rem 1rem;
   font-size: 0.8rem;
-  box-shadow: 0 2px 8px rgba(63, 51, 38, 0.2);
+  box-shadow: var(--shadow-raised, 0 2px 8px rgba(63, 51, 38, 0.2));
   pointer-events: none;
 }
 .feed-error {
   flex: none;
   text-align: center;
-  color: #b0413e;
+  color: var(--danger-text, #99231d);
   font-size: 0.85rem;
   padding: 0.5rem 1.25rem;
 }
@@ -291,7 +291,7 @@ export default {
   background-repeat: no-repeat;
 }
 .topic-select:disabled {
-  opacity: 0.6;
+  opacity: 0.4;
   cursor: default;
 }
 .feed-header h1 {
@@ -358,14 +358,18 @@ export default {
   background: transparent;
   border: 1px solid var(--gridline, #e1e0d9);
   color: var(--series-1, #2a78d6);
-  border-radius: 999px;
+  border-radius: var(--pill-radius, 9999px);
   padding: 0.5rem 1.1rem;
   font-size: 0.92rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.1s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.save-button:active:not(:disabled) {
+  transform: scale(0.98);
 }
 .save-button:disabled {
-  opacity: 0.6;
+  opacity: 0.4;
   cursor: default;
 }
 .feed-loading {

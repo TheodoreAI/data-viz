@@ -691,7 +691,7 @@ export default {
   max-width: 900px;
   margin: 0 auto;
   padding: 1.5rem 1.25rem;
-  background: var(--surface);
+  background: var(--card-bg, #ffffff);
   font-family: "Palatino Linotype", "Palatino", Georgia, serif;
 }
 .graph-root.fullscreen {
@@ -717,7 +717,7 @@ export default {
 .graph-header h1 {
   margin: 0 0 0.1rem;
   font-size: 1.3rem;
-  color: var(--blue);
+  color: var(--series-1, #0068d9);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -730,52 +730,52 @@ export default {
 .mode-toggle {
   height: 2.75rem;
   flex: none;
-  background: var(--surface);
-  border: 1px solid var(--olive);
-  color: var(--blue);
-  border-radius: 999px;
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--gridline, #d8c9a3);
+  color: var(--series-1, #0068d9);
+  border-radius: var(--pill-radius, 9999px);
   padding: 0.3rem 1.1rem;
   font-family: inherit;
   font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   cursor: pointer;
-  box-shadow: 0 1px 3px rgba(63, 51, 38, 0.12);
+  box-shadow: var(--shadow-card, 0 1px 3px rgba(63, 51, 38, 0.12));
   transition: background-color 0.15s ease, border-color 0.15s ease,
     color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 .mode-toggle:hover {
-  background: var(--blue);
-  border-color: var(--blue);
-  color: var(--surface);
+  background: var(--series-1, #0068d9);
+  border-color: var(--series-1, #0068d9);
+  color: var(--card-bg, #ffffff);
   transform: translateY(-1px);
-  box-shadow: 0 3px 8px rgba(63, 51, 38, 0.2);
+  box-shadow: var(--shadow-raised, 0 3px 8px rgba(63, 51, 38, 0.2));
 }
 .mode-toggle:active {
   transform: translateY(0);
 }
 .subtitle {
-  color: var(--ink-soft);
+  color: var(--text-secondary, #2f5f66);
   font-size: 0.9rem;
   margin: 0 0 1rem;
   line-height: 1.4;
 }
 .subtitle.loading {
-  color: var(--blue);
+  color: var(--series-1, #0068d9);
   margin-top: -0.5rem;
   justify-content: flex-start;
   padding: 0;
 }
 .subtitle.graph-error {
-  color: #b0413e;
+  color: var(--danger-text, #99231d);
 }
 .topic-select {
   display: block;
   margin: 0 0 1rem;
-  border: 1px solid var(--olive);
-  background: var(--surface);
-  color: var(--ink-soft);
-  border-radius: 10px;
+  border: 1px solid var(--gridline, #d8c9a3);
+  background: var(--card-bg, #ffffff);
+  color: var(--text-secondary, #2f5f66);
+  border-radius: var(--radius-md, 0.625rem);
   padding: 0.3rem 1.8rem 0.3rem 0.8rem;
   font-family: inherit;
   font-size: 0.75rem;
@@ -791,20 +791,20 @@ export default {
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .topic-select:hover {
-  border-color: var(--blue);
-  box-shadow: 0 0 0 2px var(--blue-faint);
+  border-color: var(--series-1, #0068d9);
+  box-shadow: 0 0 0 2px var(--series-1-fill, color-mix(in srgb, #0068d9 24%, transparent));
 }
 .topic-select:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: wait;
 }
 .graph-svg {
   width: 100%;
   height: 70vh;
   touch-action: none;
-  background: var(--surface);
-  border: 1px solid var(--olive);
-  border-radius: 16px;
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--gridline, #d8c9a3);
+  border-radius: var(--card-radius, 0.875rem);
   box-shadow: inset 0 0 40px rgba(184, 147, 90, 0.18);
   cursor: grab;
 }
@@ -847,24 +847,24 @@ export default {
 .zoom-controls button {
   width: 3.5rem;
   height: 3.5rem;
-  border-radius: 50%;
-  border: 1px solid var(--olive);
-  background: var(--surface);
-  color: var(--blue);
+  border-radius: var(--pill-radius, 9999px);
+  border: 1px solid var(--gridline, #d8c9a3);
+  background: var(--card-bg, #ffffff);
+  color: var(--series-1, #0068d9);
   font-family: inherit;
   font-size: 1.4rem;
   line-height: 1;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(63, 51, 38, 0.2);
+  box-shadow: var(--shadow-card, 0 2px 6px rgba(63, 51, 38, 0.2));
   transition: background-color 0.15s ease, border-color 0.15s ease,
     color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 .zoom-controls button:hover {
-  background: var(--blue);
-  border-color: var(--blue);
-  color: var(--surface);
+  background: var(--series-1, #0068d9);
+  border-color: var(--series-1, #0068d9);
+  color: var(--card-bg, #ffffff);
   transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(63, 51, 38, 0.25);
+  box-shadow: var(--shadow-raised, 0 4px 10px rgba(63, 51, 38, 0.25));
 }
 .zoom-controls button:active {
   transform: translateY(0);
@@ -876,24 +876,24 @@ export default {
   z-index: 5;
   width: 2.5rem;
   height: 2.5rem;
-  border-radius: 50%;
-  border: 1px solid var(--olive);
-  background: var(--surface);
-  color: var(--blue);
+  border-radius: var(--pill-radius, 9999px);
+  border: 1px solid var(--gridline, #d8c9a3);
+  background: var(--card-bg, #ffffff);
+  color: var(--series-1, #0068d9);
   font-family: "Palatino Linotype", "Palatino", Georgia, serif;
   font-weight: 700;
   font-size: 1.1rem;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(63, 51, 38, 0.2);
+  box-shadow: var(--shadow-card, 0 2px 6px rgba(63, 51, 38, 0.2));
   transition: background-color 0.15s ease, border-color 0.15s ease,
     color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 .help-toggle:hover {
-  background: var(--blue);
-  border-color: var(--blue);
-  color: var(--surface);
+  background: var(--series-1, #0068d9);
+  border-color: var(--series-1, #0068d9);
+  color: var(--card-bg, #ffffff);
   transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(63, 51, 38, 0.25);
+  box-shadow: var(--shadow-raised, 0 4px 10px rgba(63, 51, 38, 0.25));
 }
 .help-toggle:active {
   transform: translateY(0);
@@ -905,11 +905,11 @@ export default {
   z-index: 6;
   width: 240px;
   max-width: calc(100% - 2rem);
-  background: var(--surface);
-  border: 1px solid var(--olive);
-  border-radius: 12px;
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--gridline, #d8c9a3);
+  border-radius: var(--card-radius, 0.875rem);
   padding: 0.75rem 1rem;
-  box-shadow: 0 6px 16px rgba(63, 51, 38, 0.22);
+  box-shadow: var(--shadow-raised, 0 6px 16px rgba(63, 51, 38, 0.22));
 }
 .help-close {
   position: absolute;
@@ -917,7 +917,7 @@ export default {
   right: 0.4rem;
   background: none;
   border: none;
-  color: var(--ink-soft);
+  color: var(--text-secondary, #2f5f66);
   font-size: 0.9rem;
   cursor: pointer;
 }
@@ -928,57 +928,59 @@ export default {
 }
 .help-panel li {
   font-size: 0.8rem;
-  color: var(--ink);
+  color: var(--text-primary, #0d2e30);
   line-height: 1.5;
   padding-right: 1rem;
 }
 .help-panel li strong {
-  color: var(--blue);
+  color: var(--series-1, #0068d9);
 }
 .camera-animated {
   transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .graph-edge {
-  stroke: var(--olive);
+  stroke: var(--gridline, #d8c9a3);
   stroke-width: 1.5;
 }
 .graph-node circle {
-  fill: var(--surface);
-  stroke: var(--olive);
+  fill: var(--card-bg, #ffffff);
+  stroke: var(--gridline, #d8c9a3);
   stroke-width: 2;
   cursor: pointer;
   transition: r 0.15s ease, stroke 0.15s ease;
 }
 .graph-node:hover circle {
-  stroke: var(--blue);
+  stroke: var(--series-1, #0068d9);
 }
 .graph-node.center circle {
-  fill: var(--blue);
-  stroke: var(--gold);
+  fill: var(--series-1, #0068d9);
+  /* was --gold, now shares accent-2-warm's red — verify this still reads as a distinct visual category */
+  stroke: var(--accent-2-warm, #cc2f26);
   stroke-width: 3;
 }
 .graph-node.expanding circle {
   opacity: 0.5;
 }
 .expand-badge circle {
-  fill: var(--gold);
-  stroke: var(--surface);
+  /* was --gold, now shares accent-2-warm's red — verify this still reads as a distinct visual category */
+  fill: var(--accent-2-warm, #cc2f26);
+  stroke: var(--card-bg, #ffffff);
   stroke-width: 1.5;
   cursor: pointer;
 }
 .expand-badge line {
-  stroke: var(--surface);
+  stroke: var(--card-bg, #ffffff);
   stroke-width: 1.5;
   pointer-events: none;
 }
 .info-badge circle {
-  fill: var(--blue);
-  stroke: var(--surface);
+  fill: var(--series-1, #0068d9);
+  stroke: var(--card-bg, #ffffff);
   stroke-width: 1.5;
   cursor: pointer;
 }
 .info-badge text {
-  fill: var(--surface);
+  fill: var(--card-bg, #ffffff);
   font-family: "Palatino Linotype", "Palatino", Georgia, serif;
   font-style: italic;
   font-weight: 700;
@@ -986,8 +988,9 @@ export default {
   pointer-events: none;
 }
 .pin-badge circle {
-  fill: var(--surface);
-  stroke: var(--gold);
+  fill: var(--card-bg, #ffffff);
+  /* was --gold, now shares accent-2-warm's red — verify this still reads as a distinct visual category */
+  stroke: var(--accent-2-warm, #cc2f26);
   stroke-width: 1.5;
   cursor: pointer;
 }
@@ -996,7 +999,7 @@ export default {
   pointer-events: none;
 }
 .graph-center-label {
-  fill: var(--ink);
+  fill: var(--text-primary, #0d2e30);
   font-family: "Palatino Linotype", "Palatino", Georgia, serif;
   font-size: 15px;
   font-weight: 700;
@@ -1004,19 +1007,19 @@ export default {
   letter-spacing: 0.04em;
   pointer-events: none;
   paint-order: stroke fill;
-  stroke: var(--surface);
+  stroke: var(--card-bg, #ffffff);
   stroke-width: 3px;
   stroke-linejoin: round;
 }
 .node-hover-label {
-  fill: var(--ink);
+  fill: var(--text-primary, #0d2e30);
   font-family: "Palatino Linotype", "Palatino", Georgia, serif;
   font-size: 9px;
   font-weight: 700;
   text-transform: uppercase;
   pointer-events: none;
   paint-order: stroke fill;
-  stroke: var(--surface);
+  stroke: var(--card-bg, #ffffff);
   stroke-width: 3px;
   stroke-linejoin: round;
 }

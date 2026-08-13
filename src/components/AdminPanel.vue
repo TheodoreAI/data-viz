@@ -122,7 +122,7 @@ h1 {
   font-size: 0.9rem;
 }
 .form-error {
-  color: #b0413e;
+  color: var(--danger-text, #99231d);
 }
 .user-search {
   display: block;
@@ -131,11 +131,16 @@ h1 {
   margin: 0 0 1.25rem;
   padding: 0.45rem 0.7rem;
   border: 1px solid var(--gridline, #d8c9a3);
-  border-radius: 6px;
+  border-radius: var(--radius-md, 0.625rem);
   background: var(--surface-1, #fcfcfb);
   color: inherit;
   font-family: inherit;
   font-size: 0.85rem;
+}
+.user-search:focus {
+  outline: none;
+  border-color: var(--series-1, #2f6690);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--series-1, #2f6690) 18%, transparent);
 }
 .table-scroll {
   overflow-x: auto;
@@ -168,7 +173,7 @@ h1 {
 .user-avatar {
   width: 28px;
   height: 28px;
-  border-radius: 50%;
+  border-radius: var(--pill-radius, 9999px);
   flex: none;
   background: var(--surface-1, #fcfcfb);
 }
@@ -188,7 +193,7 @@ h1 {
   flex: none;
   background: var(--series-1, #2f6690);
   color: var(--surface-1, #fff);
-  border-radius: 999px;
+  border-radius: var(--pill-radius, 9999px);
   padding: 0.1rem 0.55rem;
   font-size: 0.7rem;
   font-weight: 600;
