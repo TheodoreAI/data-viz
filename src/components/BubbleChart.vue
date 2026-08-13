@@ -24,7 +24,7 @@ export default {
       margin: { top: 20, right: 20, bottom: 40, left: 70 },
       width: 720 - 70 - 20,
       height: 420 - 20 - 40,
-      showTable: false,
+      showTable: typeof window !== 'undefined' && window.innerWidth <= 640,
       tooltip: {
         visible: false,
         x: 0,
