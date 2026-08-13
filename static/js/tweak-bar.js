@@ -552,17 +552,17 @@
 
       '<label class="tb-field">' +
         '<span>Text color</span>' +
-        '<input type="color" id="tb-textColor" value="' + (state.textColor || '#14171f') + '">' +
+        '<input type="color" id="tb-textColor" value="' + (state.textColor || '#000000') + '">' +
       '</label>' +
 
       '<label class="tb-field">' +
         '<span>Secondary text color</span>' +
-        '<input type="color" id="tb-secondaryTextColor" value="' + (state.secondaryTextColor || '#9ba1ae') + '">' +
+        '<input type="color" id="tb-secondaryTextColor" value="' + (state.secondaryTextColor || '#6c6c70') + '">' +
       '</label>' +
 
       '<label class="tb-field">' +
         '<span>Background color</span>' +
-        '<input type="color" id="tb-surfaceColor" value="' + (state.surfaceColor || '#f5f6f8') + '">' +
+        '<input type="color" id="tb-surfaceColor" value="' + (state.surfaceColor || '#f2f2f7') + '">' +
       '</label>' +
 
       '<label class="tb-field">' +

@@ -1,33 +1,37 @@
 /* -------------------------------------------------------------------------
    1. Base Variables & Theming
    ------------------------------------------------------------------------- */
+/* iOS-inspired light theme, tuned via the tweak bar's contrast checker so every
+   text/background pairing clears WCAG AA (primary text hits AAA). Source colors
+   are Apple's HIG system palette; accent blue is darkened from #007AFF (3.6:1)
+   to #0062c7 (5.3:1) since the stock blue fails AA as a text color here. */
 :root {
     color-scheme: light;
     --navbar-height: 44px;
-    
+
     /* Surface & Text */
-    --surface-1:      #f5f6f8;
-    --text-primary:   #14171f;
-    --text-secondary: #f08c8e;
-    --muted:          #f08c8e;
+    --surface-1:      #f2f2f7;
+    --text-primary:   #000000;
+    --text-secondary: #6c6c70;
+    --muted:          #6c6c70;
     --gridline:       #e2e5eb;
-    --card-bg:        rgba(255, 255, 255, 0.98);
+    --card-bg:        #ffffff;
 
     /* Accents & Series */
-    --series-1:       #76d3d6;
-    --series-1-fill:  rgba(91, 91, 240, 0.24);
+    --series-1:       #0062c7;
+    --series-1-fill:  rgba(0, 98, 199, 0.24);
     --accent-1:       #8aa7b8;
     --accent-2:       #ff5c7a;
-    --accent-1-strong:#76d3d6;
+    --accent-1-strong:#0062c7;
     --accent-2-warm:  #ff5c7a;
     --accent-3-deep:  #7a513f;
 
     /* Card geometry */
-    --card-radius: 18px;
+    --card-radius: 14px;
     --pill-radius: 999px;
 
     /* Typography Weights */
-    --heading-weight: 800;
+    --heading-weight: 700;
     --display-weight: 700;
 
     /* Vintage palette (article graph/tooltip/search) */
@@ -90,23 +94,6 @@
     --olive:        #9caa6e;
     --olive-soft:   rgba(156, 170, 110, 0.35);
     --gold:         #d1a869;
-}
-
-/* iOS-inspired light theme, tuned via the tweak bar's contrast checker so every
-   text/background pairing clears WCAG AA (primary text hits AAA). Source colors
-   are Apple's HIG system palette; accent blue is darkened from #007AFF (3.6:1)
-   to #0062c7 (5.3:1) since the stock blue fails AA as a text color here. */
-:root[data-theme="ios-light"] {
-    color-scheme: light;
-    --surface-1:       #f2f2f7;
-    --text-primary:    #000000;
-    --text-secondary:  #6c6c70;
-    --muted:           #6c6c70;
-    --card-bg:         #ffffff;
-    --series-1:        #0062c7;
-    --accent-1-strong: #0062c7;
-    --card-radius:     14px;
-    --heading-weight:  700;
 }
 
 /* -------------------------------------------------------------------------
