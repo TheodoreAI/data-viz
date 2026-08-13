@@ -643,6 +643,59 @@ button, .tab, .save-btn, .filter-pill {
     font-weight: 600;
 }
 
+#tweak-bar-panel .tb-group-title {
+    margin-top: 0.2rem;
+    padding-top: 0.6rem;
+    border-top: 1px solid var(--gridline);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+#tweak-bar-panel .tb-contrast-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.4rem;
+    font-size: 0.72rem;
+}
+
+#tweak-bar-panel .tb-contrast-label {
+    color: var(--text-secondary);
+}
+
+#tweak-bar-panel .tb-contrast-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-variant-numeric: tabular-nums;
+}
+
+#tweak-bar-panel .tb-contrast-meta b {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+#tweak-bar-panel .tb-contrast-badge {
+    padding: 0.05rem 0.35rem;
+    border-radius: 999px;
+    font-size: 0.62rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+#tweak-bar-panel .tb-contrast-badge.tb-pass {
+    background: rgba(74, 173, 108, 0.18);
+    color: #2f8452;
+}
+
+#tweak-bar-panel .tb-contrast-badge.tb-fail {
+    background: rgba(224, 74, 74, 0.16);
+    color: #c23b3b;
+}
+
 #tweak-bar-panel select,
 #tweak-bar-panel input[type="range"],
 #tweak-bar-panel input[type="color"] {

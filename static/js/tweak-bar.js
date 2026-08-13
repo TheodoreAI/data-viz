@@ -36,6 +36,39 @@
 
   var MOTION_PRESETS = ['none', 'fade-in', 'rise-in', 'pulse-accent'];
 
+  var COLOR_BLIND_MODES = [
+    { value: 'none', label: 'None' },
+    { value: 'protanopia', label: 'Protanopia (red-blind)' },
+    { value: 'deuteranopia', label: 'Deuteranopia (green-blind)' },
+    { value: 'tritanopia', label: 'Tritanopia (blue-blind)' },
+    { value: 'achromatopsia', label: 'Achromatopsia (no color)' },
+  ];
+
+  // feColorMatrix values approximating each vision-deficiency type (Coblis/Colorblindly matrices).
+  var CB_MATRICES = {
+    protanopia: '0.567 0.433 0 0 0  0.558 0.442 0 0 0  0 0.242 0.758 0 0  0 0 0 1 0',
+    deuteranopia: '0.625 0.375 0 0 0  0.7 0.3 0 0 0  0 0.3 0.7 0 0  0 0 0 1 0',
+    tritanopia: '0.95 0.05 0 0 0  0 0.433 0.567 0 0  0 0.475 0.525 0 0  0 0 0 1 0',
+    achromatopsia: '0.299 0.587 0.114 0 0  0.299 0.587 0.114 0 0  0.299 0.587 0.114 0 0  0 0 0 1 0',
+  };
+
+  // fg/bg resolve state overrides first, falling back to the real token so the
+  // checker also flags contrast issues that exist in the app's default theme.
+  var CONTRAST_PAIRS = [
+    { id: 'text-bg', label: 'Text / Background',
+      fg: function () { return state.textColor || getVar('--text-primary'); },
+      bg: function () { return state.surfaceColor || getVar('--surface-1'); }, under: null },
+    { id: 'secondary-bg', label: 'Secondary text / Background',
+      fg: function () { return state.secondaryTextColor || getVar('--text-secondary'); },
+      bg: function () { return state.surfaceColor || getVar('--surface-1'); }, under: null },
+    { id: 'text-card', label: 'Text / Card',
+      fg: function () { return state.textColor || getVar('--text-primary'); },
+      bg: function () { return state.cardBgColor || getVar('--card-bg'); }, under: 'surface' },
+    { id: 'accent-bg', label: 'Accent / Background',
+      fg: function () { return state.accentColor || getVar('--accent-1-strong'); },
+      bg: function () { return state.surfaceColor || getVar('--surface-1'); }, under: null },
+  ];
+
   // Maps each live-override control to the real :root custom properties it
   // touches, so the CSS override logic and the export logic read one list.
   var TOKEN_MAP = {
@@ -65,6 +98,7 @@
     radius: 16,
     motion: 'none',
     motionSpeed: 0.6,
+    colorBlindMode: 'none',
   };
 
   function loadState() {
@@ -88,6 +122,101 @@
   var styleTag = document.createElement('style');
   styleTag.id = 'tweak-bar-overrides';
   document.head.appendChild(styleTag);
+
+  var colorProbe = document.createElement('div');
+  colorProbe.style.display = 'none';
+  document.body.appendChild(colorProbe);
+
+  function getVar(name) {
+    return getComputedStyle(root).getPropertyValue(name).trim();
+  }
+
+  // Normalizes any valid CSS color (hex, rgb(a), hsl, named) to {r,g,b,a} via
+  // the computed-style trick, so the contrast checker doesn't need its own parser.
+  function parseColorToRgba(value) {
+    colorProbe.style.color = value;
+    var computed = getComputedStyle(colorProbe).color;
+    var m = computed.match(/rgba?\(([^)]+)\)/);
+    if (!m) return { r: 0, g: 0, b: 0, a: 1 };
+    var parts = m[1].split(',').map(function (s) { return parseFloat(s); });
+    return { r: parts[0], g: parts[1], b: parts[2], a: parts.length > 3 ? parts[3] : 1 };
+  }
+
+  function compositeOver(fg, bg) {
+    if (fg.a >= 1) return fg;
+    var a = fg.a;
+    return {
+      r: fg.r * a + bg.r * (1 - a),
+      g: fg.g * a + bg.g * (1 - a),
+      b: fg.b * a + bg.b * (1 - a),
+      a: 1,
+    };
+  }
+
+  function relLuminance(rgb) {
+    var chans = [rgb.r, rgb.g, rgb.b].map(function (v) {
+      v = v / 255;
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * chans[0] + 0.7152 * chans[1] + 0.0722 * chans[2];
+  }
+
+  // WCAG contrast ratio; `underValue` composites a semi-transparent bg (e.g.
+  // card-bg) over the page surface color first, so alpha is accounted for.
+  function contrastRatio(fgValue, bgValue, underValue) {
+    var white = { r: 255, g: 255, b: 255, a: 1 };
+    var underRgb = underValue ? compositeOver(parseColorToRgba(underValue), white) : white;
+    var bgRgb = compositeOver(parseColorToRgba(bgValue), underRgb);
+    var fgRgb = compositeOver(parseColorToRgba(fgValue), bgRgb);
+    var l1 = relLuminance(fgRgb);
+    var l2 = relLuminance(bgRgb);
+    var lighter = Math.max(l1, l2);
+    var darker = Math.min(l1, l2);
+    return (lighter + 0.05) / (darker + 0.05);
+  }
+
+  function contrastGrade(ratio) {
+    return { aa: ratio >= 4.5, aaa: ratio >= 7 };
+  }
+
+  function updateContrastReadouts() {
+    var surface = state.surfaceColor || getVar('--surface-1');
+    CONTRAST_PAIRS.forEach(function (pair) {
+      var valueEl = document.getElementById('tb-contrast-' + pair.id + '-value');
+      var aaEl = document.getElementById('tb-contrast-' + pair.id + '-aa');
+      var aaaEl = document.getElementById('tb-contrast-' + pair.id + '-aaa');
+      if (!valueEl) return;
+      var ratio = contrastRatio(pair.fg(), pair.bg(), pair.under === 'surface' ? surface : null);
+      var grade = contrastGrade(ratio);
+      valueEl.textContent = ratio.toFixed(2) + ':1';
+      aaEl.textContent = grade.aa ? 'AA' : 'AA ✕';
+      aaEl.title = 'WCAG AA requires 4.5:1 for normal text';
+      aaEl.className = 'tb-contrast-badge ' + (grade.aa ? 'tb-pass' : 'tb-fail');
+      aaaEl.textContent = grade.aaa ? 'AAA' : 'AAA ✕';
+      aaaEl.title = 'WCAG AAA requires 7:1 for normal text';
+      aaaEl.className = 'tb-contrast-badge ' + (grade.aaa ? 'tb-pass' : 'tb-fail');
+    });
+  }
+
+  function injectColorBlindFilters() {
+    var svgNS = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('id', 'tweak-bar-cb-filters');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden;';
+    var defs = document.createElementNS(svgNS, 'defs');
+    Object.keys(CB_MATRICES).forEach(function (key) {
+      var filter = document.createElementNS(svgNS, 'filter');
+      filter.setAttribute('id', 'tb-cb-' + key);
+      var cm = document.createElementNS(svgNS, 'feColorMatrix');
+      cm.setAttribute('type', 'matrix');
+      cm.setAttribute('values', CB_MATRICES[key]);
+      filter.appendChild(cm);
+      defs.appendChild(filter);
+    });
+    svg.appendChild(defs);
+    document.body.appendChild(svg);
+  }
 
   var STYLE_PROPS_TO_REPORT = [
     'color', 'background-color', 'font-family', 'font-size', 'font-weight',
@@ -310,6 +439,10 @@
       rules.push('.viz-root { padding: ' + state.padding + 'px !important; }');
     }
 
+    if (state.colorBlindMode && state.colorBlindMode !== 'none') {
+      rules.push('html { filter: url(#tb-cb-' + state.colorBlindMode + ') !important; }');
+    }
+
     if (state.motion === 'fade-in') {
       rules.push('@keyframes tweak-fade { from { opacity: 0; } to { opacity: 1; } }');
       rules.push('.viz-root, .navbar { animation: tweak-fade ' + state.motionSpeed + 's ease both; }');
@@ -322,6 +455,7 @@
     }
 
     styleTag.textContent = rules.join('\n');
+    updateContrastReadouts();
   }
 
   function buildExportCss() {
@@ -360,6 +494,24 @@
     var motionOptions = MOTION_PRESETS.map(function (m) {
       var selected = m === state.motion ? ' selected' : '';
       return '<option value="' + m + '"' + selected + '>' + m + '</option>';
+    }).join('');
+
+    var colorBlindOptions = COLOR_BLIND_MODES.map(function (m) {
+      var selected = m.value === state.colorBlindMode ? ' selected' : '';
+      return '<option value="' + m.value + '"' + selected + '>' + m.label + '</option>';
+    }).join('');
+
+    var contrastRows = CONTRAST_PAIRS.map(function (pair) {
+      return (
+        '<div class="tb-contrast-row">' +
+          '<span class="tb-contrast-label">' + pair.label + '</span>' +
+          '<span class="tb-contrast-meta">' +
+            '<b id="tb-contrast-' + pair.id + '-value">—</b>' +
+            '<span id="tb-contrast-' + pair.id + '-aa" class="tb-contrast-badge"></span>' +
+            '<span id="tb-contrast-' + pair.id + '-aaa" class="tb-contrast-badge"></span>' +
+          '</span>' +
+        '</div>'
+      );
     }).join('');
 
     panel.innerHTML =
@@ -421,6 +573,14 @@
       '<label class="tb-field">' +
         '<span>Accent color</span>' +
         '<input type="color" id="tb-accentColor" value="' + (state.accentColor || '#5b5bf0') + '">' +
+      '</label>' +
+
+      '<div class="tb-group-title">Accessibility</div>' +
+      contrastRows +
+
+      '<label class="tb-field">' +
+        '<span>Simulate color vision</span>' +
+        '<select id="tb-colorBlindMode">' + colorBlindOptions + '</select>' +
       '</label>' +
 
       '<label class="tb-field">' +
@@ -490,6 +650,7 @@
     bindColor('tb-surfaceColor', 'surfaceColor');
     bindColor('tb-cardBgColor', 'cardBgColor');
     bindColor('tb-accentColor', 'accentColor');
+    bindSelect('tb-colorBlindMode', 'colorBlindMode');
     bindRange('tb-margin', 'margin', function (v) { return v + 'px'; });
     bindRange('tb-padding', 'padding', function (v) { return v + 'px'; });
     bindRange('tb-radius', 'radius', function (v) { return v + 'px'; });
@@ -535,6 +696,8 @@
   }
 
   function init() {
+    injectColorBlindFilters();
+
     var toggle = document.createElement('button');
     toggle.id = 'tweak-bar-toggle';
     toggle.type = 'button';
