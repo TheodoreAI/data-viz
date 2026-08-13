@@ -92,6 +92,23 @@
     --gold:         #d1a869;
 }
 
+/* iOS-inspired light theme, tuned via the tweak bar's contrast checker so every
+   text/background pairing clears WCAG AA (primary text hits AAA). Source colors
+   are Apple's HIG system palette; accent blue is darkened from #007AFF (3.6:1)
+   to #0062c7 (5.3:1) since the stock blue fails AA as a text color here. */
+:root[data-theme="ios-light"] {
+    color-scheme: light;
+    --surface-1:       #f2f2f7;
+    --text-primary:    #000000;
+    --text-secondary:  #6c6c70;
+    --muted:           #6c6c70;
+    --card-bg:         #ffffff;
+    --series-1:        #0062c7;
+    --accent-1-strong: #0062c7;
+    --card-radius:     14px;
+    --heading-weight:  700;
+}
+
 /* -------------------------------------------------------------------------
    2. Reset & Core Typography
    ------------------------------------------------------------------------- */

@@ -5,7 +5,7 @@
 
   function currentTheme() {
     var stored = localStorage.getItem('theme');
-    if (stored === 'dark' || stored === 'light') return stored;
+    if (stored === 'dark' || stored === 'light' || stored === 'ios-light') return stored;
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   }
 
@@ -16,7 +16,7 @@
     button.setAttribute('aria-label', label);
     button.setAttribute('title', label);
 
-    var color = theme === 'dark' ? '#0f1115' : '#f5f6f8';
+    var color = theme === 'dark' ? '#0f1115' : theme === 'ios-light' ? '#f2f2f7' : '#f5f6f8';
     document.querySelectorAll('meta[name="theme-color"]').forEach(function (meta) {
       meta.removeAttribute('media');
       meta.setAttribute('content', color);
