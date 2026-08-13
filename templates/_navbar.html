@@ -27,6 +27,7 @@
       <a href="{{ url_for('login_page') }}" class="{{ 'active' if request.path == url_for('login_page') }}" {{ 'aria-current="page"' if request.path == url_for('login_page') }}>Log in</a>
       <a href="{{ url_for('register_page') }}" class="{{ 'active' if request.path == url_for('register_page') }}" {{ 'aria-current="page"' if request.path == url_for('register_page') }}>Register</a>
     {% endif %}
+    <span class="nav-version">v{{ app_version }}</span>
   </div>
 
   <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle dark/light theme" title="Toggle dark/light theme">🌙</button>

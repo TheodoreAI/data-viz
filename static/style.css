@@ -216,6 +216,10 @@ p {
     border-bottom-color: var(--accent-1-strong);
 }
 
+.nav-version {
+    display: none;
+}
+
 .theme-toggle {
     flex: none;
     margin-left: auto;
@@ -262,17 +266,6 @@ p {
     font-size: 0.85rem;
     color: var(--muted);
     border-top: 1px solid var(--gridline);
-}
-
-.footer p {
-    margin: 0;
-}
-
-.footer-version {
-    margin-top: 0.25rem;
-    font-size: 0.75rem;
-    font-variant-numeric: tabular-nums;
-    opacity: 0.7;
 }
 
 /* -------------------------------------------------------------------------
@@ -546,6 +539,15 @@ button, .tab, .save-btn, .filter-pill {
     }
     .nav-links.nav-open {
         transform: translateX(0);
+    }
+    .nav-version {
+        display: block;
+        margin-top: auto;
+        padding: 1rem 1.25rem calc(1rem + env(safe-area-inset-bottom));
+        color: var(--text-secondary);
+        font-size: 0.75rem;
+        font-variant-numeric: tabular-nums;
+        opacity: 0.7;
     }
     .navbar a {
         padding: 0.9rem 1.25rem;
