@@ -47,6 +47,7 @@ export default {
     },
   },
   mounted() {
+    document.body.classList.add('feed-active');
     window.addEventListener('wheel', this.onWheel, { passive: true });
     this.swipe = useSwipe(window, {
       threshold: 40,
@@ -59,6 +60,7 @@ export default {
     });
   },
   beforeUnmount() {
+    document.body.classList.remove('feed-active');
     window.removeEventListener('wheel', this.onWheel);
     this.swipe?.stop();
   },
