@@ -1,3 +1,21 @@
+<div id="nav-links" class="nav-links">
+  <a href="{{ url_for('hello_world') }}" class="{{ 'active' if request.path == url_for('hello_world') }}" {{ 'aria-current="page"' if request.path == url_for('hello_world') }}>Home</a>
+  <a href="{{ url_for('trending_page') }}" class="{{ 'active' if request.path == url_for('trending_page') }}" {{ 'aria-current="page"' if request.path == url_for('trending_page') }}>Trending</a>
+  <a href="{{ url_for('nodes') }}" class="{{ 'active' if request.path == url_for('nodes') }}" {{ 'aria-current="page"' if request.path == url_for('nodes') }}>Nodes</a>
+  {% if current_user %}
+    <a href="{{ url_for('dashboard_page') }}" class="{{ 'active' if request.path == url_for('dashboard_page') }}" {{ 'aria-current="page"' if request.path == url_for('dashboard_page') }}>Dashboard</a>
+    <a href="{{ url_for('essays_page') }}" class="{{ 'active' if request.path == url_for('essays_page') }}" {{ 'aria-current="page"' if request.path == url_for('essays_page') }}>Essays</a>
+    {% if current_user.is_admin %}
+      <a href="{{ url_for('admin_page') }}" class="{{ 'active' if request.path == url_for('admin_page') }}" {{ 'aria-current="page"' if request.path == url_for('admin_page') }}>Admin</a>
+    {% endif %}
+    <a href="{{ url_for('profile_page') }}" class="{{ 'active' if request.path == url_for('profile_page') }}" {{ 'aria-current="page"' if request.path == url_for('profile_page') }}>{{ current_user.display_name or current_user.username }}</a>
+  {% else %}
+    <a href="{{ url_for('login_page') }}" class="{{ 'active' if request.path == url_for('login_page') }}" {{ 'aria-current="page"' if request.path == url_for('login_page') }}>Log in</a>
+    <a href="{{ url_for('register_page') }}" class="{{ 'active' if request.path == url_for('register_page') }}" {{ 'aria-current="page"' if request.path == url_for('register_page') }}>Register</a>
+  {% endif %}
+</div>
+<div id="nav-backdrop" class="nav-backdrop"></div>
+
 <nav class="navbar">
   <button
     id="nav-toggle"
@@ -11,26 +29,7 @@
     <span class="nav-toggle-bar"></span>
     <span class="nav-toggle-bar"></span>
   </button>
-
-  <div id="nav-links" class="nav-links">
-    <a href="{{ url_for('hello_world') }}" class="{{ 'active' if request.path == url_for('hello_world') }}" {{ 'aria-current="page"' if request.path == url_for('hello_world') }}>Home</a>
-    <a href="{{ url_for('trending_page') }}" class="{{ 'active' if request.path == url_for('trending_page') }}" {{ 'aria-current="page"' if request.path == url_for('trending_page') }}>Trending</a>
-    <a href="{{ url_for('nodes') }}" class="{{ 'active' if request.path == url_for('nodes') }}" {{ 'aria-current="page"' if request.path == url_for('nodes') }}>Nodes</a>
-    {% if current_user %}
-      <a href="{{ url_for('dashboard_page') }}" class="{{ 'active' if request.path == url_for('dashboard_page') }}" {{ 'aria-current="page"' if request.path == url_for('dashboard_page') }}>Dashboard</a>
-      <a href="{{ url_for('essays_page') }}" class="{{ 'active' if request.path == url_for('essays_page') }}" {{ 'aria-current="page"' if request.path == url_for('essays_page') }}>Essays</a>
-      {% if current_user.is_admin %}
-        <a href="{{ url_for('admin_page') }}" class="{{ 'active' if request.path == url_for('admin_page') }}" {{ 'aria-current="page"' if request.path == url_for('admin_page') }}>Admin</a>
-      {% endif %}
-      <a href="{{ url_for('profile_page') }}" class="{{ 'active' if request.path == url_for('profile_page') }}" {{ 'aria-current="page"' if request.path == url_for('profile_page') }}>{{ current_user.display_name or current_user.username }}</a>
-    {% else %}
-      <a href="{{ url_for('login_page') }}" class="{{ 'active' if request.path == url_for('login_page') }}" {{ 'aria-current="page"' if request.path == url_for('login_page') }}>Log in</a>
-      <a href="{{ url_for('register_page') }}" class="{{ 'active' if request.path == url_for('register_page') }}" {{ 'aria-current="page"' if request.path == url_for('register_page') }}>Register</a>
-    {% endif %}
-  </div>
-
   <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle dark/light theme" title="Toggle dark/light theme">🌙</button>
 </nav>
-<div id="nav-backdrop" class="nav-backdrop"></div>
 <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
 <script src="{{ url_for('static', filename='js/navbar.js') }}"></script>
