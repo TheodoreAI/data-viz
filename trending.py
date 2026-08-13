@@ -19,6 +19,12 @@ YOUTUBE_URL = 'https://www.googleapis.com/youtube/v3/videos'
 NPM_DOWNLOADS_URL_POINT = 'https://api.npmjs.org/downloads/point/{range}/{package}'
 NPM_REGISTRY_URL = 'https://registry.npmjs.org/{package}'
 CARGO_URL = 'https://crates.io/api/v1/crates'
+GITHUB_SEARCH_URL = 'https://api.github.com/search/repositories'
+
+GITHUB_HEADERS = {
+    'User-Agent': 'data-viz-app/1.0 (mateoej12@gmail.com)',
+    'Accept': 'application/vnd.github+json',
+}
 
 YOUTUBE_API_KEY = os.environ.get('YOUTUBE_API_KEY')
 
@@ -123,6 +129,34 @@ def fetch_lobsters():
             'comments': story.get('comment_count') or 0,
             'age_hours': round((now - created.timestamp()) / 3600, 1),
             'url': story.get('url') or story['comments_url'],
+        })
+    return items
+
+
+def fetch_github():
+    """Repos created in the last week, ranked by stars — a proxy for GitHub's
+    unofficial (API-less) trending page."""
+    since = (datetime.utcnow() - timedelta(days=7)).strftime('%Y-%m-%d')
+    response = requests.get(GITHUB_SEARCH_URL, headers=GITHUB_HEADERS, params={
+        'q': f'created:>{since}',
+        'sort': 'stars',
+        'order': 'desc',
+        'per_page': ITEM_COUNT,
+    })
+    response.raise_for_status()
+    repos = response.json()['items']
+
+    now = time.time()
+    items = []
+    for repo in repos[:ITEM_COUNT]:
+        created = datetime.fromisoformat(repo['created_at'].replace('Z', '+00:00'))
+        items.append({
+            'title': repo['full_name'],
+            'description': repo.get('description') or '',
+            'score': repo.get('stargazers_count') or 0,
+            'comments': repo.get('forks_count') or 0,
+            'age_hours': round((now - created.timestamp()) / 3600, 1),
+            'url': repo['html_url'],
         })
     return items
 
@@ -249,6 +283,7 @@ SOURCES = {
         'stackoverflow': fetch_stackoverflow,
         'devto': fetch_devto,
         'lobsters': fetch_lobsters,
+        'github': fetch_github,
         'npm': fetch_npm,
         'cargo': fetch_cargo,
     }.items()

@@ -44,9 +44,24 @@ const CARGO_CHART_PROPS = {
   ],
 };
 
+const GITHUB_CHART_PROPS = {
+  xField: 'age_hours',
+  yField: 'score',
+  sizeField: 'score',
+  xLabel: 'Age (hours)',
+  yLabel: 'Stars',
+  columns: [
+    { field: 'title', label: 'Repo', link: true },
+    { field: 'score', label: 'Stars', format: 'number' },
+    { field: 'comments', label: 'Forks', format: 'number' },
+    { field: 'age_hours', label: 'Age (hours)' },
+  ],
+};
+
 const TRENDING_CHART_PROPS_BY_TAB = {
   npm: NPM_CHART_PROPS,
   cargo: CARGO_CHART_PROPS,
+  github: GITHUB_CHART_PROPS,
 };
 
 export default {
@@ -66,6 +81,7 @@ export default {
         { id: 'stackoverflow', label: 'Stack Overflow' },
         { id: 'devto', label: 'DEV' },
         { id: 'lobsters', label: 'Lobsters' },
+        { id: 'github', label: 'GitHub' },
         { id: 'npm', label: 'npm' },
         { id: 'cargo', label: 'Cargo' },
       ],
