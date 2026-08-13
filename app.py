@@ -1,3 +1,4 @@
+import json
 import os
 import random
 from datetime import date, datetime, timedelta, timezone
@@ -76,6 +77,9 @@ app.jinja_env.globals['vite_asset'] = lambda entry: vite_asset_tags(entry, app.d
 GENERATED_OG_DIR = os.path.join(app.root_path, 'static', 'generated_og')
 os.makedirs(GENERATED_OG_DIR, exist_ok=True)
 
+with open(os.path.join(app.root_path, 'package.json')) as _package_json_file:
+    APP_VERSION = json.load(_package_json_file)['version']
+
 DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///data-viz.db')
 if DATABASE_URL.startswith('postgres://'):
     # Render's connection strings use the legacy 'postgres://' scheme, which
@@ -136,7 +140,7 @@ def inject_current_user():
             current_user = db.session.get(User, int(identity))
     except Exception:
         current_user = None
-    return {'current_user': current_user, 'is_dev': not IS_PRODUCTION}
+    return {'current_user': current_user, 'is_dev': not IS_PRODUCTION, 'app_version': APP_VERSION}
 
 
 def fetch_category_members(category, member_type):
