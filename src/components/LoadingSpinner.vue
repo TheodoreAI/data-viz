@@ -32,7 +32,7 @@ export default {
 .spinner-ring {
   display: block;
   flex: none;
-  border-radius: var(--pill-radius, 9999px);
+  border-radius: 50%;
   border: 2.5px solid var(--gridline, #e2e5eb);
   border-top-color: var(--series-1, #5b5bf0);
   animation: spinner-rotate 0.7s linear infinite;

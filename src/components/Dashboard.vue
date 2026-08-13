@@ -296,7 +296,7 @@ h1 {
   font-size: 0.9rem;
 }
 .form-error {
-  color: var(--danger-text, #99231d);
+  color: #b0413e;
 }
 .quick-links {
   display: grid;
@@ -314,7 +314,7 @@ h1 {
   gap: 0.25rem;
   padding: 1rem;
   border: 1px solid var(--gridline, #d8c9a3);
-  border-radius: var(--radius-md, 0.625rem);
+  border-radius: 6px;
   text-decoration: none;
   color: inherit;
 }
@@ -372,7 +372,7 @@ h1 {
   font-size: 0.85rem;
   padding: 0.2rem 0.4rem;
   border: 1px solid var(--gridline, #d8c9a3);
-  border-radius: var(--radius-sm, 0.5rem);
+  border-radius: 4px;
   background: var(--surface-1, #fcfcfb);
   color: inherit;
 }
@@ -422,13 +422,13 @@ h1 {
   gap: 0.75rem;
   padding: 0.5rem;
   border: 1px solid var(--gridline, #d8c9a3);
-  border-radius: var(--radius-md, 0.625rem);
+  border-radius: 6px;
 }
 .saved-thumb {
   width: 48px;
   height: 48px;
   object-fit: cover;
-  border-radius: var(--radius-sm, 0.5rem);
+  border-radius: 4px;
   flex: none;
   background: var(--surface-1, #fcfcfb);
 }
@@ -457,14 +457,14 @@ h1 {
   flex: none;
   background: transparent;
   border: 1px solid var(--gridline, #d8c9a3);
-  color: var(--danger-text, #99231d);
-  border-radius: var(--radius-sm, 0.5rem);
+  color: #b0413e;
+  border-radius: 4px;
   padding: 0.3rem 0.7rem;
   font-size: 0.78rem;
   cursor: pointer;
 }
 .remove-button:disabled {
-  opacity: 0.4;
+  opacity: 0.6;
   cursor: default;
 }
 </style>

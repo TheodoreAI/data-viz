@@ -453,11 +453,11 @@ h1 {
   font-size: 0.9rem;
 }
 .form-error {
-  color: var(--danger-text, #99231d);
+  color: #b0413e;
 }
 .composer {
   border: 1px solid var(--gridline, #d8c9a3);
-  border-radius: var(--radius-md, 0.625rem);
+  border-radius: 6px;
   padding: 0.75rem;
   margin-bottom: 2rem;
 }
@@ -469,17 +469,12 @@ h1 {
   line-height: 1.6;
   padding: 0.75rem;
   border: 1px solid var(--gridline, #d8c9a3);
-  border-radius: var(--radius-sm, 0.5rem);
+  border-radius: 4px;
   background: var(--surface-1, #fcfcfb);
   color: inherit;
   box-sizing: border-box;
   max-height: 60vh;
   overflow-y: auto;
-}
-.composer textarea:focus {
-  outline: none;
-  border-color: var(--series-1, #2f6690);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--series-1, #2f6690) 18%, transparent);
 }
 @media (max-width: 480px) {
   .composer textarea {
@@ -493,13 +488,13 @@ h1 {
   margin-top: 0.6rem;
   padding: 0.4rem 0.5rem;
   border: 1px solid var(--gridline, #d8c9a3);
-  border-radius: var(--radius-sm, 0.5rem);
+  border-radius: 4px;
 }
 .attached-thumb {
   width: 32px;
   height: 32px;
   object-fit: cover;
-  border-radius: var(--radius-sm, 0.5rem);
+  border-radius: 4px;
   flex: none;
 }
 .attached-title {
@@ -526,7 +521,7 @@ h1 {
   width: 64px;
   height: 64px;
   object-fit: cover;
-  border-radius: var(--radius-sm, 0.5rem);
+  border-radius: 4px;
   border: 1px solid var(--gridline, #d8c9a3);
 }
 .attached-image-status {
@@ -541,7 +536,7 @@ h1 {
   width: 2rem;
   height: 2rem;
   border: 1px solid var(--gridline, #d8c9a3);
-  border-radius: var(--radius-sm, 0.5rem);
+  border-radius: 4px;
   cursor: pointer;
   color: var(--series-1, #2f6690);
 }
@@ -567,7 +562,7 @@ h1 {
   font-size: 0.82rem;
   padding: 0.3rem 0.4rem;
   border: 1px solid var(--gridline, #d8c9a3);
-  border-radius: var(--radius-sm, 0.5rem);
+  border-radius: 4px;
   background: var(--surface-1, #fcfcfb);
   color: inherit;
   max-width: 55%;
@@ -580,25 +575,19 @@ h1 {
   color: var(--text-secondary, #6b5d47);
 }
 .char-count.over {
-  color: var(--danger-text, #99231d);
+  color: #b0413e;
 }
 .post-button {
   background: var(--series-1, #2f6690);
   color: #fff;
   border: none;
-  border-radius: var(--radius-sm, 0.5rem);
+  border-radius: 4px;
   padding: 0.4rem 0.9rem;
   font-size: 0.85rem;
   cursor: pointer;
-  font-weight: 700;
-  box-shadow: var(--shadow-raised, none);
-  transition: opacity 0.15s ease, transform 0.1s cubic-bezier(0.32, 0.72, 0, 1);
-}
-.post-button:active:not(:disabled) {
-  transform: scale(0.98);
 }
 .post-button:disabled {
-  opacity: 0.4;
+  opacity: 0.5;
   cursor: default;
 }
 .post-list {
@@ -616,7 +605,7 @@ h1 {
   background: var(--card-bg, #fff);
   border: none;
   border-radius: var(--card-radius, 16px);
-  box-shadow: var(--shadow-card, 0 8px 24px rgba(20, 23, 31, 0.08));
+  box-shadow: 0 8px 24px rgba(20, 23, 31, 0.08);
   opacity: 0;
   transform: translateY(12px);
   transition: opacity 0.5s ease, transform 0.5s ease;
@@ -635,7 +624,7 @@ h1 {
 .post-avatar {
   width: 40px;
   height: 40px;
-  border-radius: var(--pill-radius, 9999px);
+  border-radius: 50%;
   flex: none;
   background: var(--gridline, #e2e5eb);
 }
@@ -685,7 +674,7 @@ h1 {
   width: 100%;
   max-height: 360px;
   object-fit: cover;
-  border-radius: var(--card-radius, 0.875rem);
+  border-radius: 12px;
   margin-top: 0.6rem;
 }
 .shared-item {
@@ -695,7 +684,7 @@ h1 {
   margin-top: 0.6rem;
   padding: 0.5rem;
   border: 1px solid var(--gridline, #d8c9a3);
-  border-radius: var(--card-radius, 0.875rem);
+  border-radius: 12px;
   text-decoration: none;
   color: inherit;
 }
@@ -706,7 +695,7 @@ h1 {
   width: 40px;
   height: 40px;
   object-fit: cover;
-  border-radius: var(--radius-sm, 0.5rem);
+  border-radius: 4px;
   flex: none;
 }
 .shared-info {
@@ -734,7 +723,7 @@ h1 {
   background: transparent;
   border: 1px solid var(--gridline, #d8c9a3);
   color: var(--series-1, #2f6690);
-  border-radius: var(--radius-sm, 0.5rem);
+  border-radius: 4px;
   padding: 0.25rem 0.6rem;
   font-size: 0.75rem;
   cursor: pointer;
@@ -742,14 +731,14 @@ h1 {
 .remove-button {
   background: transparent;
   border: 1px solid var(--gridline, #d8c9a3);
-  color: var(--danger-text, #99231d);
-  border-radius: var(--radius-sm, 0.5rem);
+  color: #b0413e;
+  border-radius: 4px;
   padding: 0.25rem 0.6rem;
   font-size: 0.75rem;
   cursor: pointer;
 }
 .remove-button:disabled {
-  opacity: 0.4;
+  opacity: 0.6;
   cursor: default;
 }
 .load-more {
@@ -757,13 +746,13 @@ h1 {
   margin: 1rem auto 0;
   background: transparent;
   border: 1px solid var(--gridline, #d8c9a3);
-  border-radius: var(--radius-sm, 0.5rem);
+  border-radius: 4px;
   padding: 0.4rem 1rem;
   font-size: 0.82rem;
   cursor: pointer;
 }
 .load-more:disabled {
-  opacity: 0.4;
+  opacity: 0.6;
   cursor: default;
 }
 </style>

@@ -82,10 +82,10 @@ export default {
 .search-input {
   width: 100%;
   box-sizing: border-box;
-  background: var(--card-bg, #ffffff);
-  border: 1px solid var(--gridline, #d8c9a3);
-  color: var(--text-primary, #0d2e30);
-  border-radius: var(--radius-md, 0.625rem);
+  background: var(--surface);
+  border: 1px solid var(--olive);
+  color: var(--ink);
+  border-radius: 10px;
   padding: 0.5rem 0.75rem;
   font-family: inherit;
   font-size: 0.9rem;
@@ -93,11 +93,11 @@ export default {
 }
 .search-input:focus {
   outline: none;
-  border-color: var(--series-1, #0068d9);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--series-1, #0068d9) 18%, transparent);
+  border-color: var(--blue);
+  box-shadow: 0 0 0 2px var(--blue-faint);
 }
 .search-input:disabled {
-  opacity: 0.4;
+  opacity: 0.6;
   cursor: default;
 }
 .search-results {
@@ -109,12 +109,12 @@ export default {
   list-style: none;
   margin: 0;
   padding: 0.35rem;
-  background: var(--card-bg, #ffffff);
-  border: 1px solid var(--gridline, #d8c9a3);
-  border-radius: var(--card-radius, 0.875rem);
+  background: var(--surface);
+  border: 1px solid var(--olive);
+  border-radius: 12px;
   max-height: 260px;
   overflow-y: auto;
-  box-shadow: var(--shadow-raised, 0 6px 16px rgba(63, 51, 38, 0.18));
+  box-shadow: 0 6px 16px rgba(63, 51, 38, 0.18);
 }
 .search-results li button {
   display: block;
@@ -122,8 +122,8 @@ export default {
   text-align: left;
   background: none;
   border: none;
-  border-radius: var(--radius-md, 0.625rem);
-  color: var(--text-primary, #0d2e30);
+  border-radius: 8px;
+  color: var(--ink);
   font-family: inherit;
   font-size: 0.85rem;
   padding: 0.45rem 0.75rem;
@@ -131,7 +131,7 @@ export default {
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 .search-results li button:hover {
-  background: var(--series-1-fill, color-mix(in srgb, #0068d9 24%, transparent));
-  color: var(--series-1, #0068d9);
+  background: var(--blue-faint);
+  color: var(--blue);
 }
 </style>

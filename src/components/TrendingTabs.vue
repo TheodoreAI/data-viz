@@ -160,7 +160,7 @@ export default {
   background: transparent;
   border: 1px solid var(--gridline, #e2e5eb);
   color: var(--text-secondary, #6b5d47);
-  border-radius: var(--pill-radius, 9999px);
+  border-radius: 999px;
   padding: 0.35rem 0.9rem;
   font-family: inherit;
   font-size: 0.8rem;
@@ -181,6 +181,6 @@ export default {
   font-size: 0.9rem;
 }
 .form-error {
-  color: var(--danger-text, #99231d);
+  color: #b0413e;
 }
 </style>

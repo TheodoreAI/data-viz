@@ -85,10 +85,10 @@ h1 {
 }
 .confirmation {
   font-size: 0.9rem;
-  color: var(--emphasis-text, #207b37);
-  background: color-mix(in srgb, var(--emphasis, #34c759) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--emphasis, #34c759) 30%, transparent);
-  border-radius: var(--radius-sm, 0.5rem);
+  color: var(--text-primary, inherit);
+  background: rgba(58, 122, 78, 0.12);
+  border: 1px solid rgba(58, 122, 78, 0.4);
+  border-radius: 4px;
   padding: 0.75rem 0.9rem;
 }
 .auth-form {
@@ -107,21 +107,19 @@ h1 {
   font-size: 1rem;
   padding: 0.55rem 0.7rem;
   border: 1px solid var(--gridline, #d8c9a3);
-  border-radius: var(--radius-md, 0.625rem);
+  border-radius: 4px;
   background: var(--surface-1, #fcfcfb);
   color: inherit;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .field input:focus {
-  outline: none;
-  border-color: var(--series-1, #2f6690);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--series-1, #2f6690) 18%, transparent);
+  outline: 2px solid var(--series-1, #2f6690);
+  outline-offset: 1px;
 }
 .form-error {
-  background: color-mix(in srgb, var(--danger, #cc2f26) 10%, transparent);
-  color: var(--danger-text, #99231d);
-  border: 1px solid color-mix(in srgb, var(--danger, #cc2f26) 30%, transparent);
-  border-radius: var(--radius-sm, 0.5rem);
+  background: rgba(176, 65, 62, 0.12);
+  color: #b0413e;
+  border: 1px solid rgba(176, 65, 62, 0.4);
+  border-radius: 4px;
   padding: 0.6rem 0.8rem;
   font-size: 0.85rem;
   margin: 0;
@@ -129,22 +127,16 @@ h1 {
 .submit-button {
   margin-top: 0.5rem;
   background: var(--series-1, #2f6690);
-  color: var(--accent-contrast, #fff);
+  color: #fff;
   border: none;
-  border-radius: var(--radius-md, 0.625rem);
+  border-radius: 4px;
   padding: 0.65rem 1rem;
   font-size: 0.95rem;
   font-family: inherit;
-  font-weight: 700;
   cursor: pointer;
-  box-shadow: var(--shadow-raised, none);
-  transition: opacity 0.15s ease, transform 0.1s cubic-bezier(0.32, 0.72, 0, 1);
-}
-.submit-button:active:not(:disabled) {
-  transform: scale(0.98);
 }
 .submit-button:disabled {
-  opacity: 0.4;
+  opacity: 0.6;
   cursor: default;
 }
 .auth-switch {
