@@ -164,20 +164,20 @@ export default {
 <style scoped>
 .viz-title-row h1 {
   font-size: 1.1rem;
-  margin: 0 0 0.75rem;
+  margin: 0 0 0.5rem;
 }
 .trending-tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  gap: 0.4rem;
+  margin-bottom: 0.6rem;
 }
 .trending-tab {
   background: transparent;
   border: 1px solid var(--gridline, #e2e5eb);
   color: var(--text-secondary, #6b5d47);
   border-radius: 999px;
-  padding: 0.35rem 0.9rem;
+  padding: 0.3rem 0.75rem;
   font-family: inherit;
   font-size: 0.8rem;
   cursor: pointer;

@@ -261,7 +261,7 @@ p {
 .viz-root {
     background: var(--surface-1);
     color: var(--text-primary);
-    padding: 1.5rem;
+    padding: 1.1rem 1.25rem;
     max-width: 780px;
     margin: 0 auto;
 }
@@ -274,7 +274,7 @@ p {
 .viz-root .subtitle {
     color: var(--text-secondary);
     font-size: 0.85rem;
-    margin: 0 0 1rem;
+    margin: 0 0 0.6rem;
 }
 
 .viz-root .viz-header {
@@ -343,7 +343,7 @@ p {
 .viz-root .data-table th,
 .viz-root .data-table td {
     text-align: left;
-    padding: 0.5rem 0.6rem;
+    padding: 0.4rem 0.5rem;
     border-bottom: 1px solid var(--gridline);
 }
 

@@ -267,15 +267,15 @@ export default {
 }
 .feed-header {
   flex: none;
-  padding: 1rem 1.25rem 0.5rem;
-  margin: 0.75rem 0;
+  padding: 0.75rem 1.1rem;
+  margin: 0.5rem 0 0.4rem;
   background: var(--card-bg, #fff);
   border: 1px solid var(--gridline, #e1e0d9);
   border-radius: var(--card-radius, 16px);
 }
 .topic-select {
   display: block;
-  margin-top: 0.6rem;
+  margin-top: 0.5rem;
   border: 1px solid var(--gridline, #e1e0d9);
   background: var(--card-bg, #fff);
   color: var(--text-primary, inherit);
@@ -298,12 +298,12 @@ export default {
 }
 .feed-header h1 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
 }
 .subtitle {
   color: var(--text-secondary, #52514e);
   font-size: 0.8rem;
-  margin: 0.15rem 0 0;
+  margin: 0.1rem 0 0;
 }
 .feed-card {
   flex: 1;
@@ -329,21 +329,21 @@ export default {
 }
 .feed-card-body {
   flex: 1;
-  padding: 1rem 1.25rem;
+  padding: 0.85rem 1.1rem;
 }
 .feed-card-body-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 0.75rem;
-  margin: 0 0 0.5rem;
+  margin: 0 0 0.4rem;
 }
 .feed-card-body h2 {
   margin: 0;
 }
 .feed-card-footer {
   flex: none;
-  padding: 0.75rem 1.25rem;
+  padding: 0.6rem 1.1rem;
   border-top: 1px solid var(--gridline, #e1e0d9);
 }
 .read-more-link {
