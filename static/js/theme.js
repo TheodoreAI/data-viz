@@ -16,7 +16,7 @@
     button.setAttribute('aria-label', label);
     button.setAttribute('title', label);
 
-    var color = theme === 'dark' ? '#0f1115' : '#f2f2f7';
+    var color = theme === 'dark' ? '#1c1c1e' : '#f2f2f7';
     document.querySelectorAll('meta[name="theme-color"]').forEach(function (meta) {
       meta.removeAttribute('media');
       meta.setAttribute('content', color);
