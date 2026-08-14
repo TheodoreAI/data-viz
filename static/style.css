@@ -284,6 +284,12 @@ p {
     gap: 1rem;
 }
 
+.viz-root .view-toggle {
+    flex: none;
+    display: flex;
+    gap: 0.4rem;
+}
+
 .viz-root .table-toggle {
     flex: none;
     background: transparent;
@@ -301,6 +307,12 @@ p {
     color: var(--series-1);
 }
 
+.viz-root .table-toggle.active {
+    background: var(--series-1);
+    border-color: var(--series-1);
+    color: var(--surface-1);
+}
+
 .viz-root .axis-label {
     fill: var(--muted);
     font-size: 11px;
@@ -309,6 +321,28 @@ p {
 .viz-root .gridline {
     stroke: var(--gridline);
     stroke-width: 1;
+}
+
+.viz-root .bar {
+    fill: var(--series-1-fill);
+    stroke: var(--series-1);
+    stroke-width: 1.5;
+}
+
+.viz-root a:hover .bar,
+.viz-root .bar:hover {
+    fill: var(--series-1);
+    cursor: pointer;
+}
+
+.viz-root .bar-label {
+    fill: var(--text-primary);
+    font-size: 12px;
+}
+
+.viz-root .bar-value {
+    fill: var(--text-secondary);
+    font-size: 11px;
 }
 
 .chart-scroll {

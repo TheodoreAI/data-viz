@@ -24,7 +24,11 @@ export default {
       margin: { top: 20, right: 20, bottom: 40, left: 70 },
       width: 720 - 70 - 20,
       height: 420 - 20 - 40,
-      showTable: true,
+      barHeight: 28,
+      barGap: 10,
+      barLeftMargin: 160,
+      barRightMargin: 60,
+      view: 'table',
       tooltip: {
         visible: false,
         x: 0,
@@ -66,6 +70,21 @@ export default {
     sortedByY() {
       return [...this.items].sort((a, b) => b[this.yField] - a[this.yField]);
     },
+    barChartHeight() {
+      return this.sortedByY.length * (this.barHeight + this.barGap) + this.barGap;
+    },
+    barScale() {
+      return scaleLinear()
+        .domain([0, max(this.items, i => i[this.yField]) * 1.05 || 1])
+        .range([0, 720 - this.barLeftMargin - this.barRightMargin]);
+    },
+    bars() {
+      return this.sortedByY.map((item, i) => ({
+        ...item,
+        barWidth: this.barScale(item[this.yField]),
+        barY: this.barGap + i * (this.barHeight + this.barGap),
+      }));
+    },
   },
   methods: {
     formatValue(value, format) {
@@ -74,6 +93,9 @@ export default {
     bubbleLabel(item) {
       return `${item.title}, ${item[this.yField].toLocaleString()} ${this.yLabel.toLowerCase()}, ${item[this.xField]} ${this.xLabel.toLowerCase()}`;
     },
+    barLabel(item) {
+      return `${item.title}, ${item[this.yField].toLocaleString()} ${this.yLabel.toLowerCase()}`;
+    },
     showTooltipAt(x, y, item) {
       this.tooltip.visible = true;
       this.tooltip.x = x + 14;
@@ -81,6 +103,21 @@ export default {
       this.tooltip.html =
         `<div class="t-title">${item.title}</div>` +
         `<div class="t-meta">${item[this.yField].toLocaleString()} ${this.yLabel.toLowerCase()} · ${item[this.xField]} ${this.xLabel.toLowerCase()}</div>`;
+    },
+    showBarTooltipAt(x, y, item) {
+      this.tooltip.visible = true;
+      this.tooltip.x = x + 14;
+      this.tooltip.y = y - 10;
+      this.tooltip.html =
+        `<div class="t-title">${item.title}</div>` +
+        `<div class="t-meta">${item[this.yField].toLocaleString()} ${this.yLabel.toLowerCase()}</div>`;
+    },
+    onBarHover(event, item) {
+      this.showBarTooltipAt(event.pageX, event.pageY, item);
+    },
+    onBarTouch(event, item) {
+      const touch = event.touches[0];
+      this.showBarTooltipAt(touch.pageX, touch.pageY, item);
     },
     onHover(event, item) {
       this.showTooltipAt(event.pageX, event.pageY, item);
@@ -100,14 +137,18 @@ export default {
   <div class="viz-body">
     <div class="viz-header">
       <p class="subtitle">
-        Bubble size is {{ sizeField }}; y-position is {{ yLabel.toLowerCase() }}; x-position is {{ xLabel.toLowerCase() }}.
+        <template v-if="view === 'bubble'">Bubble size is {{ sizeField }}; y-position is {{ yLabel.toLowerCase() }}; x-position is {{ xLabel.toLowerCase() }}.</template>
+        <template v-else-if="view === 'bars'">Ranked by {{ yLabel.toLowerCase() }}.</template>
+        <template v-else>Table view, ranked by {{ yLabel.toLowerCase() }}.</template>
       </p>
-      <button type="button" class="table-toggle" @click="showTable = !showTable">
-        {{ showTable ? 'View as chart' : 'View as table' }}
-      </button>
+      <div class="view-toggle" role="tablist" aria-label="Chart view">
+        <button type="button" class="table-toggle" :class="{ active: view === 'bubble' }" @click="view = 'bubble'">Bubble</button>
+        <button type="button" class="table-toggle" :class="{ active: view === 'bars' }" @click="view = 'bars'">Bars</button>
+        <button type="button" class="table-toggle" :class="{ active: view === 'table' }" @click="view = 'table'">Table</button>
+      </div>
     </div>
 
-    <div v-if="!showTable" class="chart-scroll">
+    <div v-if="view === 'bubble'" class="chart-scroll">
       <svg width="720" height="420" viewBox="0 0 720 420">
         <line
           v-for="tick in yTicks"
@@ -168,7 +209,43 @@ export default {
       </svg>
     </div>
 
-    <table v-else class="data-table">
+    <div v-else-if="view === 'bars'" class="chart-scroll">
+      <svg width="720" :height="barChartHeight" :viewBox="`0 0 720 ${barChartHeight}`">
+        <g v-for="b in bars" :key="b.title">
+          <text
+            class="bar-label"
+            :x="barLeftMargin - 10"
+            :y="b.barY + barHeight / 2 + 4"
+            text-anchor="end"
+          >{{ b.title.length > 22 ? b.title.slice(0, 21) + '…' : b.title }}</text>
+          <a
+            :href="b.url"
+            target="_blank"
+            rel="noopener"
+            :aria-label="barLabel(b)"
+            @mousemove="onBarHover($event, b)"
+            @touchstart="onBarTouch($event, b)"
+            @mouseleave="hideTooltip"
+          >
+            <rect
+              class="bar"
+              :x="barLeftMargin"
+              :y="b.barY"
+              :width="b.barWidth"
+              :height="barHeight"
+              rx="4"
+            />
+            <text
+              class="bar-value"
+              :x="barLeftMargin + b.barWidth + 8"
+              :y="b.barY + barHeight / 2 + 4"
+            >{{ b[yField].toLocaleString() }}</text>
+          </a>
+        </g>
+      </svg>
+    </div>
+
+    <table v-else-if="view === 'table'" class="data-table">
       <thead>
         <tr>
           <th v-for="col in columns" :key="col.field" scope="col">{{ col.label }}</th>
