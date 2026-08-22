@@ -116,15 +116,6 @@ body {
     min-height: 100dvh;
 }
 
-body.graph-fullscreen {
-    overflow: hidden;
-}
-
-body.graph-fullscreen .navbar,
-body.graph-fullscreen .footer {
-    display: none;
-}
-
 body.feed-active .footer {
     display: none;
 }
