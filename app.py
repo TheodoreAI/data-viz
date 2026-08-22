@@ -47,6 +47,12 @@ from saved_items import delete_saved_item
 from saved_items import list_saved_items
 from saved_items import save_item
 from trending import SOURCES as TRENDING_SOURCES
+from uv_tracking import add_reading as add_uv_reading
+from uv_tracking import end_session as end_uv_session
+from uv_tracking import get_open_session as get_open_uv_session
+from uv_tracking import get_session as get_uv_session
+from uv_tracking import list_sessions as list_uv_sessions
+from uv_tracking import start_session as start_uv_session
 from vite import vite_asset_tags
 
 load_dotenv()
@@ -632,6 +638,140 @@ def api_trending(source):
         return jsonify({'error': f"Couldn't reach {source} right now. Please try again."}), 502
 
     return jsonify({'source': source, 'items': items})
+
+
+@app.route('/uv-index')
+def uv_index_page():
+    return render_template('uv_index.html')
+
+
+OPEN_METEO_URL = 'https://api.open-meteo.com/v1/forecast'
+
+
+def parse_lat_lon(args):
+    """Returns (lat, lon, error_response). error_response is None on success."""
+    try:
+        lat = float(args.get('lat', ''))
+        lon = float(args.get('lon', ''))
+    except ValueError:
+        return None, None, (jsonify({'error': 'lat and lon are required numbers.'}), 400)
+    if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+        return None, None, (
+            jsonify({'error': 'lat must be between -90 and 90, lon between -180 and 180.'}), 400
+        )
+    return lat, lon, None
+
+
+def fetch_current_uv(lat, lon, include_daily=False):
+    """Raises requests.RequestException on failure."""
+    params = {'latitude': lat, 'longitude': lon, 'current': 'uv_index', 'timezone': 'auto'}
+    if include_daily:
+        params['daily'] = 'uv_index_max'
+        params['forecast_days'] = 7
+    response = requests.get(OPEN_METEO_URL, params=params)
+    response.raise_for_status()
+    return response.json()
+
+
+@app.route('/api/uv-index')
+@limiter.limit('30 per minute')
+def api_uv_index():
+    lat, lon, error = parse_lat_lon(request.args)
+    if error:
+        return error
+
+    try:
+        data = fetch_current_uv(lat, lon, include_daily=True)
+    except requests.RequestException:
+        return jsonify({'error': "Couldn't reach the weather service right now. Please try again."}), 502
+
+    current = data.get('current', {})
+    daily = data.get('daily', {})
+    return jsonify({
+        'lat': data.get('latitude', lat),
+        'lon': data.get('longitude', lon),
+        'timezone': data.get('timezone'),
+        'current': {
+            'uvIndex': current.get('uv_index'),
+            'time': current.get('time'),
+        },
+        'daily': [
+            {'date': date_str, 'uvIndexMax': uv_max}
+            for date_str, uv_max in zip(daily.get('time', []), daily.get('uv_index_max', []))
+        ],
+    })
+
+
+@app.route('/api/uv-sessions', methods=['GET', 'POST'])
+@jwt_required()
+def api_uv_sessions():
+    user = db.session.get(User, int(get_jwt_identity()))
+    if not user:
+        return jsonify({'error': 'Not found'}), 404
+
+    if request.method == 'POST':
+        session = start_uv_session(user)
+        return jsonify(session.to_dict()), 201
+
+    sessions = list_uv_sessions(user)
+    return jsonify([s.to_dict() for s in sessions])
+
+
+@app.route('/api/uv-sessions/<int:session_id>', methods=['GET'])
+@jwt_required()
+def api_uv_session_detail(session_id):
+    user = db.session.get(User, int(get_jwt_identity()))
+    if not user:
+        return jsonify({'error': 'Not found'}), 404
+
+    session = get_uv_session(user, session_id)
+    if not session:
+        return jsonify({'error': 'Not found'}), 404
+    return jsonify(session.to_dict(include_readings=True))
+
+
+@app.route('/api/uv-sessions/<int:session_id>/readings', methods=['POST'])
+@jwt_required()
+@limiter.limit('60 per minute')
+def api_uv_session_add_reading(session_id):
+    user = db.session.get(User, int(get_jwt_identity()))
+    if not user:
+        return jsonify({'error': 'Not found'}), 404
+
+    session = get_open_uv_session(user, session_id)
+    if not session:
+        return jsonify({'error': 'Session not found or already ended.'}), 404
+
+    lat, lon, error = parse_lat_lon(request.get_json(silent=True) or {})
+    if error:
+        return error
+
+    try:
+        data = fetch_current_uv(lat, lon)
+    except requests.RequestException:
+        return jsonify({'error': "Couldn't reach the weather service right now. Please try again."}), 502
+
+    uv_index = data.get('current', {}).get('uv_index')
+    if uv_index is None:
+        return jsonify({'error': "Couldn't get a UV reading for that location."}), 502
+
+    reading = add_uv_reading(session, lat, lon, uv_index)
+    return jsonify(reading.to_dict()), 201
+
+
+@app.route('/api/uv-sessions/<int:session_id>/end', methods=['POST'])
+@jwt_required()
+def api_uv_session_end(session_id):
+    user = db.session.get(User, int(get_jwt_identity()))
+    if not user:
+        return jsonify({'error': 'Not found'}), 404
+
+    session = get_open_uv_session(user, session_id)
+    if not session:
+        return jsonify({'error': 'Session not found or already ended.'}), 404
+
+    session = end_uv_session(session)
+    return jsonify(session.to_dict())
 
 
 @app.errorhandler(404)
