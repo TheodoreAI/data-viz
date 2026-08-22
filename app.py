@@ -61,7 +61,6 @@ WIKIPEDIA_TOP_VIEWED_URL = (
 WIKIPEDIA_HEADERS = {'User-Agent': 'data-viz-app/1.0 (mateoej12@gmail.com)'}
 EXCLUDED_TITLES = {'Main_Page', 'Special:Search'}
 BUBBLE_COUNT = 12
-GRAPH_LINKS_LIMIT = 5
 
 TOPIC_CATEGORIES = {
     'art': 'Category:Art',
@@ -197,23 +196,6 @@ def fetch_random_article(topic=None, exclude_titles=()):
     return response.json()
 
 
-def fetch_article_links(title, limit=GRAPH_LINKS_LIMIT):
-    response = requests.get(WIKIPEDIA_ACTION_API_URL, headers=WIKIPEDIA_HEADERS, params={
-        'action': 'query',
-        'prop': 'links',
-        'titles': title,
-        'plnamespace': 0,
-        'pllimit': 500,
-        'format': 'json',
-    })
-    response.raise_for_status()
-    pages = response.json()['query']['pages']
-    page = next(iter(pages.values()), {})
-    links = [link['title'] for link in page.get('links', [])]
-    random.shuffle(links)
-    return links[:limit]
-
-
 @app.route('/')
 def hello_world():
     default_topic = 'computer-science'
@@ -236,18 +218,6 @@ def login_page():
 @app.route('/profile')
 def profile_page():
     return render_template('profile.html')
-
-
-@app.route('/dashboard')
-def dashboard_page():
-    try:
-        verify_jwt_in_request(optional=True)
-        identity = get_jwt_identity()
-    except Exception:
-        identity = None
-    if not identity:
-        return redirect(url_for('login_page'))
-    return render_template('dashboard.html')
 
 
 def current_admin():
@@ -493,116 +463,6 @@ def api_random_article():
         return jsonify(fetch_random_article(topic, exclude_titles))
     except requests.RequestException:
         return jsonify({'error': WIKIPEDIA_UNAVAILABLE_ERROR}), 502
-
-
-@app.route('/nodes')
-def nodes():
-    default_topic = 'computer-science'
-    try:
-        article = fetch_random_article(default_topic)
-        title = article['title']
-        links = fetch_article_links(title)
-    except requests.RequestException:
-        return render_template(
-            'error.html', title='Something went wrong', message=WIKIPEDIA_UNAVAILABLE_ERROR
-        ), 502
-    return render_template(
-        'graph.html', title=title, links=links, topics=TOPIC_CATEGORIES, default_topic=default_topic
-    )
-
-
-@app.route('/api/article-links')
-def api_article_links():
-    title = request.args.get('title', '')
-    try:
-        return jsonify({'title': title, 'links': fetch_article_links(title)})
-    except requests.RequestException:
-        return jsonify({'error': WIKIPEDIA_UNAVAILABLE_ERROR}), 502
-
-
-@app.route('/api/article-search')
-def api_article_search():
-    query = request.args.get('q', '').strip()
-    if not query:
-        return jsonify([])
-    try:
-        response = requests.get(WIKIPEDIA_ACTION_API_URL, headers=WIKIPEDIA_HEADERS, params={
-            'action': 'opensearch',
-            'search': query,
-            'limit': 8,
-            'namespace': 0,
-            'format': 'json',
-        })
-        response.raise_for_status()
-        titles = response.json()[1]
-    except requests.RequestException:
-        return jsonify({'error': WIKIPEDIA_UNAVAILABLE_ERROR}), 502
-    return jsonify(titles)
-
-
-@app.route('/api/article-summary')
-def api_article_summary():
-    title = request.args.get('title', '')
-    try:
-        response = requests.get(
-            WIKIPEDIA_SUMMARY_URL.format(title=quote(title.replace(' ', '_'))),
-            headers=WIKIPEDIA_HEADERS,
-        )
-    except requests.RequestException:
-        return jsonify({'error': WIKIPEDIA_UNAVAILABLE_ERROR}), 502
-    if not response.ok:
-        return jsonify({'title': title, 'extract': '', 'thumbnail': None})
-    summary = response.json()
-    return jsonify({
-        'title': summary.get('title', title),
-        'extract': summary.get('extract', ''),
-        'thumbnail': summary.get('thumbnail', {}).get('source'),
-    })
-
-
-def fetch_top_viewed_titles(year, month, day, limit=10):
-    """Lightweight version of the /trending fetch — just title/views/url, no
-    per-article summary lookups, so it's fast enough for a dashboard widget."""
-    top_url = WIKIPEDIA_TOP_VIEWED_URL.format(year=year, month=f'{month:02d}', day=day)
-    response = requests.get(top_url, headers=WIKIPEDIA_HEADERS, timeout=10)
-    response.raise_for_status()
-    top_articles = response.json()['items'][0]['articles']
-
-    articles = []
-    for entry in top_articles:
-        title = entry['article']
-        if title in EXCLUDED_TITLES or title.startswith('Special:') or title.startswith('Wikipedia:'):
-            continue
-        articles.append({
-            'title': title.replace('_', ' '),
-            'views': entry['views'],
-            'url': f'https://en.wikipedia.org/wiki/{quote(title)}',
-        })
-        if len(articles) == limit:
-            break
-    return articles
-
-
-@app.route('/api/top-articles')
-def api_top_articles():
-    yesterday = date.today() - timedelta(days=1)
-    year = request.args.get('year', default=yesterday.year, type=int)
-    month = request.args.get('month', default=yesterday.month, type=int)
-    day = request.args.get('day', type=int)  # omitted -> whole-month aggregate
-
-    try:
-        articles = fetch_top_viewed_titles(year, month, f'{day:02d}' if day else 'all-days')
-    except requests.RequestException:
-        return jsonify({'error': "Couldn't load article data for that period."}), 502
-
-    return jsonify({'year': year, 'month': month, 'day': day, 'articles': articles})
-
-
-@app.route('/api/stats')
-def api_stats():
-    return jsonify({
-        'totalUsers': User.query.count(),
-    })
 
 
 @app.route('/api/admin/users')

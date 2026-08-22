@@ -18,11 +18,9 @@ export default defineConfig(({ command }) => ({
       input: {
         bubbles: 'src/entries/bubbles.js',
         home: 'src/entries/home.js',
-        graph: 'src/entries/graph.js',
         register: 'src/entries/register.js',
         login: 'src/entries/login.js',
         profile: 'src/entries/profile.js',
-        dashboard: 'src/entries/dashboard.js',
         essays: 'src/entries/essays.js',
         admin: 'src/entries/admin.js',
         'forgot-password': 'src/entries/forgot-password.js',
