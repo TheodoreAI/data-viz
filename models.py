@@ -63,6 +63,70 @@ class SavedItem(db.Model):
         }
 
 
+class UvSession(db.Model):
+    """A single tracked jog/walk: a run of UvReadings from start to stop."""
+    __tablename__ = 'uv_session'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+    started_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    ended_at = db.Column(db.DateTime, nullable=True)
+
+    readings = db.relationship(
+        'UvReading', backref='session', order_by='UvReading.recorded_at', cascade='all, delete-orphan'
+    )
+
+    def to_dict(self, include_readings=False):
+        duration_minutes = None
+        if self.ended_at and self.started_at:
+            duration_minutes = round((self.ended_at - self.started_at).total_seconds() / 60, 1)
+        uv_values = [r.uv_index for r in self.readings]
+        data = {
+            'id': self.id,
+            'startedAt': self.started_at.isoformat() if self.started_at else None,
+            'endedAt': self.ended_at.isoformat() if self.ended_at else None,
+            'durationMinutes': duration_minutes,
+            'readingCount': len(uv_values),
+            'avgUvIndex': round(sum(uv_values) / len(uv_values), 2) if uv_values else None,
+            'maxUvIndex': max(uv_values) if uv_values else None,
+            # UV-index-minutes: sum of (uv * minutes since the previous reading) across the
+            # session — a rough proxy for cumulative UV exposure, not a clinical dose unit.
+            'exposureScore': self._exposure_score(),
+        }
+        if include_readings:
+            data['readings'] = [r.to_dict() for r in self.readings]
+        return data
+
+    def _exposure_score(self):
+        if len(self.readings) < 2:
+            return None
+        total = 0.0
+        for prev, curr in zip(self.readings, self.readings[1:]):
+            minutes = (curr.recorded_at - prev.recorded_at).total_seconds() / 60
+            total += prev.uv_index * minutes
+        return round(total, 1)
+
+
+class UvReading(db.Model):
+    __tablename__ = 'uv_reading'
+
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.Integer, db.ForeignKey('uv_session.id'), nullable=False, index=True)
+    latitude = db.Column(db.Float, nullable=False)
+    longitude = db.Column(db.Float, nullable=False)
+    uv_index = db.Column(db.Float, nullable=False)
+    recorded_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'lat': self.latitude,
+            'lon': self.longitude,
+            'uvIndex': self.uv_index,
+            'recordedAt': self.recorded_at.isoformat() if self.recorded_at else None,
+        }
+
+
 class Essay(db.Model):
     __tablename__ = 'essay'
 

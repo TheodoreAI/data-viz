@@ -15,6 +15,7 @@
   <div id="nav-links" class="nav-links">
     <a href="{{ url_for('hello_world') }}" class="{{ 'active' if request.path == url_for('hello_world') }}" {{ 'aria-current="page"' if request.path == url_for('hello_world') }}>Home</a>
     <a href="{{ url_for('trending_page') }}" class="{{ 'active' if request.path == url_for('trending_page') }}" {{ 'aria-current="page"' if request.path == url_for('trending_page') }}>Trending</a>
+    <a href="{{ url_for('uv_index_page') }}" class="{{ 'active' if request.path == url_for('uv_index_page') }}" {{ 'aria-current="page"' if request.path == url_for('uv_index_page') }}>UV Index</a>
     {% if current_user %}
       <a href="{{ url_for('essays_page') }}" class="{{ 'active' if request.path == url_for('essays_page') }}" {{ 'aria-current="page"' if request.path == url_for('essays_page') }}>Essays</a>
       {% if current_user.is_admin %}
