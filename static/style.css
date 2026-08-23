@@ -251,9 +251,9 @@ p {
     width: 42%;
 }
 
-.nav-toggle-open .nav-toggle-bar:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.nav-toggle-open .nav-toggle-bar:nth-child(1) { width: 60%; margin: 0 auto; transform: translateY(7px) rotate(45deg); }
 .nav-toggle-open .nav-toggle-bar:nth-child(2) { opacity: 0; }
-.nav-toggle-open .nav-toggle-bar:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+.nav-toggle-open .nav-toggle-bar:nth-child(3) { width: 60%; margin: 0 auto; transform: translateY(-7px) rotate(-45deg); }
 
 .footer {
     text-align: center;
@@ -442,6 +442,8 @@ button, .tab, .save-btn, .filter-pill {
     }
     .navbar a.active {
         background: var(--olive-soft);
+        color: var(--text-primary);
+        border-bottom-color: var(--gridline);
     }
     .navbar a.active::before {
         color: var(--olive);
