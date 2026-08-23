@@ -643,6 +643,8 @@ def api_trending(source):
 
 @app.route('/uv-index')
 def uv_index_page():
+    if not current_admin():
+        return redirect(url_for('login_page'))
     return render_template('uv_index.html')
 
 
