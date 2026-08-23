@@ -403,7 +403,7 @@ export default {
 <template>
   <section class="jog-tracker">
     <div class="jt-head">
-      <h1>Jog Tracker</h1>
+      <h1>UV Run</h1>
       <span v-if="tracking" class="status-chip status-chip-live">Tracking</span>
       <span v-else-if="loggedIn" class="status-chip status-chip-idle">Idle</span>
       <span v-if="tracking && wakeLockActive" class="wake-hint" title="Your screen will stay on while this jog is tracking">
@@ -417,11 +417,14 @@ export default {
     </p>
 
     <template v-else-if="loggedIn">
-      <p class="subtitle">
+      <details class="tracking-notes">
+        <summary>GPS, UV sampling &amp; screen lock</summary>
+        <p class="subtitle">
         Tracks your route with GPS while this page stays open and samples the UV index every ~400m or few minutes.
         On supported iPhones (iOS 16.4+) this keeps the screen from dimming while a jog is active — Safari still
         stops location updates if the app is fully backgrounded or the phone is manually locked.
-      </p>
+        </p>
+      </details>
 
       <div v-if="tracking" class="panel reading-panel">
         <div class="panel-head">Current Reading</div>
@@ -977,4 +980,78 @@ h1 {
 .past-session-detail :deep(.route-map) {
   margin-top: 0;
 }
+
+/* watchOS-inspired UV tracker skin */
+.jog-tracker {
+  --cl-bg: #000;
+  --cl-panel: #1c1c1e;
+  --cl-ink: #f5f5f7;
+  --cl-ink-soft: #98989f;
+  --cl-line: #38383a;
+  --cl-teal: #30d158;
+  --cl-teal-deep: #30d158;
+  --cl-teal-tint: rgba(48, 209, 88, 0.18);
+  --cl-crit: #ff453a;
+  --cl-crit-tint: rgba(255, 69, 58, 0.16);
+  max-width: 430px;
+  padding: 1.5rem 1rem 2rem;
+  background: #000;
+  color: var(--cl-ink);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
+}
+.jt-head { gap: 0.55rem; margin-bottom: 0.35rem; }
+.jog-tracker h1 { font-size: 1.9rem; font-weight: 700; letter-spacing: -0.04em; }
+.status-chip { font-family: inherit; font-size: 0.78rem; font-weight: 600; letter-spacing: 0; padding: 0.32rem 0.62rem; border-radius: 999px; }
+.status-chip-idle { background: #2c2c2e; color: #d1d1d6; }
+.wake-hint { font-family: inherit; font-size: 0.72rem; }
+
+.tracking-notes {
+  margin: 0 0 1.5rem;
+  padding: 0.95rem 1rem;
+  background: var(--cl-panel);
+  border-radius: 18px;
+}
+.tracking-notes summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  color: var(--cl-ink);
+  font-size: 0.92rem;
+  font-weight: 600;
+  list-style: none;
+}
+.tracking-notes summary::-webkit-details-marker { display: none; }
+.tracking-notes summary::after {
+  content: "›";
+  color: var(--cl-ink-soft);
+  font-size: 1.4rem;
+  font-weight: 400;
+  line-height: 0.8;
+  transition: transform 0.15s ease;
+}
+.tracking-notes[open] summary::after { transform: rotate(90deg); }
+.tracking-notes .subtitle { font-family: inherit; font-size: 0.85rem; margin: 0.85rem 0 0; line-height: 1.45; }
+
+.panel { border: none; border-radius: 22px; margin-bottom: 1.15rem; }
+.panel-head { padding: 0.9rem 1rem 0.65rem; border-bottom: none; font-family: inherit; font-size: 0.78rem; letter-spacing: 0; text-transform: none; color: var(--cl-ink); }
+.panel-body { padding: 0.2rem 1rem 1.15rem; }
+.primary-reading-value { font-family: inherit; font-size: 4.4rem; font-weight: 700; letter-spacing: -0.08em; }
+.band-tag, .history-badge { border-radius: 999px; letter-spacing: 0; }
+.sub-metric { font-size: 0.9rem; }
+.tracker-controls { margin-bottom: 1.15rem; }
+.btn { width: 100%; min-height: 58px; font-family: inherit; font-size: 1.05rem; font-weight: 700; letter-spacing: 0; text-transform: none; border-radius: 999px; }
+.btn-start { background: var(--cl-teal); color: #000; }
+.btn-stop { background: var(--cl-crit); color: #fff; }
+.metric { padding: 1rem; }
+.metric-val, .peak-value, .history-time, .history-badge { font-family: inherit; font-weight: 700; }
+.metric-val { font-size: 1.6rem; letter-spacing: -0.04em; }
+.peak-row, .exposure-bar-wrap, .past-session-detail { padding: 1rem; }
+.exposure-bar { height: 10px; }
+.legend-item i { border-radius: 50%; }
+.btn-link { border-top-color: #38383a; padding: 0.95rem 1rem; }
+.history-day { border-bottom-color: #38383a; }
+.history-day-header { padding: 1rem; }
+.history-day-label { font-size: 0.95rem; font-weight: 700; }
+.history-row { padding: 0.8rem 1rem; border-top-color: #38383a; }
 </style>

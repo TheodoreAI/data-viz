@@ -379,7 +379,7 @@ button, .tab, .save-btn, .filter-pill {
         position: fixed;
         right: 1.1rem;
         bottom: 1.1rem;
-        z-index: 35;
+        z-index: 1120;
         width: 3.25rem;
         height: 3.25rem;
         border-radius: 50%;
@@ -402,7 +402,7 @@ button, .tab, .save-btn, .filter-pill {
         opacity: 0;
         pointer-events: none;
         transition: opacity 0.25s ease;
-        z-index: 25;
+        z-index: 1100;
     }
     .nav-backdrop.nav-backdrop-open {
         opacity: 1;
@@ -414,7 +414,7 @@ button, .tab, .save-btn, .filter-pill {
         right: 0;
         bottom: 0;
         left: auto;
-        z-index: 30;
+        z-index: 1110;
         flex-direction: column;
         align-items: stretch;
         gap: 0;
@@ -486,7 +486,7 @@ button, .tab, .save-btn, .filter-pill {
         color: var(--olive);
     }
     .footer {
-        border-top-width: 2px;
+        display: none;
     }
 }
 
