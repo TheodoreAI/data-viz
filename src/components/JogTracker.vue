@@ -1,5 +1,6 @@
 <script>
 import LoadingSpinner from './LoadingSpinner.vue';
+import RouteMap from './RouteMap.vue';
 import { parseJsonResponse } from '../api';
 
 // Standard WHO/EPA UV index bands.
@@ -111,7 +112,7 @@ function readCookie(name) {
 
 export default {
   name: 'JogTracker',
-  components: { LoadingSpinner },
+  components: { LoadingSpinner, RouteMap },
   data() {
     return {
       loggedIn: null, // null = checking, true/false once known
@@ -160,20 +161,8 @@ export default {
       }
       return Math.round(total * 10) / 10;
     },
-    pathBounds() {
-      if (!this.readings.length) return null;
-      const lats = this.readings.map(r => r.lat);
-      const lons = this.readings.map(r => r.lon);
-      return {
-        minLat: Math.min(...lats), maxLat: Math.max(...lats),
-        minLon: Math.min(...lons), maxLon: Math.max(...lons),
-      };
-    },
     justEnded() {
       return !this.tracking && !!this.session?.endedAt;
-    },
-    distanceMeters() {
-      return distanceOf(this.readings);
     },
     summaryStats() {
       return summarize(this.readings, this.session);
@@ -218,43 +207,6 @@ export default {
         clearInterval(this.clockId);
         this.clockId = null;
       }
-    },
-    boundsOf(readings) {
-      const lats = readings.map(r => r.lat);
-      const lons = readings.map(r => r.lon);
-      return {
-        minLat: Math.min(...lats), maxLat: Math.max(...lats),
-        minLon: Math.min(...lons), maxLon: Math.max(...lons),
-      };
-    },
-    projectToSvg(reading, width, height, padding, readings = this.readings) {
-      const b = readings.length ? this.boundsOf(readings) : null;
-      if (!b) return { x: width / 2, y: height / 2 };
-      const spanLat = b.maxLat - b.minLat || 0.0005;
-      const spanLon = b.maxLon - b.minLon || 0.0005;
-      const x = padding + ((reading.lon - b.minLon) / spanLon) * (width - padding * 2);
-      // Latitude increases northward; SVG y increases downward, so flip it.
-      const y = padding + (1 - (reading.lat - b.minLat) / spanLat) * (height - padding * 2);
-      return { x, y };
-    },
-    pathPoints(width, height, padding) {
-      return this.readings.map(r => this.projectToSvg(r, width, height, padding));
-    },
-    pathD(width, height, padding) {
-      const points = this.pathPoints(width, height, padding);
-      if (!points.length) return '';
-      return points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
-    },
-    pathDFor(readings, width, height, padding) {
-      if (readings.length < 2) return '';
-      const b = this.boundsOf(readings);
-      const spanLat = b.maxLat - b.minLat || 0.0005;
-      const spanLon = b.maxLon - b.minLon || 0.0005;
-      return readings.map((r, i) => {
-        const x = padding + ((r.lon - b.minLon) / spanLon) * (width - padding * 2);
-        const y = padding + (1 - (r.lat - b.minLat) / spanLat) * (height - padding * 2);
-        return `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
-      }).join(' ');
     },
     async loadHistory() {
       this.historyLoading = true;
@@ -492,17 +444,7 @@ export default {
         <button type="button" class="btn-secondary route-toggle" @click="showRoute = !showRoute">
           {{ showRoute ? 'Hide route' : 'View route map' }}
         </button>
-        <svg v-if="showRoute && readings.length > 1" class="path-map" viewBox="0 0 320 240" preserveAspectRatio="xMidYMid meet">
-          <path :d="pathD(320, 240, 24)" class="path-line" />
-          <circle
-            v-for="(r, i) in readings"
-            :key="r.id ?? i"
-            :cx="projectToSvg(r, 320, 240, 24).x"
-            :cy="projectToSvg(r, 320, 240, 24).y"
-            r="4"
-            :fill="bandFor(r.uvIndex)?.color"
-          />
-        </svg>
+        <RouteMap v-if="showRoute && readings.length >= 1" :readings="readings" :band-for="bandFor" />
       </section>
 
       <section v-if="history.length" class="history">
@@ -538,22 +480,11 @@ export default {
         </div>
 
         <div v-if="selectedPastSession" class="past-session-detail">
-          <svg
-            v-if="selectedPastSession.readings.length > 1"
-            class="path-map"
-            viewBox="0 0 320 240"
-            preserveAspectRatio="xMidYMid meet"
-          >
-            <path :d="pathDFor(selectedPastSession.readings, 320, 240, 24)" class="path-line" />
-            <circle
-              v-for="(r, i) in selectedPastSession.readings"
-              :key="r.id ?? i"
-              :cx="projectToSvg(r, 320, 240, 24, selectedPastSession.readings).x"
-              :cy="projectToSvg(r, 320, 240, 24, selectedPastSession.readings).y"
-              r="4"
-              :fill="bandFor(r.uvIndex)?.color"
-            />
-          </svg>
+          <RouteMap
+            v-if="selectedPastSession.readings.length >= 1"
+            :readings="selectedPastSession.readings"
+            :band-for="bandFor"
+          />
         </div>
       </section>
     </template>
@@ -649,17 +580,6 @@ h3 {
   font-size: 0.72rem;
   color: var(--text-secondary, #6b5d47);
 }
-.path-map {
-  width: 100%;
-  max-width: 400px;
-  height: auto;
-  aspect-ratio: 4 / 3;
-  background: var(--surface-1, #fcfcfb);
-  border: 1px solid var(--gridline, #d8c9a3);
-  border-radius: 12px;
-  display: block;
-  margin-top: 1rem;
-}
 .session-summary {
   margin-bottom: 1.5rem;
 }
@@ -730,13 +650,6 @@ h3 {
 .route-toggle {
   font-size: 0.8rem;
   padding: 0.45rem 0.9rem;
-}
-.path-line {
-  fill: none;
-  stroke: var(--text-secondary, #98989f);
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 .history-day {
   margin-bottom: 0.6rem;
