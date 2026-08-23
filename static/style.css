@@ -431,18 +431,13 @@ button, .tab, .save-btn, .filter-pill {
         top: calc(0.6rem + env(safe-area-inset-top));
         right: 0.9rem;
         margin-left: 0;
-        width: 2.25rem;
-        height: 2.25rem;
+        width: 2.75rem;
+        height: 2.75rem;
+        min-height: 0;
         border: 1px solid var(--gridline);
         border-radius: 50%;
         background: var(--card-bg);
         z-index: 1;
-    }
-    .theme-toggle-label {
-        display: block;
-        font-size: 1.1rem;
-        font-weight: 500;
-        color: var(--text-secondary);
     }
     .navbar a {
         display: grid;
