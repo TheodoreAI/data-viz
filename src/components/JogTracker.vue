@@ -743,6 +743,7 @@ h1 {
   padding: 0.75rem 1.4rem;
   cursor: pointer;
   border: none;
+  border-radius: 6px;
 }
 .btn-icon {
   width: 13px;

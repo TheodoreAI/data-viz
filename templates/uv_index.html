@@ -13,3 +13,30 @@
 {{ vite_asset('uv-index') }}
 
 {% include '_footer.html' %}
+
+<style>
+  body.uv-index-page {
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+  }
+
+  body.uv-index-page #app {
+    flex: 1;
+    background: #f7f6f3;
+  }
+
+  body.uv-index-page .footer {
+    margin-top: auto;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) body.uv-index-page #app {
+      background: #171613;
+    }
+  }
+
+  :root[data-theme="dark"] body.uv-index-page #app {
+    background: #171613;
+  }
+</style>
