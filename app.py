@@ -683,7 +683,7 @@ def fetch_current_uv(lat, lon):
 @jwt_required()
 def api_uv_sessions():
     user = db.session.get(User, int(get_jwt_identity()))
-    if not user:
+    if not user or not user.is_admin:
         return jsonify({'error': 'Not found'}), 404
 
     if request.method == 'POST':
@@ -698,7 +698,7 @@ def api_uv_sessions():
 @jwt_required()
 def api_uv_session_detail(session_id):
     user = db.session.get(User, int(get_jwt_identity()))
-    if not user:
+    if not user or not user.is_admin:
         return jsonify({'error': 'Not found'}), 404
 
     if request.method == 'DELETE':
@@ -717,7 +717,7 @@ def api_uv_session_detail(session_id):
 @limiter.limit('60 per minute')
 def api_uv_session_add_reading(session_id):
     user = db.session.get(User, int(get_jwt_identity()))
-    if not user:
+    if not user or not user.is_admin:
         return jsonify({'error': 'Not found'}), 404
 
     session = get_open_uv_session(user, session_id)
@@ -745,7 +745,7 @@ def api_uv_session_add_reading(session_id):
 @jwt_required()
 def api_uv_session_end(session_id):
     user = db.session.get(User, int(get_jwt_identity()))
-    if not user:
+    if not user or not user.is_admin:
         return jsonify({'error': 'Not found'}), 404
 
     session = get_open_uv_session(user, session_id)

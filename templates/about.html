@@ -25,11 +25,14 @@
       <h2>Trending</h2>
       <p>See what's rising right now across Wikipedia, Hacker News, GitHub, npm, Cargo, and more.</p>
     </li>
-    <li>
-      <h2>Collection</h2>
-      <p>Everything saved from Home lives in your profile, ready to revisit or remove.</p>
-    </li>
   </ul>
+
+  <section class="about-account" aria-labelledby="account-heading">
+    <div class="kicker">With an account</div>
+    <h2 id="account-heading">Keep your discoveries</h2>
+    <p>Register to save articles to your personal collection and write essays. Your profile keeps those things connected to you across visits.</p>
+    <p class="about-data-note">We store your username, email address, securely hashed password, optional display name and bio, plus account timestamps. We also store articles you save and essays you write.</p>
+  </section>
 
   <hr class="caption-rule">
   <p class="about-meta">Data Viz v{{ app_version }}</p>
@@ -114,6 +117,32 @@
   font-family: Inter, sans-serif;
   font-size: 0.85rem;
   line-height: 1.6;
+}
+.about-account {
+  margin: 0 0 2rem;
+  padding: 1.25rem 1.4rem;
+  border: 1px solid var(--mp-frame);
+}
+.about-account .kicker {
+  margin-bottom: 0.4rem;
+}
+.about-account h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.45rem;
+}
+.about-account p {
+  margin: 0;
+  color: var(--mp-ink-soft);
+  font-family: Inter, sans-serif;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+.about-account .about-data-note {
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--mp-frame);
+  font-size: 0.78rem;
 }
 .caption-rule {
   border: none;
