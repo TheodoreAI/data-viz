@@ -458,6 +458,15 @@ export default {
 .slide-down-enter-from { transform: translateY(-24px); opacity: 0; }
 .slide-down-leave-to { transform: translateY(24px); opacity: 0; }
 
+@media (max-width: 640px) {
+  .feed-root {
+    height: 100dvh;
+  }
+  .swipe-hint-up {
+    top: 0.25rem;
+  }
+}
+
 @media (min-width: 641px) {
   .feed-root {
     height: auto;
