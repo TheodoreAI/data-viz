@@ -397,8 +397,11 @@ export default {
 }
 .feed-card-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
-  gap: 1.5rem;
+  align-items: center;
+  row-gap: 0.5rem;
+  column-gap: 1.25rem;
   font-family: Inter, sans-serif;
 }
 .read-more-link {
