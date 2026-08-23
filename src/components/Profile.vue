@@ -49,6 +49,11 @@ export default {
       deleteConfirmText: '',
       deleteErrors: {},
       deletingInFlight: false,
+
+      savedItems: [],
+      savedItemsLoading: false,
+      savedItemsError: false,
+      removingId: null,
     };
   },
   computed: {
@@ -71,6 +76,7 @@ export default {
       }
       if (!response.ok) throw new Error(`Request failed: ${response.status}`);
       this.user = await response.json();
+      this.loadSavedItems();
     } catch {
       this.error = true;
     } finally {
@@ -78,6 +84,35 @@ export default {
     }
   },
   methods: {
+    async loadSavedItems() {
+      this.savedItemsLoading = true;
+      this.savedItemsError = false;
+      try {
+        const response = await fetch('/api/saved-items', { credentials: 'same-origin' });
+        if (!response.ok) throw new Error(`Request failed: ${response.status}`);
+        this.savedItems = await response.json();
+      } catch {
+        this.savedItemsError = true;
+      } finally {
+        this.savedItemsLoading = false;
+      }
+    },
+    async removeSavedItem(id) {
+      if (this.removingId) return;
+      this.removingId = id;
+      try {
+        const response = await fetch(`/api/saved-items/${id}`, {
+          method: 'DELETE',
+          credentials: 'same-origin',
+          headers: { 'X-CSRF-TOKEN': readCookie('csrf_access_token') },
+        });
+        if (response.ok) {
+          this.savedItems = this.savedItems.filter(item => item.id !== id);
+        }
+      } finally {
+        this.removingId = null;
+      }
+    },
     startEditingBio() {
       this.bioDraft = this.user.bio;
       this.bioErrors = {};
@@ -280,6 +315,14 @@ export default {
           type="button"
           role="tab"
           class="tab-button"
+          :class="{ active: activeTab === 'collection' }"
+          :aria-selected="activeTab === 'collection'"
+          @click="activeTab = 'collection'"
+        >Collection</button>
+        <button
+          type="button"
+          role="tab"
+          class="tab-button"
           :class="{ active: activeTab === 'security' }"
           :aria-selected="activeTab === 'security'"
           @click="activeTab = 'security'"
@@ -353,6 +396,33 @@ export default {
         <button type="button" class="logout-button" :disabled="loggingOut" @click="logout">
           {{ loggingOut ? 'Logging out…' : 'Log out' }}
         </button>
+      </section>
+
+      <section v-show="activeTab === 'collection'" role="tabpanel" class="settings-section">
+        <h2>Saved Collection</h2>
+        <LoadingSpinner v-if="savedItemsLoading" size="sm" inline />
+        <p v-else-if="savedItemsError" class="status form-error">Couldn't load your collection. Please try again.</p>
+        <p v-else-if="!savedItems.length" class="status">Nothing saved yet — look for the save button on an article.</p>
+        <ul v-else class="saved-list">
+          <li v-for="item in savedItems" :key="item.id" class="saved-item">
+            <img v-if="item.imageUrl" class="saved-thumb" :src="item.imageUrl" alt="" width="52" height="52">
+            <div v-else class="saved-thumb saved-thumb-empty" aria-hidden="true"></div>
+            <div class="saved-body">
+              <a :href="item.sourceUrl" target="_blank" rel="noopener" class="saved-title">{{ item.title }}</a>
+              <p v-if="item.subtitle" class="saved-subtitle">{{ item.subtitle }}</p>
+            </div>
+            <button
+              type="button"
+              class="saved-remove"
+              :disabled="removingId === item.id"
+              :aria-label="`Remove ${item.title} from your collection`"
+              @click="removeSavedItem(item.id)"
+            >
+              <LoadingSpinner v-if="removingId === item.id" size="sm" inline />
+              <svg v-else viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
+            </button>
+          </li>
+        </ul>
       </section>
 
       <section v-show="activeTab === 'security'" role="tabpanel" class="settings-section">
@@ -690,6 +760,79 @@ h1 {
   cursor: pointer;
 }
 .danger-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.saved-list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.saved-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem;
+  border: 1px solid var(--gridline, #d8c9a3);
+  border-radius: 6px;
+}
+.saved-thumb {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  border-radius: 4px;
+  object-fit: cover;
+  background: var(--surface-1, #fcfcfb);
+}
+.saved-thumb-empty {
+  border: 1px dashed var(--gridline, #d8c9a3);
+}
+.saved-body {
+  min-width: 0;
+  flex: 1;
+}
+.saved-title {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: inherit;
+  text-decoration: none;
+  overflow-wrap: break-word;
+}
+.saved-title:hover {
+  text-decoration: underline;
+}
+.saved-subtitle {
+  margin: 0.2rem 0 0;
+  font-size: 0.78rem;
+  color: var(--text-secondary, #6b5d47);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.saved-remove {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--gridline, #d8c9a3);
+  border-radius: 50%;
+  color: var(--text-secondary, #6b5d47);
+  cursor: pointer;
+}
+.saved-remove svg {
+  width: 14px;
+  height: 14px;
+}
+.saved-remove:disabled {
   opacity: 0.6;
   cursor: default;
 }
