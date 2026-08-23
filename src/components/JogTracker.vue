@@ -198,6 +198,13 @@ export default {
   },
   methods: {
     bandFor,
+    bandTagStyle(band) {
+      if (!band) return {};
+      return {
+        color: band.color,
+        background: `color-mix(in srgb, ${band.color} 16%, var(--cl-panel))`,
+      };
+    },
     startClock() {
       this.now = Date.now();
       this.clockId = setInterval(() => { this.now = Date.now(); }, 1000);
@@ -357,7 +364,12 @@ export default {
 
 <template>
   <section class="jog-tracker">
-    <h1>Jog Tracker</h1>
+    <div class="jt-head">
+      <h1>Jog Tracker</h1>
+      <span v-if="tracking" class="status-chip status-chip-live">Tracking</span>
+      <span v-else-if="loggedIn" class="status-chip status-chip-idle">Idle</span>
+    </div>
+
     <p v-if="loggedIn === false" class="status">
       <a href="/login">Log in</a> to track UV exposure during a run.
     </p>
@@ -368,88 +380,87 @@ export default {
         On iPhone, keep this tab open and the screen on — Safari stops location updates once the app is backgrounded.
       </p>
 
+      <div v-if="tracking" class="panel reading-panel">
+        <div class="panel-head">Current Reading</div>
+        <div class="panel-body">
+          <div class="primary-reading">
+            <span class="primary-reading-value" :style="{ color: latestBand?.color }">{{ latestReading?.uvIndex ?? '—' }}</span>
+            <span v-if="latestBand" class="band-tag" :style="bandTagStyle(latestBand)">{{ latestBand.label.toUpperCase() }}</span>
+          </div>
+          <div class="sub-metric">UV Index · elapsed {{ elapsedClock }}</div>
+        </div>
+      </div>
+
       <div class="tracker-controls">
-        <button v-if="!tracking" type="button" class="btn-primary" :disabled="starting" @click="startTracking">
+        <button v-if="!tracking" type="button" class="btn btn-start" :disabled="starting" @click="startTracking">
           <svg class="btn-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l10-5.5z" fill="currentColor" /></svg>
           {{ starting ? 'Starting…' : 'Start Jog' }}
         </button>
-        <button v-else type="button" class="btn-stop" @click="stopTracking">
+        <button v-else type="button" class="btn btn-stop" @click="stopTracking">
           <svg class="btn-icon" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="3" width="10" height="10" rx="1.5" fill="currentColor" /></svg>
-          Stop Jog
+          Stop Session
         </button>
       </div>
 
       <p v-if="error" class="status form-error" role="alert">{{ error }}</p>
       <p v-if="geoError" class="status form-error" role="alert">{{ geoError }}</p>
+      <p v-if="tracking && readings.length < 2" class="status">Walking/running a bit before stats fill in…</p>
 
-      <template v-if="tracking">
-        <div class="timer" role="timer">{{ elapsedClock }}</div>
-        <div class="live-stats">
-          <div class="live-stat">
-            <span class="live-stat-value" :style="{ color: latestBand?.color }">{{ latestReading?.uvIndex ?? '—' }}</span>
-            <span class="live-stat-label">Current UV{{ latestBand ? ` · ${latestBand.label}` : '' }}</span>
+      <section v-if="justEnded && summaryStats" class="panel session-summary">
+        <div class="panel-head">Session Summary</div>
+        <div class="metric-grid">
+          <div class="metric">
+            <div class="metric-val">{{ summaryStats.durationMinutes?.toFixed(0) ?? '—' }}</div>
+            <div class="metric-label">Duration (min)</div>
           </div>
-          <div class="live-stat">
-            <span class="live-stat-value">{{ exposureScore }}</span>
-            <span class="live-stat-label">UV-index·min exposure</span>
+          <div class="metric">
+            <div class="metric-val">{{ summaryStats.distanceMiles.toFixed(2) }}</div>
+            <div class="metric-label">Miles</div>
           </div>
-        </div>
-        <p v-if="readings.length < 2" class="status">Walking/running a bit before stats fill in…</p>
-      </template>
-
-      <section v-else-if="justEnded && summaryStats" class="session-summary">
-        <h2>Jog Summary</h2>
-        <div class="summary-grid">
-          <div class="summary-stat">
-            <span class="summary-value">{{ summaryStats.durationMinutes?.toFixed(0) ?? '—' }}</span>
-            <span class="summary-label">Minutes</span>
+          <div class="metric">
+            <div class="metric-val">{{ summaryStats.exposureScore.toFixed(1) }}</div>
+            <div class="metric-label">Exposure score</div>
           </div>
-          <div class="summary-stat">
-            <span class="summary-value">{{ summaryStats.distanceMiles.toFixed(2) }}</span>
-            <span class="summary-label">Miles covered</span>
-          </div>
-          <div class="summary-stat">
-            <span class="summary-value" :style="{ color: summaryStats.maxUvBand?.color }">{{ summaryStats.maxUv }}</span>
-            <span class="summary-label">Peak UV{{ summaryStats.maxUvBand ? ` · ${summaryStats.maxUvBand.label}` : '' }}</span>
-          </div>
-          <div class="summary-stat">
-            <span class="summary-value">{{ summaryStats.avgUv }}</span>
-            <span class="summary-label">Average UV</span>
-          </div>
-          <div class="summary-stat summary-stat-wide">
-            <span class="summary-value">{{ summaryStats.exposureScore }}</span>
-            <span class="summary-label">Total UV exposure (UV-index·min)</span>
+          <div class="metric">
+            <div class="metric-val">{{ summaryStats.avgUv }}</div>
+            <div class="metric-label">Average UV</div>
           </div>
         </div>
 
-        <div v-if="summaryStats.bandMinutes.length" class="band-breakdown">
-          <h3>Time by UV level</h3>
-          <div class="band-bar">
+        <div class="peak-row">
+          <span class="peak-label">Peak UV</span>
+          <span class="peak-value" :style="{ color: summaryStats.maxUvBand?.color }">{{ summaryStats.maxUv }}</span>
+          <span v-if="summaryStats.maxUvBand" class="band-tag" :style="bandTagStyle(summaryStats.maxUvBand)">{{ summaryStats.maxUvBand.label.toUpperCase() }}</span>
+        </div>
+
+        <div v-if="summaryStats.bandMinutes.length" class="exposure-bar-wrap">
+          <div class="exposure-bar-title">Time by UV level</div>
+          <div class="exposure-bar">
             <span
               v-for="b in summaryStats.bandMinutes"
               :key="b.label"
-              class="band-bar-segment"
+              class="exposure-bar-segment"
               :style="{ width: `${(b.minutes / summaryStats.durationMinutes) * 100}%`, background: b.color }"
               :title="`${b.label}: ${b.minutes.toFixed(1)} min`"
             ></span>
           </div>
-          <div class="band-breakdown-legend">
+          <div class="exposure-legend">
             <span v-for="b in summaryStats.bandMinutes" :key="b.label" class="legend-item">
-              <span class="legend-swatch" :style="{ background: b.color }"></span>
-              {{ b.label }} · {{ b.minutes.toFixed(0) }} min
+              <i :style="{ background: b.color }"></i>{{ b.label }} {{ b.minutes.toFixed(0) }}m
             </span>
           </div>
         </div>
 
-        <button type="button" class="btn-secondary route-toggle" @click="showRoute = !showRoute">
+        <button type="button" class="btn-link route-toggle" @click="showRoute = !showRoute">
           {{ showRoute ? 'Hide route' : 'View route map' }}
         </button>
-        <RouteMap v-if="showRoute && readings.length >= 1" :readings="readings" :band-for="bandFor" />
+        <div v-if="showRoute && readings.length >= 1" class="route-map-frame">
+          <RouteMap :readings="readings" :band-for="bandFor" />
+        </div>
       </section>
 
-      <section v-if="history.length" class="history">
-        <h3>Past sessions</h3>
-        <LoadingSpinner v-if="historyLoading" size="sm" inline />
+      <section v-if="history.length" class="panel history">
+        <div class="panel-head">Session Log</div>
         <div v-for="day in historyByDay" :key="day.key" class="history-day">
           <button type="button" class="history-day-header" @click="toggleDay(day.key)">
             <span class="history-day-label">{{ day.label }}</span>
@@ -460,23 +471,26 @@ export default {
               <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </button>
-          <ul v-if="expandedDays.has(day.key)" class="history-list">
-            <li v-for="s in day.sessions" :key="s.id" class="history-item">
-              <button type="button" class="history-row" @click="viewPastSession(s.id)">
-                <span class="history-date">{{ formatTime(s.startedAt) }}</span>
-                <span class="history-meta">
-                  {{ s.durationMinutes ?? '—' }} min · avg UV {{ s.avgUvIndex ?? '—' }} · max UV {{ s.maxUvIndex ?? '—' }}
-                </span>
+          <LoadingSpinner v-if="historyLoading" size="sm" inline />
+          <div v-if="expandedDays.has(day.key)">
+            <div v-for="s in day.sessions" :key="s.id" class="history-row">
+              <button type="button" class="history-row-main" @click="viewPastSession(s.id)">
+                <div class="history-time">{{ formatTime(s.startedAt) }}</div>
+                <div class="history-meta">{{ s.durationMinutes ?? '—' }} min · avg UV {{ s.avgUvIndex ?? '—' }} · max UV {{ s.maxUvIndex ?? '—' }}</div>
               </button>
+              <span v-if="bandFor(s.maxUvIndex)" class="history-badge" :style="bandTagStyle(bandFor(s.maxUvIndex))">{{ s.maxUvIndex ?? '—' }}</span>
               <button
                 type="button"
                 class="delete-button"
                 :disabled="deletingId === s.id"
                 aria-label="Delete session"
                 @click="deleteSession(s.id)"
-              >{{ deletingId === s.id ? 'Deleting…' : 'Delete' }}</button>
-            </li>
-          </ul>
+              >
+                <LoadingSpinner v-if="deletingId === s.id" size="sm" inline />
+                <svg v-else viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
+              </button>
+            </div>
+          </div>
         </div>
 
         <div v-if="selectedPastSession" class="past-session-detail">
@@ -492,167 +506,317 @@ export default {
 </template>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
 .jog-tracker {
+  --cl-bg: #eef1f4;
+  --cl-panel: #ffffff;
+  --cl-ink: #16202b;
+  --cl-ink-soft: #5b6b7a;
+  --cl-line: #d7dde3;
+  --cl-teal: #0f7d8c;
+  --cl-teal-deep: #0a5a66;
+  --cl-teal-tint: #e3f3f0;
+  --cl-crit: #b8323a;
+  --cl-crit-tint: #fce9e6;
+
   max-width: 640px;
   margin: 0 auto;
   padding: 2rem 1.25rem 3rem;
+  background: var(--cl-bg);
+  color: var(--cl-ink);
+  font-family: "Space Grotesk", system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .jog-tracker {
+    --cl-bg: #10151a;
+    --cl-panel: #1a2129;
+    --cl-ink: #eef1f4;
+    --cl-ink-soft: #93a1ae;
+    --cl-line: #2b333c;
+    --cl-teal: #34c3d1;
+    --cl-teal-deep: #6fdbe6;
+    --cl-teal-tint: #123338;
+    --cl-crit: #ef7a80;
+    --cl-crit-tint: #3a1f22;
+  }
+}
+
+:root[data-theme="dark"] .jog-tracker {
+  --cl-bg: #10151a;
+  --cl-panel: #1a2129;
+  --cl-ink: #eef1f4;
+  --cl-ink-soft: #93a1ae;
+  --cl-line: #2b333c;
+  --cl-teal: #34c3d1;
+  --cl-teal-deep: #6fdbe6;
+  --cl-teal-tint: #123338;
+  --cl-crit: #ef7a80;
+  --cl-crit-tint: #3a1f22;
+}
+
+.mono {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.jt-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
 }
 h1 {
-  font-size: 1.3rem;
-  margin: 0 0 0.4rem;
-}
-h3 {
-  font-size: 0.95rem;
-  margin: 1.5rem 0 0.6rem;
-}
-.subtitle {
-  color: var(--text-secondary, #6b5d47);
-  font-size: 0.85rem;
-  margin: 0 0 1.25rem;
-  line-height: 1.4;
-}
-.status {
-  color: var(--text-secondary, #6b5d47);
-  font-size: 0.9rem;
-}
-.status a {
-  color: var(--series-1, #2f6690);
-}
-.form-error {
-  color: #b0413e;
-}
-.tracker-controls {
-  margin-bottom: 1.25rem;
-}
-.btn-primary,
-.btn-stop {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-family: inherit;
-  font-size: 0.85rem;
-  padding: 0.6rem 1.3rem;
-  border-radius: 999px;
-  cursor: pointer;
-  border: 1px solid var(--series-1, #2f6690);
-}
-.btn-icon {
-  width: 14px;
-  height: 14px;
-  flex: none;
-}
-.btn-primary {
-  background: var(--series-1, #2f6690);
-  color: #fff;
-}
-.btn-primary:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-.btn-stop {
-  background: #b0413e;
-  border-color: #b0413e;
-  color: #fff;
-}
-.timer {
-  font-size: 2.75rem;
+  font-size: 1.15rem;
   font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-primary, inherit);
-  margin-bottom: 1rem;
+  letter-spacing: -0.01em;
+  margin: 0;
 }
-.live-stats {
-  display: flex;
-  gap: 1.5rem;
-  flex-wrap: wrap;
-  margin-bottom: 1.25rem;
-}
-.live-stat {
-  display: flex;
-  flex-direction: column;
-}
-.live-stat-value {
-  font-size: 1.6rem;
-  font-weight: 700;
-  color: var(--text-primary, inherit);
-}
-.live-stat-label {
-  font-size: 0.72rem;
-  color: var(--text-secondary, #6b5d47);
-}
-.session-summary {
-  margin-bottom: 1.5rem;
-}
-.session-summary h2 {
-  font-size: 1rem;
-  margin: 0 0 1rem;
-}
-.summary-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem 1.5rem;
-  margin-bottom: 1.5rem;
-}
-.summary-stat {
-  display: flex;
-  flex-direction: column;
-}
-.summary-stat-wide {
-  grid-column: 1 / -1;
-}
-.summary-value {
-  font-size: 1.6rem;
-  font-weight: 700;
-  color: var(--text-primary, inherit);
-  line-height: 1.1;
-}
-.summary-label {
-  font-size: 0.72rem;
-  color: var(--text-secondary, #6b5d47);
-}
-.band-breakdown {
-  margin-bottom: 1.25rem;
-}
-.band-breakdown h3 {
-  font-size: 0.85rem;
-  margin: 0 0 0.6rem;
-}
-.band-bar {
-  display: flex;
-  width: 100%;
-  height: 14px;
-  border-radius: 999px;
-  overflow: hidden;
-  background: var(--gridline, #d8c9a3);
-}
-.band-bar-segment {
-  height: 100%;
-}
-.band-breakdown-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem 1rem;
-  margin-top: 0.6rem;
-  font-size: 0.78rem;
-  color: var(--text-secondary, #6b5d47);
-}
-.legend-item {
+.status-chip {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 0.26rem 0.55rem;
+  border-radius: 3px;
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
 }
-.legend-swatch {
-  width: 10px;
-  height: 10px;
-  border-radius: 2px;
+.status-chip::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.status-chip-live {
+  background: var(--cl-teal-tint);
+  color: var(--cl-teal-deep);
+}
+.status-chip-live::before {
+  background: var(--cl-teal);
+}
+.status-chip-idle {
+  background: var(--cl-line);
+  color: var(--cl-ink-soft);
+}
+.status-chip-idle::before {
+  background: var(--cl-ink-soft);
+}
+
+.subtitle {
+  color: var(--cl-ink-soft);
+  font-size: 0.83rem;
+  margin: 0 0 1.25rem;
+  line-height: 1.5;
+}
+.status {
+  color: var(--cl-ink-soft);
+  font-size: 0.85rem;
+}
+.status a {
+  color: var(--cl-teal-deep);
+}
+.form-error {
+  color: var(--cl-crit);
+}
+
+.panel {
+  background: var(--cl-panel);
+  border: 1px solid var(--cl-line);
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(22, 32, 43, 0.04);
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+.panel-head {
+  padding: 0.9rem 1.1rem;
+  border-bottom: 1px solid var(--cl-line);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cl-ink-soft);
+}
+.panel-body {
+  padding: 1.1rem 1.1rem 1.25rem;
+}
+
+.primary-reading {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.6rem;
+  margin-bottom: 0.3rem;
+}
+.primary-reading-value {
+  font-family: "IBM Plex Mono", monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 2.4rem;
+  font-weight: 600;
+  line-height: 1;
+}
+.band-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 0.2rem 0.5rem;
+  border-radius: 3px;
+  margin-bottom: 0.35rem;
+  white-space: nowrap;
+}
+.sub-metric {
+  font-size: 0.78rem;
+  color: var(--cl-ink-soft);
+}
+
+.tracker-controls {
+  margin-bottom: 1rem;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.75rem 1.4rem;
+  border-radius: 6px;
+  cursor: pointer;
+  border: none;
+}
+.btn-icon {
+  width: 13px;
+  height: 13px;
   flex: none;
 }
-.route-toggle {
-  font-size: 0.8rem;
-  padding: 0.45rem 0.9rem;
+.btn-start {
+  background: var(--cl-teal);
+  color: #fff;
 }
-.history-day {
+.btn-start:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.btn-stop {
+  background: var(--cl-crit-tint);
+  color: var(--cl-crit);
+}
+
+.session-summary {
+  margin-bottom: 1rem;
+}
+.metric-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--cl-line);
+}
+.metric {
+  background: var(--cl-panel);
+  padding: 0.95rem 1.1rem;
+}
+.metric-val {
+  font-family: "IBM Plex Mono", monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+.metric-label {
+  font-size: 0.68rem;
+  color: var(--cl-ink-soft);
+  margin-top: 0.25rem;
+}
+
+.peak-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.95rem 1.1rem;
+  border-top: 1px solid var(--cl-line);
+}
+.peak-label {
+  font-size: 0.78rem;
+  color: var(--cl-ink-soft);
+}
+.peak-value {
+  font-family: "IBM Plex Mono", monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.exposure-bar-wrap {
+  padding: 1.1rem;
+  border-top: 1px solid var(--cl-line);
+}
+.exposure-bar-title {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cl-ink-soft);
   margin-bottom: 0.6rem;
+}
+.exposure-bar {
+  display: flex;
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--cl-bg);
+  margin-bottom: 0.6rem;
+}
+.exposure-bar-segment {
+  height: 100%;
+}
+.exposure-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  font-size: 0.7rem;
+  color: var(--cl-ink-soft);
+}
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.legend-item i {
+  width: 7px;
+  height: 7px;
+  border-radius: 1px;
+  display: inline-block;
+}
+
+.btn-link {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--cl-teal-deep);
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--cl-line);
+  padding: 0.85rem 1.1rem;
+  cursor: pointer;
+}
+.route-map-frame {
+  padding: 0 1.1rem 1.1rem;
+}
+.route-map-frame :deep(.route-map) {
+  margin-top: 0;
+}
+
+.history-day {
+  border-bottom: 1px solid var(--cl-line);
+}
+.history-day:last-child {
+  border-bottom: none;
 }
 .history-day-header {
   display: flex;
@@ -660,7 +824,7 @@ h3 {
   gap: 0.6rem;
   width: 100%;
   text-align: left;
-  padding: 0.5rem 0.1rem;
+  padding: 0.8rem 1.1rem;
   background: transparent;
   border: none;
   font-family: inherit;
@@ -668,79 +832,91 @@ h3 {
   color: inherit;
 }
 .history-day-label {
-  font-weight: 700;
-  font-size: 0.9rem;
+  font-weight: 600;
+  font-size: 0.85rem;
 }
 .history-day-meta {
   flex: 1;
-  font-size: 0.78rem;
-  color: var(--text-secondary, #6b5d47);
+  font-size: 0.74rem;
+  color: var(--cl-ink-soft);
 }
 .history-day-chevron {
   width: 12px;
   height: 12px;
   flex: none;
-  color: var(--text-secondary, #6b5d47);
+  color: var(--cl-ink-soft);
   transition: transform 0.15s ease;
 }
 .history-day-chevron.open {
   transform: rotate(180deg);
 }
-.history-list {
-  list-style: none;
-  margin: 0 0 0.5rem;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-.history-item {
-  display: flex;
-  align-items: stretch;
-  gap: 0.5rem;
-}
 .history-row {
   display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 1.1rem 0.7rem 1.1rem;
+  border-top: 1px solid var(--cl-line);
+}
+.history-row-main {
   flex: 1;
   min-width: 0;
   text-align: left;
-  padding: 0.6rem 0.75rem;
-  border: 1px solid var(--gridline, #d8c9a3);
-  border-radius: 8px;
   background: transparent;
+  border: none;
   font-family: inherit;
   cursor: pointer;
   color: inherit;
+  padding: 0;
 }
-.history-row:hover {
-  border-color: var(--series-1, #2f6690);
+.history-time {
+  font-family: "IBM Plex Mono", monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.history-meta {
+  font-size: 0.72rem;
+  color: var(--cl-ink-soft);
+  margin-top: 0.15rem;
+}
+.history-badge {
+  font-family: "IBM Plex Mono", monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 3px;
+  flex: none;
 }
 .delete-button {
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
-  border: 1px solid var(--gridline, #d8c9a3);
-  color: #b0413e;
-  border-radius: 8px;
-  padding: 0.3rem 0.7rem;
-  font-size: 0.78rem;
-  font-family: inherit;
+  border: none;
+  color: var(--cl-ink-soft);
+  border-radius: 4px;
+  width: 1.6rem;
+  height: 1.6rem;
   cursor: pointer;
+}
+.delete-button svg {
+  width: 11px;
+  height: 11px;
+}
+.delete-button:hover {
+  color: var(--cl-crit);
 }
 .delete-button:disabled {
   opacity: 0.6;
   cursor: default;
 }
-.history-date {
-  font-size: 0.85rem;
-  font-weight: 700;
-}
-.history-meta {
-  font-size: 0.78rem;
-  color: var(--text-secondary, #6b5d47);
-}
 .past-session-detail {
-  margin-top: 1rem;
+  padding: 1.1rem;
+  border-top: 1px solid var(--cl-line);
+}
+.past-session-detail :deep(.route-map) {
+  margin-top: 0;
 }
 </style>
