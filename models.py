@@ -44,8 +44,8 @@ class User(db.Model):
             'displayName': self.display_name,
             'avatarUrl': f'https://api.dicebear.com/9.x/identicon/svg?seed={self.username}',
             'isAdmin': self.is_admin,
-            'createdAt': self.created_at.isoformat() if self.created_at else None,
-            'lastLoginAt': self.last_login_at.isoformat() if self.last_login_at else None,
+            'createdAt': _isoformat_utc(self.created_at),
+            'lastLoginAt': _isoformat_utc(self.last_login_at),
         }
 
 
@@ -71,7 +71,7 @@ class SavedItem(db.Model):
             'subtitle': self.subtitle,
             'imageUrl': self.image_url,
             'sourceUrl': self.source_url,
-            'createdAt': self.created_at.isoformat() if self.created_at else None,
+            'createdAt': _isoformat_utc(self.created_at),
         }
 
 
@@ -157,7 +157,7 @@ class Essay(db.Model):
             'id': self.id,
             'body': self.body,
             'imageUrl': self.image_url,
-            'createdAt': self.created_at.isoformat() if self.created_at else None,
+            'createdAt': _isoformat_utc(self.created_at),
             'author': {
                 'id': self.author.id,
                 'username': self.author.username,
