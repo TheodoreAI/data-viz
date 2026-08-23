@@ -704,7 +704,14 @@
     toggle.setAttribute('aria-label', 'Toggle dev tweak bar');
     toggle.setAttribute('aria-expanded', String(state.open));
     toggle.title = 'Dev tweak bar';
-    toggle.textContent = '🎛️';
+    toggle.innerHTML =
+      '<svg viewBox="0 0 24 24" aria-hidden="true" width="18" height="18">' +
+      '<g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">' +
+      '<path d="M4 6h9M17 6h3M4 12h3M9 12h11M4 18h13M21 18h-1"/>' +
+      '<circle cx="15" cy="6" r="2.2" fill="currentColor" stroke="none"/>' +
+      '<circle cx="6" cy="12" r="2.2" fill="currentColor" stroke="none"/>' +
+      '<circle cx="18" cy="18" r="2.2" fill="currentColor" stroke="none"/>' +
+      '</g></svg>';
 
     var panel = buildAndWire();
     panel.classList.toggle('tb-open', state.open);

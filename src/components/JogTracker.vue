@@ -418,9 +418,13 @@ export default {
 
       <div class="tracker-controls">
         <button v-if="!tracking" type="button" class="btn-primary" :disabled="starting" @click="startTracking">
-          {{ starting ? 'Starting…' : '▶ Start Jog' }}
+          <svg class="btn-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l10-5.5z" fill="currentColor" /></svg>
+          {{ starting ? 'Starting…' : 'Start Jog' }}
         </button>
-        <button v-else type="button" class="btn-stop" @click="stopTracking">■ Stop Jog</button>
+        <button v-else type="button" class="btn-stop" @click="stopTracking">
+          <svg class="btn-icon" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="3" width="10" height="10" rx="1.5" fill="currentColor" /></svg>
+          Stop Jog
+        </button>
       </div>
 
       <p v-if="error" class="status form-error" role="alert">{{ error }}</p>
@@ -510,7 +514,9 @@ export default {
             <span class="history-day-meta">
               {{ day.count }} {{ day.count === 1 ? 'jog' : 'jogs' }} · {{ day.totalMinutes.toFixed(0) }} min
             </span>
-            <span class="history-day-chevron" :class="{ open: expandedDays.has(day.key) }">▾</span>
+            <svg class="history-day-chevron" :class="{ open: expandedDays.has(day.key) }" viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
           </button>
           <ul v-if="expandedDays.has(day.key)" class="history-list">
             <li v-for="s in day.sessions" :key="s.id" class="history-item">
@@ -589,12 +595,20 @@ h3 {
 }
 .btn-primary,
 .btn-stop {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   font-family: inherit;
   font-size: 0.85rem;
   padding: 0.6rem 1.3rem;
   border-radius: 999px;
   cursor: pointer;
   border: 1px solid var(--series-1, #2f6690);
+}
+.btn-icon {
+  width: 14px;
+  height: 14px;
+  flex: none;
 }
 .btn-primary {
   background: var(--series-1, #2f6690);
@@ -750,7 +764,9 @@ h3 {
   color: var(--text-secondary, #6b5d47);
 }
 .history-day-chevron {
-  font-size: 0.75rem;
+  width: 12px;
+  height: 12px;
+  flex: none;
   color: var(--text-secondary, #6b5d47);
   transition: transform 0.15s ease;
 }

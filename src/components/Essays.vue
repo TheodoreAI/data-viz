@@ -337,13 +337,17 @@ export default {
         <div v-if="selectedSavedItem" class="attached-item">
           <img v-if="selectedSavedItem.imageUrl" :src="selectedSavedItem.imageUrl" :alt="selectedSavedItem.title" class="attached-thumb">
           <span class="attached-title">{{ selectedSavedItem.title }}</span>
-          <button type="button" class="attached-remove" @click="selectedSavedItemId = null">✕</button>
+          <button type="button" class="attached-remove" aria-label="Remove attached item" @click="selectedSavedItemId = null">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
+          </button>
         </div>
 
         <div v-if="imagePreviewUrl" class="attached-image">
           <img :src="imagePreviewUrl" alt="Selected photo" class="attached-image-preview">
           <span v-if="uploadingImage" class="attached-image-status">Uploading…</span>
-          <button type="button" class="attached-remove" :disabled="uploadingImage" @click="removeImage">✕</button>
+          <button type="button" class="attached-remove" :disabled="uploadingImage" aria-label="Remove photo" @click="removeImage">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
+          </button>
         </div>
         <p v-if="imageError" class="status form-error">{{ imageError }}</p>
 
@@ -505,11 +509,17 @@ h1 {
   white-space: nowrap;
 }
 .attached-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   border: none;
   cursor: pointer;
   color: var(--text-secondary, #6b5d47);
-  font-size: 0.85rem;
+}
+.attached-remove svg {
+  width: 12px;
+  height: 12px;
 }
 .attached-image {
   display: flex;

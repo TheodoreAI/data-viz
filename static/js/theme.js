@@ -11,7 +11,7 @@
 
   function applyTheme(theme) {
     root.setAttribute('data-theme', theme);
-    button.textContent = theme === 'dark' ? '☀️' : '🌙';
+    button.setAttribute('data-active-icon', theme === 'dark' ? 'sun' : 'moon');
     var label = theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
     button.setAttribute('aria-label', label);
     button.setAttribute('title', label);
