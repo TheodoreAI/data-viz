@@ -93,6 +93,17 @@ function formatClock(totalSeconds) {
   return hh > 0 ? `${hh}:${pad(mm)}:${pad(ss)}` : `${mm}:${pad(ss)}`;
 }
 
+function dayLabel(dateString) {
+  if (dateString === 'Unknown') return 'Unknown date';
+  const day = new Date(dateString);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+  if (day.toDateString() === today.toDateString()) return 'Today';
+  if (day.toDateString() === yesterday.toDateString()) return 'Yesterday';
+  return day.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
 function readCookie(name) {
   const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
   return match ? decodeURIComponent(match[1]) : null;
@@ -115,6 +126,7 @@ export default {
       deletingId: null,
       showRoute: false,
       now: Date.now(),
+      expandedDays: new Set(),
     };
   },
   computed: {
@@ -165,6 +177,21 @@ export default {
     },
     summaryStats() {
       return summarize(this.readings, this.session);
+    },
+    historyByDay() {
+      const groups = new Map();
+      for (const s of this.history) {
+        const key = s.startedAt ? new Date(s.startedAt).toDateString() : 'Unknown';
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(s);
+      }
+      return [...groups.entries()].map(([key, sessions]) => ({
+        key,
+        label: dayLabel(key),
+        sessions,
+        count: sessions.length,
+        totalMinutes: sessions.reduce((sum, s) => sum + (s.durationMinutes || 0), 0),
+      }));
     },
   },
   async mounted() {
@@ -233,7 +260,11 @@ export default {
       this.historyLoading = true;
       try {
         const response = await fetch('/api/uv-sessions', { credentials: 'same-origin' });
-        if (response.ok) this.history = await response.json();
+        if (response.ok) {
+          this.history = await response.json();
+          const mostRecentKey = this.historyByDay[0]?.key;
+          if (mostRecentKey) this.expandedDays = new Set([mostRecentKey]);
+        }
       } finally {
         this.historyLoading = false;
       }
@@ -362,8 +393,11 @@ export default {
     formatTime(iso) {
       return iso ? new Date(iso).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) : '';
     },
-    formatDate(iso) {
-      return iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
+    toggleDay(key) {
+      if (this.expandedDays.has(key)) this.expandedDays.delete(key);
+      else this.expandedDays.add(key);
+      // Trigger reactivity — mutating a Set in place doesn't notify Vue.
+      this.expandedDays = new Set(this.expandedDays);
     },
   },
 };
@@ -470,23 +504,32 @@ export default {
       <section v-if="history.length" class="history">
         <h3>Past sessions</h3>
         <LoadingSpinner v-if="historyLoading" size="sm" inline />
-        <ul class="history-list">
-          <li v-for="s in history" :key="s.id" class="history-item">
-            <button type="button" class="history-row" @click="viewPastSession(s.id)">
-              <span class="history-date">{{ formatDate(s.startedAt) }} · {{ formatTime(s.startedAt) }}</span>
-              <span class="history-meta">
-                {{ s.durationMinutes ?? '—' }} min · avg UV {{ s.avgUvIndex ?? '—' }} · max UV {{ s.maxUvIndex ?? '—' }}
-              </span>
-            </button>
-            <button
-              type="button"
-              class="delete-button"
-              :disabled="deletingId === s.id"
-              aria-label="Delete session"
-              @click="deleteSession(s.id)"
-            >{{ deletingId === s.id ? 'Deleting…' : 'Delete' }}</button>
-          </li>
-        </ul>
+        <div v-for="day in historyByDay" :key="day.key" class="history-day">
+          <button type="button" class="history-day-header" @click="toggleDay(day.key)">
+            <span class="history-day-label">{{ day.label }}</span>
+            <span class="history-day-meta">
+              {{ day.count }} {{ day.count === 1 ? 'jog' : 'jogs' }} · {{ day.totalMinutes.toFixed(0) }} min
+            </span>
+            <span class="history-day-chevron" :class="{ open: expandedDays.has(day.key) }">▾</span>
+          </button>
+          <ul v-if="expandedDays.has(day.key)" class="history-list">
+            <li v-for="s in day.sessions" :key="s.id" class="history-item">
+              <button type="button" class="history-row" @click="viewPastSession(s.id)">
+                <span class="history-date">{{ formatTime(s.startedAt) }}</span>
+                <span class="history-meta">
+                  {{ s.durationMinutes ?? '—' }} min · avg UV {{ s.avgUvIndex ?? '—' }} · max UV {{ s.maxUvIndex ?? '—' }}
+                </span>
+              </button>
+              <button
+                type="button"
+                class="delete-button"
+                :disabled="deletingId === s.id"
+                aria-label="Delete session"
+                @click="deleteSession(s.id)"
+              >{{ deletingId === s.id ? 'Deleting…' : 'Delete' }}</button>
+            </li>
+          </ul>
+        </div>
 
         <div v-if="selectedPastSession" class="past-session-detail">
           <svg
@@ -681,9 +724,42 @@ h3 {
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+.history-day {
+  margin-bottom: 0.6rem;
+}
+.history-day-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.1rem;
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
+  color: inherit;
+}
+.history-day-label {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.history-day-meta {
+  flex: 1;
+  font-size: 0.78rem;
+  color: var(--text-secondary, #6b5d47);
+}
+.history-day-chevron {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #6b5d47);
+  transition: transform 0.15s ease;
+}
+.history-day-chevron.open {
+  transform: rotate(180deg);
+}
 .history-list {
   list-style: none;
-  margin: 0;
+  margin: 0 0 0.5rem;
   padding: 0;
   display: flex;
   flex-direction: column;
