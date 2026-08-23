@@ -121,7 +121,7 @@ body.feed-active .footer {
 }
 
 /* Fluid type scale and Heading styles */
-h1, h2, .viz-root h1 {
+h1, h2 {
     font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-weight: var(--heading-weight);
     letter-spacing: -0.02em;
@@ -260,158 +260,7 @@ p {
 }
 
 /* -------------------------------------------------------------------------
-   4. UI Components: Cards, Data Viz & Tooltips
-   ------------------------------------------------------------------------- */
-.viz-root {
-    background: var(--surface-1);
-    color: var(--text-primary);
-    padding: 1.1rem 1.25rem;
-    max-width: 780px;
-    margin: 0 auto;
-}
-
-.viz-root h1 {
-    font-size: 1.1rem;
-    margin: 0 0 0.1rem;
-}
-
-.viz-root .subtitle {
-    color: var(--text-secondary);
-    font-size: 0.85rem;
-    margin: 0 0 0.6rem;
-}
-
-.viz-root .viz-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
-}
-
-.viz-root .view-toggle {
-    flex: none;
-    display: flex;
-    gap: 0.4rem;
-}
-
-.viz-root .table-toggle {
-    flex: none;
-    background: transparent;
-    border: 1px solid var(--gridline);
-    color: var(--text-secondary);
-    border-radius: 999px;
-    padding: 0.3rem 0.8rem;
-    font-family: inherit;
-    font-size: 0.78rem;
-    cursor: pointer;
-}
-
-.viz-root .table-toggle:hover {
-    border-color: var(--series-1);
-    color: var(--series-1);
-}
-
-.viz-root .table-toggle.active {
-    background: var(--series-1);
-    border-color: var(--series-1);
-    color: var(--surface-1);
-}
-
-.viz-root .axis-label {
-    fill: var(--muted);
-    font-size: 11px;
-}
-
-.viz-root .gridline {
-    stroke: var(--gridline);
-    stroke-width: 1;
-}
-
-.viz-root .bar {
-    fill: var(--series-1-fill);
-    stroke: var(--series-1);
-    stroke-width: 1.5;
-}
-
-.viz-root a:hover .bar,
-.viz-root .bar:hover {
-    fill: var(--series-1);
-    cursor: pointer;
-}
-
-.viz-root .bar-label {
-    fill: var(--text-primary);
-    font-size: 12px;
-}
-
-.viz-root .bar-value {
-    fill: var(--text-secondary);
-    font-size: 11px;
-}
-
-.chart-scroll {
-    max-width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-}
-
-.chart-scroll svg {
-    display: block;
-    flex-shrink: 0;
-}
-
-.viz-root .bubble {
-    fill: var(--series-1-fill);
-    stroke: var(--series-1);
-    stroke-width: 2;
-}
-
-.viz-root a:hover .bubble,
-.viz-root .bubble:hover {
-    fill: var(--series-1);
-    cursor: pointer;
-}
-
-.viz-root .data-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.85rem;
-}
-
-.viz-root .data-table th,
-.viz-root .data-table td {
-    text-align: left;
-    padding: 0.4rem 0.5rem;
-    border-bottom: 1px solid var(--gridline);
-}
-
-.viz-root .data-table th {
-    color: var(--text-secondary);
-    font-weight: 600;
-}
-
-.viz-root .data-table a {
-    color: var(--series-1);
-}
-
-#tooltip {
-    position: absolute;
-    display: none;
-    background: var(--surface-1);
-    color: var(--text-primary);
-    border: 1px solid var(--gridline);
-    border-radius: 6px;
-    padding: 6px 10px;
-    font-size: 0.8rem;
-    pointer-events: none;
-    box-shadow: 0 2px 8px rgba(63, 51, 38, 0.2);
-}
-
-#tooltip .t-title { font-weight: 600; }
-#tooltip .t-meta { color: var(--text-secondary); }
-
-/* -------------------------------------------------------------------------
-   5. Interactive Elements: Pills & FAB
+   4. Interactive Elements: Pills & FAB
    ------------------------------------------------------------------------- */
 button, .tab, .save-btn, .filter-pill {
     min-height: 44px;
@@ -491,14 +340,11 @@ button, .tab, .save-btn, .filter-pill {
 }
 
 /* -------------------------------------------------------------------------
-   6. Mobile Adjustments
+   5. Mobile Adjustments
    ------------------------------------------------------------------------- */
 @media (max-width: 640px) {
     body.nav-drawer-open {
         overflow: hidden;
-    }
-    .viz-root {
-        padding: 1rem;
     }
     .navbar {
         border-bottom-width: 2px;
@@ -587,16 +433,10 @@ button, .tab, .save-btn, .filter-pill {
     .footer {
         border-top-width: 2px;
     }
-    .viz-root .gridline {
-        stroke-width: 1.35;
-    }
-    .viz-root .bubble {
-        stroke-width: 2.4;
-    }
 }
 
 /* -------------------------------------------------------------------------
-   5. Dev tool: Tweak Bar
+   6. Dev tool: Tweak Bar
    ------------------------------------------------------------------------- */
 #tweak-bar-toggle {
     position: fixed;

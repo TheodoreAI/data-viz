@@ -163,40 +163,46 @@ export default {
 <template>
   <div class="feed-root">
     <header class="feed-header">
-      <h1>Hello!</h1>
-      <p class="subtitle">Swipe up for a new article, down to go back.</p>
-      <select
-        :value="selectedTopic"
-        class="topic-select"
-        :disabled="loading"
-        @change="selectedTopic = $event.target.value"
-        @input="selectedTopic = $event.target.value"
-      >
-        <option value="">All topics</option>
-        <option v-for="topic in topics" :key="topic" :value="topic">{{ topic }}</option>
-      </select>
+      <div class="kicker">On Display</div>
+      <h1>Data Viz</h1>
     </header>
+
+    <nav class="topic-row" aria-label="Filter by topic">
+      <button
+        type="button"
+        class="topic-pill"
+        :class="{ active: selectedTopic === '' }"
+        :disabled="loading"
+        @click="selectedTopic = ''"
+      >All</button>
+      <button
+        v-for="topic in topics"
+        :key="topic"
+        type="button"
+        class="topic-pill"
+        :class="{ active: selectedTopic === topic }"
+        :disabled="loading"
+        @click="selectedTopic = topic"
+      >{{ topic }}</button>
+    </nav>
 
     <div v-if="canGoBack" class="swipe-hint swipe-hint-up" aria-hidden="true">︿</div>
     <Transition v-if="currentArticle" :name="direction === 'up' ? 'slide-up' : 'slide-down'" mode="out-in">
       <article :key="currentIndex" ref="cardEl" class="feed-card" :class="{ cooling: navigating }">
-        <div v-if="currentArticle.thumbnail" class="feed-card-header">
-          <img :src="currentArticle.thumbnail.source" :alt="currentArticle.title">
-        </div>
-        <div class="feed-card-body">
-          <div class="feed-card-body-header">
-            <h2><a :href="currentArticle.content_urls.desktop.page" target="_blank">{{ currentArticle.title }}</a></h2>
+        <div class="feed-card-inner">
+          <img v-if="currentArticle.thumbnail" class="feed-card-image" :src="currentArticle.thumbnail.source" :alt="currentArticle.title">
+          <h2><a :href="currentArticle.content_urls.desktop.page" target="_blank">{{ currentArticle.title }}</a></h2>
+          <p>{{ currentArticle.extract }}</p>
+          <hr class="caption-rule">
+          <div class="feed-card-actions">
+            <a :href="currentArticle.content_urls.desktop.page" target="_blank" class="read-more-link">Read Full Entry</a>
             <button
               type="button"
               class="save-button"
               :disabled="savedTitles.has(currentArticle.title)"
               @click="saveCurrentArticle"
-            >{{ savedTitles.has(currentArticle.title) ? 'Saved' : (savingTitle === currentArticle.title ? 'Saving…' : 'Save') }}</button>
+            >{{ savedTitles.has(currentArticle.title) ? 'Saved' : (savingTitle === currentArticle.title ? 'Saving…' : 'Save to Collection') }}</button>
           </div>
-          <p>{{ currentArticle.extract }}</p>
-        </div>
-        <div class="feed-card-footer">
-          <a :href="currentArticle.content_urls.desktop.page" target="_blank" class="read-more-link">Read full article →</a>
         </div>
       </article>
     </Transition>
@@ -205,24 +211,54 @@ export default {
     <div v-if="atStartFlash" class="edge-message">You're at the start</div>
     <p v-if="feedError" class="status feed-error" role="alert">{{ feedError }}</p>
     <LoadingSpinner v-if="loading" class="feed-loading" inline />
+    <p class="scroll-note">Scroll down for the next exhibit</p>
   </div>
 </template>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
+
 .feed-root {
+  --mp-wall: #f7f6f3;
+  --mp-frame: #e4e1d9;
+  --mp-frame-strong: #22201b;
+  --mp-ink: #22201b;
+  --mp-ink-soft: #756f60;
+
   position: relative;
   height: calc(100dvh - var(--navbar-height, 44px));
   display: flex;
   flex-direction: column;
   overflow: hidden;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  background: var(--mp-wall);
+  color: var(--mp-ink);
+  font-family: "IBM Plex Serif", Georgia, serif;
 }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .feed-root {
+    --mp-wall: #171613;
+    --mp-frame: #34312a;
+    --mp-frame-strong: #d9d5c9;
+    --mp-ink: #f0eee6;
+    --mp-ink-soft: #a39d8b;
+  }
+}
+:root[data-theme="dark"] .feed-root {
+  --mp-wall: #171613;
+  --mp-frame: #34312a;
+  --mp-frame-strong: #d9d5c9;
+  --mp-ink: #f0eee6;
+  --mp-ink-soft: #a39d8b;
+}
+
 .swipe-hint {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
   z-index: 3;
-  color: var(--text-secondary, #52514e);
+  color: var(--mp-ink-soft);
   opacity: 0.5;
   font-size: 1.1rem;
   line-height: 1;
@@ -249,122 +285,145 @@ export default {
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 4;
-  background: var(--surface-1, #fcfcfb);
-  color: var(--text-primary, #0b0b0b);
-  border: 1px solid var(--gridline, #e1e0d9);
+  background: var(--mp-wall);
+  color: var(--mp-ink);
+  border: 1px solid var(--mp-frame);
   border-radius: 999px;
   padding: 0.4rem 1rem;
+  font-family: Inter, sans-serif;
   font-size: 0.8rem;
-  box-shadow: 0 2px 8px rgba(63, 51, 38, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   pointer-events: none;
 }
 .feed-error {
   flex: none;
   text-align: center;
   color: #b0413e;
+  font-family: Inter, sans-serif;
   font-size: 0.85rem;
   padding: 0.5rem 1.25rem;
 }
 .feed-header {
   flex: none;
-  padding: 0.75rem 1.1rem;
-  margin: 0.5rem 0 0.4rem;
-  background: var(--card-bg, #fff);
-  border: 1px solid var(--gridline, #e1e0d9);
-  border-radius: var(--card-radius, 16px);
+  text-align: center;
+  padding: 1.25rem 1.1rem 0.5rem;
 }
-.topic-select {
-  display: block;
-  margin-top: 0.5rem;
-  border: 1px solid var(--gridline, #e1e0d9);
-  background: var(--card-bg, #fff);
-  color: var(--text-primary, inherit);
-  border-radius: var(--pill-radius, 999px);
-  padding: 0.4rem 2rem 0.4rem 0.9rem;
-  font-size: 0.82rem;
-  font-weight: 600;
-  text-transform: capitalize;
-  cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
-  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
-  background-position: calc(100% - 16px) calc(50% - 2px), calc(100% - 11px) calc(50% - 2px);
-  background-size: 5px 5px, 5px 5px;
-  background-repeat: no-repeat;
-}
-.topic-select:disabled {
-  opacity: 0.6;
-  cursor: default;
+.kicker {
+  font-family: Inter, sans-serif;
+  font-size: 0.66rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--mp-ink-soft);
+  margin-bottom: 0.5rem;
 }
 .feed-header h1 {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: 1.1rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
 }
-.subtitle {
-  color: var(--text-secondary, #52514e);
-  font-size: 0.8rem;
-  margin: 0.1rem 0 0;
+.topic-row {
+  flex: none;
+  display: flex;
+  justify-content: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  padding: 0.75rem 1rem 0.5rem;
+  font-family: Inter, sans-serif;
+}
+.topic-pill {
+  font-family: inherit;
+  font-size: 0.72rem;
+  color: var(--mp-ink-soft);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid transparent;
+  padding: 0.3rem 0.6rem;
+  cursor: pointer;
+  text-transform: capitalize;
+}
+.topic-pill:hover {
+  color: var(--mp-ink);
+}
+.topic-pill.active {
+  color: var(--mp-ink);
+  border-color: var(--mp-frame-strong);
+}
+.topic-pill:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 .feed-card {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   display: flex;
-  flex-direction: column;
-  background: var(--card-bg, #fff);
-  border: 1px solid var(--gridline, #e1e0d9);
-  border-radius: var(--card-radius, 16px);
+  padding: 0.5rem 1.1rem 1rem;
 }
-.feed-card-header {
-  flex: none;
-  max-height: 40vh;
-  overflow: hidden;
-  border-radius: var(--card-radius, 16px) var(--card-radius, 16px) 0 0;
+.feed-card-inner {
+  flex: 1;
+  border: 1px solid var(--mp-frame);
+  padding: 1.5rem;
+  text-align: center;
 }
-.feed-card-header img {
+.feed-card-image {
   width: 100%;
-  height: 100%;
+  max-height: 280px;
   object-fit: cover;
   display: block;
+  margin: 0 auto 1.5rem;
 }
-.feed-card-body {
-  flex: 1;
-  padding: 0.85rem 1.1rem;
+.feed-card-inner h2 {
+  margin: 0 0 1rem;
+  font-size: 1.4rem;
+  font-weight: 600;
+  line-height: 1.2;
 }
-.feed-card-body-header {
+.feed-card-inner h2 a {
+  color: inherit;
+  text-decoration: none;
+}
+.feed-card-inner p {
+  margin: 0 0 1.5rem;
+  font-size: 0.9rem;
+  line-height: 1.8;
+  color: var(--mp-ink);
+}
+.caption-rule {
+  border: none;
+  border-top: 1px solid var(--mp-frame);
+  width: 40px;
+  margin: 0 auto 1.5rem;
+}
+.feed-card-actions {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.75rem;
-  margin: 0 0 0.4rem;
-}
-.feed-card-body h2 {
-  margin: 0;
-}
-.feed-card-footer {
-  flex: none;
-  padding: 0.6rem 1.1rem;
-  border-top: 1px solid var(--gridline, #e1e0d9);
+  justify-content: center;
+  gap: 1.5rem;
+  font-family: Inter, sans-serif;
 }
 .read-more-link {
-  color: var(--series-1, #2a78d6);
+  color: var(--mp-ink-soft);
   text-decoration: none;
-  font-size: 0.82rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 .read-more-link:hover {
-  text-decoration: underline;
+  color: var(--mp-ink);
 }
 .save-button {
-  flex: none;
-  background: transparent;
-  border: 1px solid var(--gridline, #e1e0d9);
-  color: var(--series-1, #2a78d6);
-  border-radius: 999px;
-  padding: 0.5rem 1.1rem;
-  font-size: 0.92rem;
-  font-weight: 600;
+  background: none;
+  border: none;
+  color: var(--mp-ink-soft);
+  font-family: inherit;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   cursor: pointer;
+  padding: 0;
+}
+.save-button:hover:not(:disabled) {
+  color: var(--mp-ink);
 }
 .save-button:disabled {
   opacity: 0.6;
@@ -373,8 +432,18 @@ export default {
 .feed-loading {
   flex: none;
   text-align: center;
-  color: var(--text-secondary, #52514e);
+  color: var(--mp-ink-soft);
+  font-family: Inter, sans-serif;
   padding: 0.75rem;
+}
+.scroll-note {
+  flex: none;
+  text-align: center;
+  font-family: Inter, sans-serif;
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  color: var(--mp-ink-soft);
+  margin: 0.5rem 0 0.75rem;
 }
 
 .slide-up-enter-active, .slide-up-leave-active,
@@ -397,9 +466,8 @@ export default {
   .feed-card {
     overflow-y: visible;
   }
-  .feed-card-header {
-    max-height: 320px;
-    margin-top: 0.5rem;
+  .feed-card-image {
+    max-height: 340px;
   }
 }
 </style>
