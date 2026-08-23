@@ -128,6 +128,7 @@ export default {
       showRoute: false,
       now: Date.now(),
       expandedDays: new Set(),
+      wakeLockActive: false,
     };
   },
   computed: {
@@ -191,10 +192,13 @@ export default {
     } catch {
       this.loggedIn = false;
     }
+    document.addEventListener('visibilitychange', this.onVisibilityChange);
   },
   beforeUnmount() {
     this.stopWatch();
     this.stopClock();
+    this.releaseWakeLock();
+    document.removeEventListener('visibilitychange', this.onVisibilityChange);
   },
   methods: {
     bandFor,
@@ -213,6 +217,38 @@ export default {
       if (this.clockId != null) {
         clearInterval(this.clockId);
         this.clockId = null;
+      }
+    },
+    async requestWakeLock() {
+      if (!('wakeLock' in navigator)) return;
+      try {
+        this.wakeLock = await navigator.wakeLock.request('screen');
+        this.wakeLockActive = true;
+        this.wakeLock.addEventListener('release', () => {
+          this.wakeLockActive = false;
+        });
+      } catch {
+        // Not supported, denied, or refused by the browser (e.g. low battery) —
+        // tracking still works fine, the screen just may dim during a jog.
+        this.wakeLockActive = false;
+      }
+    },
+    async releaseWakeLock() {
+      if (this.wakeLock) {
+        try {
+          await this.wakeLock.release();
+        } catch {
+          // already released
+        }
+        this.wakeLock = null;
+      }
+      this.wakeLockActive = false;
+    },
+    onVisibilityChange() {
+      // The OS releases the wake lock whenever the tab backgrounds or the
+      // screen locks; re-acquire it if the user returns while still tracking.
+      if (this.tracking && document.visibilityState === 'visible') {
+        this.requestWakeLock();
       }
     },
     async loadHistory() {
@@ -250,6 +286,7 @@ export default {
         this.showRoute = false;
         this.startWatch();
         this.startClock();
+        this.requestWakeLock();
       } catch (err) {
         this.error = err.message || 'Could not start tracking. Please try again.';
       } finally {
@@ -311,6 +348,7 @@ export default {
     async stopTracking() {
       this.stopWatch();
       this.stopClock();
+      this.releaseWakeLock();
       this.tracking = false;
       if (!this.session) return;
       try {
@@ -368,6 +406,10 @@ export default {
       <h1>Jog Tracker</h1>
       <span v-if="tracking" class="status-chip status-chip-live">Tracking</span>
       <span v-else-if="loggedIn" class="status-chip status-chip-idle">Idle</span>
+      <span v-if="tracking && wakeLockActive" class="wake-hint" title="Your screen will stay on while this jog is tracking">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3" fill="currentColor" /><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.2 3.2l1.4 1.4M11.4 11.4l1.4 1.4M3.2 12.8l1.4-1.4M11.4 4.6l1.4-1.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" /></svg>
+        Screen staying on
+      </span>
     </div>
 
     <p v-if="loggedIn === false" class="status">
@@ -377,7 +419,8 @@ export default {
     <template v-else-if="loggedIn">
       <p class="subtitle">
         Tracks your route with GPS while this page stays open and samples the UV index every ~400m or few minutes.
-        On iPhone, keep this tab open and the screen on — Safari stops location updates once the app is backgrounded.
+        On supported iPhones (iOS 16.4+) this keeps the screen from dimming while a jog is active — Safari still
+        stops location updates if the app is fully backgrounded or the phone is manually locked.
       </p>
 
       <div v-if="tracking" class="panel reading-panel">
@@ -604,6 +647,19 @@ h1 {
 }
 .status-chip-idle::before {
   background: var(--cl-ink-soft);
+}
+.wake-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-left: auto;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.62rem;
+  color: var(--cl-ink-soft);
+}
+.wake-hint svg {
+  width: 12px;
+  height: 12px;
 }
 
 .subtitle {
