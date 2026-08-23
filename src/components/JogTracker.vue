@@ -2,7 +2,7 @@
 import LoadingSpinner from './LoadingSpinner.vue';
 import { parseJsonResponse } from '../api';
 
-// Standard WHO/EPA UV index bands — kept in sync with UvIndex.vue's bands.
+// Standard WHO/EPA UV index bands.
 const UV_BANDS = [
   { max: 2, label: 'Low', color: '#0ca30c' },
   { max: 5, label: 'Moderate', color: '#eda100' },
@@ -53,6 +53,7 @@ export default {
       history: [],
       historyLoading: false,
       selectedPastSession: null,
+      deletingId: null,
     };
   },
   computed: {
@@ -241,6 +242,24 @@ export default {
       const response = await fetch(`/api/uv-sessions/${id}`, { credentials: 'same-origin' });
       if (response.ok) this.selectedPastSession = await response.json();
     },
+    async deleteSession(id) {
+      if (this.deletingId) return;
+      if (!window.confirm('Delete this jog and its tracked route? This cannot be undone.')) return;
+      this.deletingId = id;
+      try {
+        const response = await fetch(`/api/uv-sessions/${id}`, {
+          method: 'DELETE',
+          credentials: 'same-origin',
+          headers: { 'X-CSRF-TOKEN': readCookie('csrf_access_token') },
+        });
+        if (response.ok) {
+          this.history = this.history.filter((s) => s.id !== id);
+          if (this.selectedPastSession?.id === id) this.selectedPastSession = null;
+        }
+      } finally {
+        this.deletingId = null;
+      }
+    },
     formatTime(iso) {
       return iso ? new Date(iso).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) : '';
     },
@@ -253,7 +272,7 @@ export default {
 
 <template>
   <section class="jog-tracker">
-    <h2>Jog Tracker</h2>
+    <h1>Jog Tracker</h1>
     <p v-if="loggedIn === false" class="status">
       <a href="/login">Log in</a> to track UV exposure during a run.
     </p>
@@ -315,6 +334,13 @@ export default {
                 {{ s.durationMinutes ?? '—' }} min · avg UV {{ s.avgUvIndex ?? '—' }} · max UV {{ s.maxUvIndex ?? '—' }}
               </span>
             </button>
+            <button
+              type="button"
+              class="delete-button"
+              :disabled="deletingId === s.id"
+              aria-label="Delete session"
+              @click="deleteSession(s.id)"
+            >{{ deletingId === s.id ? 'Deleting…' : 'Delete' }}</button>
           </li>
         </ul>
 
@@ -344,12 +370,11 @@ export default {
 <style scoped>
 .jog-tracker {
   max-width: 640px;
-  margin: 2.5rem auto 0;
+  margin: 0 auto;
   padding: 2rem 1.25rem 3rem;
-  border-top: 1px solid var(--gridline, #d8c9a3);
 }
-h2 {
-  font-size: 1.1rem;
+h1 {
+  font-size: 1.3rem;
   margin: 0 0 0.4rem;
 }
 h3 {
@@ -441,11 +466,17 @@ h3 {
   flex-direction: column;
   gap: 0.4rem;
 }
+.history-item {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+}
 .history-row {
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   text-align: left;
   padding: 0.6rem 0.75rem;
   border: 1px solid var(--gridline, #d8c9a3);
@@ -457,6 +488,21 @@ h3 {
 }
 .history-row:hover {
   border-color: var(--series-1, #2f6690);
+}
+.delete-button {
+  flex: none;
+  background: transparent;
+  border: 1px solid var(--gridline, #d8c9a3);
+  color: #b0413e;
+  border-radius: 8px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.78rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+.delete-button:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 .history-date {
   font-size: 0.85rem;

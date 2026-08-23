@@ -48,6 +48,7 @@ from saved_items import list_saved_items
 from saved_items import save_item
 from trending import SOURCES as TRENDING_SOURCES
 from uv_tracking import add_reading as add_uv_reading
+from uv_tracking import delete_session as delete_uv_session
 from uv_tracking import end_session as end_uv_session
 from uv_tracking import get_open_session as get_open_uv_session
 from uv_tracking import get_session as get_uv_session
@@ -662,44 +663,13 @@ def parse_lat_lon(args):
     return lat, lon, None
 
 
-def fetch_current_uv(lat, lon, include_daily=False):
+def fetch_current_uv(lat, lon):
     """Raises requests.RequestException on failure."""
-    params = {'latitude': lat, 'longitude': lon, 'current': 'uv_index', 'timezone': 'auto'}
-    if include_daily:
-        params['daily'] = 'uv_index_max'
-        params['forecast_days'] = 7
-    response = requests.get(OPEN_METEO_URL, params=params)
+    response = requests.get(OPEN_METEO_URL, params={
+        'latitude': lat, 'longitude': lon, 'current': 'uv_index', 'timezone': 'auto',
+    })
     response.raise_for_status()
     return response.json()
-
-
-@app.route('/api/uv-index')
-@limiter.limit('30 per minute')
-def api_uv_index():
-    lat, lon, error = parse_lat_lon(request.args)
-    if error:
-        return error
-
-    try:
-        data = fetch_current_uv(lat, lon, include_daily=True)
-    except requests.RequestException:
-        return jsonify({'error': "Couldn't reach the weather service right now. Please try again."}), 502
-
-    current = data.get('current', {})
-    daily = data.get('daily', {})
-    return jsonify({
-        'lat': data.get('latitude', lat),
-        'lon': data.get('longitude', lon),
-        'timezone': data.get('timezone'),
-        'current': {
-            'uvIndex': current.get('uv_index'),
-            'time': current.get('time'),
-        },
-        'daily': [
-            {'date': date_str, 'uvIndexMax': uv_max}
-            for date_str, uv_max in zip(daily.get('time', []), daily.get('uv_index_max', []))
-        ],
-    })
 
 
 @app.route('/api/uv-sessions', methods=['GET', 'POST'])
@@ -717,12 +687,17 @@ def api_uv_sessions():
     return jsonify([s.to_dict() for s in sessions])
 
 
-@app.route('/api/uv-sessions/<int:session_id>', methods=['GET'])
+@app.route('/api/uv-sessions/<int:session_id>', methods=['GET', 'DELETE'])
 @jwt_required()
 def api_uv_session_detail(session_id):
     user = db.session.get(User, int(get_jwt_identity()))
     if not user:
         return jsonify({'error': 'Not found'}), 404
+
+    if request.method == 'DELETE':
+        if not delete_uv_session(user, session_id):
+            return jsonify({'error': 'Not found'}), 404
+        return jsonify({'ok': True})
 
     session = get_uv_session(user, session_id)
     if not session:

@@ -1,4 +1,4 @@
 import { createApp } from 'vue';
-import UvIndexPage from '../components/UvIndexPage.vue';
+import JogTracker from '../components/JogTracker.vue';
 
-createApp(UvIndexPage).mount(document.getElementById('app'));
+createApp(JogTracker).mount(document.getElementById('app'));

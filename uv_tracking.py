@@ -41,3 +41,13 @@ def list_sessions(user):
         .limit(MAX_SESSION_HISTORY)
         .all()
     )
+
+
+def delete_session(user, session_id):
+    """Returns True if deleted, False if not found or not owned by user."""
+    session = UvSession.query.filter_by(id=session_id, user_id=user.id).first()
+    if not session:
+        return False
+    db.session.delete(session)
+    db.session.commit()
+    return True
