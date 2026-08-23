@@ -605,11 +605,13 @@ button, .tab, .save-btn, .filter-pill {
     z-index: 100;
     width: 2.75rem;
     height: 2.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border-radius: 50%;
     border: 1px solid var(--gridline);
     background: var(--card-bg);
     color: var(--text-primary);
-    font-size: 1.2rem;
     line-height: 1;
     cursor: pointer;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
