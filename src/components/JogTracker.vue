@@ -76,7 +76,7 @@ function summarize(readings, session) {
   return {
     durationMinutes,
     distanceMeters,
-    distanceKm: distanceMeters / 1000,
+    distanceMiles: distanceMeters / 1609.344,
     avgUv: Math.round((uvValues.reduce((a, b) => a + b, 0) / uvValues.length) * 10) / 10,
     maxUv: Math.max(...uvValues),
     maxUvBand: bandFor(Math.max(...uvValues)),
@@ -405,8 +405,8 @@ export default {
             <span class="summary-label">Minutes</span>
           </div>
           <div class="summary-stat">
-            <span class="summary-value">{{ summaryStats.distanceKm.toFixed(2) }}</span>
-            <span class="summary-label">Km covered</span>
+            <span class="summary-value">{{ summaryStats.distanceMiles.toFixed(2) }}</span>
+            <span class="summary-label">Miles covered</span>
           </div>
           <div class="summary-stat">
             <span class="summary-value" :style="{ color: summaryStats.maxUvBand?.color }">{{ summaryStats.maxUv }}</span>
