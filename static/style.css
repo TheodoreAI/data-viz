@@ -410,7 +410,7 @@ button, .tab, .save-btn, .filter-pill {
         box-shadow: -8px 0 28px rgba(0, 0, 0, 0.25);
         transform: translateX(100%);
         transition: transform 0.28s ease;
-        padding-top: env(safe-area-inset-top);
+        padding-top: calc(3.4rem + env(safe-area-inset-top));
     }
     .nav-links.nav-open {
         transform: translateX(0);
@@ -423,6 +423,24 @@ button, .tab, .save-btn, .filter-pill {
         font-size: 0.75rem;
         font-variant-numeric: tabular-nums;
         opacity: 0.7;
+    }
+    .theme-toggle {
+        position: absolute;
+        top: calc(0.6rem + env(safe-area-inset-top));
+        right: 0.9rem;
+        margin-left: 0;
+        width: 2.25rem;
+        height: 2.25rem;
+        border: 1px solid var(--gridline);
+        border-radius: 50%;
+        background: var(--card-bg);
+        z-index: 1;
+    }
+    .theme-toggle-label {
+        display: block;
+        font-size: 1.1rem;
+        font-weight: 500;
+        color: var(--text-secondary);
     }
     .navbar a {
         display: grid;
