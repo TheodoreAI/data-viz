@@ -6,6 +6,18 @@ from werkzeug.security import check_password_hash, generate_password_hash
 db = SQLAlchemy()
 
 
+def _isoformat_utc(dt):
+    """SQLite drops tzinfo on read-back, so a value stored as UTC comes back
+    naive; isoformat() on a naive datetime omits the offset, and JS then
+    parses that string as local time instead of UTC. Stamp 'Z' explicitly
+    for any naive datetime so JSON consumers always parse it as UTC."""
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.isoformat() + 'Z'
+    return dt.isoformat()
+
+
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(32), unique=True, nullable=False, index=True)
@@ -83,8 +95,8 @@ class UvSession(db.Model):
         uv_values = [r.uv_index for r in self.readings]
         data = {
             'id': self.id,
-            'startedAt': self.started_at.isoformat() if self.started_at else None,
-            'endedAt': self.ended_at.isoformat() if self.ended_at else None,
+            'startedAt': _isoformat_utc(self.started_at),
+            'endedAt': _isoformat_utc(self.ended_at),
             'durationMinutes': duration_minutes,
             'readingCount': len(uv_values),
             'avgUvIndex': round(sum(uv_values) / len(uv_values), 2) if uv_values else None,
@@ -123,7 +135,7 @@ class UvReading(db.Model):
             'lat': self.latitude,
             'lon': self.longitude,
             'uvIndex': self.uv_index,
-            'recordedAt': self.recorded_at.isoformat() if self.recorded_at else None,
+            'recordedAt': _isoformat_utc(self.recorded_at),
         }
 
 

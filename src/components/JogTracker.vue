@@ -34,6 +34,65 @@ function haversineMeters(a, b) {
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
+function distanceOf(readings) {
+  let total = 0;
+  for (let i = 0; i < readings.length - 1; i++) {
+    total += haversineMeters(readings[i], readings[i + 1]);
+  }
+  return total;
+}
+
+// Minutes spent in each UV band across the session, by attributing the time
+// between two consecutive readings to the band of the earlier (leading) one.
+function bandMinutesOf(readings) {
+  const totals = new Map(UV_BANDS.map(b => [b.label, 0]));
+  for (let i = 0; i < readings.length - 1; i++) {
+    const a = readings[i];
+    const b = readings[i + 1];
+    const minutes = (new Date(b.recordedAt) - new Date(a.recordedAt)) / 60000;
+    const band = bandFor(a.uvIndex);
+    if (band) totals.set(band.label, totals.get(band.label) + minutes);
+  }
+  return UV_BANDS.map(b => ({ ...b, minutes: totals.get(b.label) })).filter(b => b.minutes > 0);
+}
+
+function summarize(readings, session) {
+  if (!readings.length) return null;
+  const uvValues = readings.map(r => r.uvIndex);
+  const durationMinutes = session?.startedAt && session?.endedAt
+    ? (new Date(session.endedAt) - new Date(session.startedAt)) / 60000
+    : null;
+  const distanceMeters = distanceOf(readings);
+  const exposureScore = (() => {
+    if (readings.length < 2) return 0;
+    let total = 0;
+    for (let i = 0; i < readings.length - 1; i++) {
+      const minutes = (new Date(readings[i + 1].recordedAt) - new Date(readings[i].recordedAt)) / 60000;
+      total += readings[i].uvIndex * minutes;
+    }
+    return Math.round(total * 10) / 10;
+  })();
+  return {
+    durationMinutes,
+    distanceMeters,
+    distanceKm: distanceMeters / 1000,
+    avgUv: Math.round((uvValues.reduce((a, b) => a + b, 0) / uvValues.length) * 10) / 10,
+    maxUv: Math.max(...uvValues),
+    maxUvBand: bandFor(Math.max(...uvValues)),
+    exposureScore,
+    bandMinutes: bandMinutesOf(readings),
+  };
+}
+
+function formatClock(totalSeconds) {
+  const s = Math.max(0, Math.floor(totalSeconds));
+  const hh = Math.floor(s / 3600);
+  const mm = Math.floor((s % 3600) / 60);
+  const ss = s % 60;
+  const pad = (n) => String(n).padStart(2, '0');
+  return hh > 0 ? `${hh}:${pad(mm)}:${pad(ss)}` : `${mm}:${pad(ss)}`;
+}
+
 function readCookie(name) {
   const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
   return match ? decodeURIComponent(match[1]) : null;
@@ -54,6 +113,8 @@ export default {
       historyLoading: false,
       selectedPastSession: null,
       deletingId: null,
+      showRoute: false,
+      now: Date.now(),
     };
   },
   computed: {
@@ -66,9 +127,15 @@ export default {
     latestBand() {
       return this.latestReading ? bandFor(this.latestReading.uvIndex) : null;
     },
-    elapsedMinutes() {
+    elapsedSeconds() {
       if (!this.session?.startedAt) return 0;
-      return (Date.now() - new Date(this.session.startedAt).getTime()) / 60000;
+      return (this.now - new Date(this.session.startedAt).getTime()) / 1000;
+    },
+    elapsedClock() {
+      return formatClock(this.elapsedSeconds);
+    },
+    elapsedMinutes() {
+      return this.elapsedSeconds / 60;
     },
     exposureScore() {
       if (this.readings.length < 2) return 0;
@@ -90,6 +157,15 @@ export default {
         minLon: Math.min(...lons), maxLon: Math.max(...lons),
       };
     },
+    justEnded() {
+      return !this.tracking && !!this.session?.endedAt;
+    },
+    distanceMeters() {
+      return distanceOf(this.readings);
+    },
+    summaryStats() {
+      return summarize(this.readings, this.session);
+    },
   },
   async mounted() {
     try {
@@ -102,9 +178,20 @@ export default {
   },
   beforeUnmount() {
     this.stopWatch();
+    this.stopClock();
   },
   methods: {
     bandFor,
+    startClock() {
+      this.now = Date.now();
+      this.clockId = setInterval(() => { this.now = Date.now(); }, 1000);
+    },
+    stopClock() {
+      if (this.clockId != null) {
+        clearInterval(this.clockId);
+        this.clockId = null;
+      }
+    },
     boundsOf(readings) {
       const lats = readings.map(r => r.lat);
       const lons = readings.map(r => r.lon);
@@ -170,7 +257,9 @@ export default {
         this.session = { ...data, readings: [] };
         this.tracking = true;
         this.lastSample = null;
+        this.showRoute = false;
         this.startWatch();
+        this.startClock();
       } catch (err) {
         this.error = err.message || 'Could not start tracking. Please try again.';
       } finally {
@@ -180,11 +269,20 @@ export default {
     startWatch() {
       this.watchId = navigator.geolocation.watchPosition(
         this.onPosition,
-        () => {
-          this.geoError = "Lost access to location. Make sure Location Services are on for this app.";
-        },
+        this.onGeoError,
         { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
       );
+    },
+    onGeoError(err) {
+      if (err.code === err.PERMISSION_DENIED) {
+        this.geoError =
+          "Location access is turned off for this app. On iPhone: Settings → Data Viz → Location " +
+          '(or Settings → Privacy & Security → Location Services), then come back and tap Start Jog again.';
+      } else if (err.code === err.POSITION_UNAVAILABLE) {
+        this.geoError = "Couldn't determine your location. Make sure Location Services are on and you have a GPS signal.";
+      } else {
+        this.geoError = 'Lost access to location. Make sure Location Services are on for this app.';
+      }
     },
     stopWatch() {
       if (this.watchId != null) {
@@ -222,6 +320,7 @@ export default {
     },
     async stopTracking() {
       this.stopWatch();
+      this.stopClock();
       this.tracking = false;
       if (!this.session) return;
       try {
@@ -293,23 +392,69 @@ export default {
       <p v-if="error" class="status form-error" role="alert">{{ error }}</p>
       <p v-if="geoError" class="status form-error" role="alert">{{ geoError }}</p>
 
-      <template v-if="tracking || (session && session.readings.length)">
+      <template v-if="tracking">
+        <div class="timer" role="timer">{{ elapsedClock }}</div>
         <div class="live-stats">
           <div class="live-stat">
             <span class="live-stat-value" :style="{ color: latestBand?.color }">{{ latestReading?.uvIndex ?? '—' }}</span>
             <span class="live-stat-label">Current UV{{ latestBand ? ` · ${latestBand.label}` : '' }}</span>
           </div>
           <div class="live-stat">
-            <span class="live-stat-value">{{ elapsedMinutes.toFixed(0) }}</span>
-            <span class="live-stat-label">Minutes</span>
-          </div>
-          <div class="live-stat">
             <span class="live-stat-value">{{ exposureScore }}</span>
             <span class="live-stat-label">UV-index·min exposure</span>
           </div>
         </div>
+        <p v-if="readings.length < 2" class="status">Walking/running a bit before stats fill in…</p>
+      </template>
 
-        <svg v-if="readings.length > 1" class="path-map" viewBox="0 0 320 240" preserveAspectRatio="xMidYMid meet">
+      <section v-else-if="justEnded && summaryStats" class="session-summary">
+        <h2>Jog Summary</h2>
+        <div class="summary-grid">
+          <div class="summary-stat">
+            <span class="summary-value">{{ summaryStats.durationMinutes?.toFixed(0) ?? '—' }}</span>
+            <span class="summary-label">Minutes</span>
+          </div>
+          <div class="summary-stat">
+            <span class="summary-value">{{ summaryStats.distanceKm.toFixed(2) }}</span>
+            <span class="summary-label">Km covered</span>
+          </div>
+          <div class="summary-stat">
+            <span class="summary-value" :style="{ color: summaryStats.maxUvBand?.color }">{{ summaryStats.maxUv }}</span>
+            <span class="summary-label">Peak UV{{ summaryStats.maxUvBand ? ` · ${summaryStats.maxUvBand.label}` : '' }}</span>
+          </div>
+          <div class="summary-stat">
+            <span class="summary-value">{{ summaryStats.avgUv }}</span>
+            <span class="summary-label">Average UV</span>
+          </div>
+          <div class="summary-stat summary-stat-wide">
+            <span class="summary-value">{{ summaryStats.exposureScore }}</span>
+            <span class="summary-label">Total UV exposure (UV-index·min)</span>
+          </div>
+        </div>
+
+        <div v-if="summaryStats.bandMinutes.length" class="band-breakdown">
+          <h3>Time by UV level</h3>
+          <div class="band-bar">
+            <span
+              v-for="b in summaryStats.bandMinutes"
+              :key="b.label"
+              class="band-bar-segment"
+              :style="{ width: `${(b.minutes / summaryStats.durationMinutes) * 100}%`, background: b.color }"
+              :title="`${b.label}: ${b.minutes.toFixed(1)} min`"
+            ></span>
+          </div>
+          <div class="band-breakdown-legend">
+            <span v-for="b in summaryStats.bandMinutes" :key="b.label" class="legend-item">
+              <span class="legend-swatch" :style="{ background: b.color }"></span>
+              {{ b.label }} · {{ b.minutes.toFixed(0) }} min
+            </span>
+          </div>
+        </div>
+
+        <button type="button" class="btn-secondary route-toggle" @click="showRoute = !showRoute">
+          {{ showRoute ? 'Hide route' : 'View route map' }}
+        </button>
+        <svg v-if="showRoute && readings.length > 1" class="path-map" viewBox="0 0 320 240" preserveAspectRatio="xMidYMid meet">
           <path :d="pathD(320, 240, 24)" class="path-line" />
           <circle
             v-for="(r, i) in readings"
@@ -320,8 +465,7 @@ export default {
             :fill="bandFor(r.uvIndex)?.color"
           />
         </svg>
-        <p v-else-if="tracking" class="status">Walking/running a bit before the map fills in…</p>
-      </template>
+      </section>
 
       <section v-if="history.length" class="history">
         <h3>Past sessions</h3>
@@ -422,6 +566,13 @@ h3 {
   border-color: #b0413e;
   color: #fff;
 }
+.timer {
+  font-size: 2.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary, inherit);
+  margin-bottom: 1rem;
+}
 .live-stats {
   display: flex;
   gap: 1.5rem;
@@ -450,6 +601,78 @@ h3 {
   border: 1px solid var(--gridline, #d8c9a3);
   border-radius: 12px;
   display: block;
+  margin-top: 1rem;
+}
+.session-summary {
+  margin-bottom: 1.5rem;
+}
+.session-summary h2 {
+  font-size: 1rem;
+  margin: 0 0 1rem;
+}
+.summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.summary-stat {
+  display: flex;
+  flex-direction: column;
+}
+.summary-stat-wide {
+  grid-column: 1 / -1;
+}
+.summary-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text-primary, inherit);
+  line-height: 1.1;
+}
+.summary-label {
+  font-size: 0.72rem;
+  color: var(--text-secondary, #6b5d47);
+}
+.band-breakdown {
+  margin-bottom: 1.25rem;
+}
+.band-breakdown h3 {
+  font-size: 0.85rem;
+  margin: 0 0 0.6rem;
+}
+.band-bar {
+  display: flex;
+  width: 100%;
+  height: 14px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--gridline, #d8c9a3);
+}
+.band-bar-segment {
+  height: 100%;
+}
+.band-breakdown-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1rem;
+  margin-top: 0.6rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary, #6b5d47);
+}
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex: none;
+}
+.route-toggle {
+  font-size: 0.8rem;
+  padding: 0.45rem 0.9rem;
 }
 .path-line {
   fill: none;
