@@ -16,15 +16,16 @@
     <a href="{{ url_for('hello_world') }}" data-mark="§01" class="{{ 'active' if request.path == url_for('hello_world') }}" {{ 'aria-current="page"' if request.path == url_for('hello_world') }}>Home</a>
     <a href="{{ url_for('trending_page') }}" data-mark="§02" class="{{ 'active' if request.path == url_for('trending_page') }}" {{ 'aria-current="page"' if request.path == url_for('trending_page') }}>Trending</a>
     <a href="{{ url_for('uv_index_page') }}" data-mark="§03" class="{{ 'active' if request.path == url_for('uv_index_page') }}" {{ 'aria-current="page"' if request.path == url_for('uv_index_page') }}>UV Index</a>
+    <a href="{{ url_for('about_page') }}" data-mark="§04" class="{{ 'active' if request.path == url_for('about_page') }}" {{ 'aria-current="page"' if request.path == url_for('about_page') }}>About</a>
     {% if current_user %}
-      <a href="{{ url_for('essays_page') }}" data-mark="§04" class="{{ 'active' if request.path == url_for('essays_page') }}" {{ 'aria-current="page"' if request.path == url_for('essays_page') }}>Essays</a>
+      <a href="{{ url_for('essays_page') }}" data-mark="§05" class="{{ 'active' if request.path == url_for('essays_page') }}" {{ 'aria-current="page"' if request.path == url_for('essays_page') }}>Essays</a>
       {% if current_user.is_admin %}
-        <a href="{{ url_for('admin_page') }}" data-mark="§05" class="{{ 'active' if request.path == url_for('admin_page') }}" {{ 'aria-current="page"' if request.path == url_for('admin_page') }}>Admin</a>
+        <a href="{{ url_for('admin_page') }}" data-mark="§06" class="{{ 'active' if request.path == url_for('admin_page') }}" {{ 'aria-current="page"' if request.path == url_for('admin_page') }}>Admin</a>
       {% endif %}
-      <a href="{{ url_for('profile_page') }}" data-mark="§06" class="{{ 'active' if request.path == url_for('profile_page') }}" {{ 'aria-current="page"' if request.path == url_for('profile_page') }}>{{ current_user.display_name or current_user.username }}</a>
+      <a href="{{ url_for('profile_page') }}" data-mark="§07" class="{{ 'active' if request.path == url_for('profile_page') }}" {{ 'aria-current="page"' if request.path == url_for('profile_page') }}>{{ current_user.display_name or current_user.username }}</a>
     {% else %}
-      <a href="{{ url_for('login_page') }}" data-mark="§04" class="{{ 'active' if request.path == url_for('login_page') }}" {{ 'aria-current="page"' if request.path == url_for('login_page') }}>Log in</a>
-      <a href="{{ url_for('register_page') }}" data-mark="§05" class="{{ 'active' if request.path == url_for('register_page') }}" {{ 'aria-current="page"' if request.path == url_for('register_page') }}>Register</a>
+      <a href="{{ url_for('login_page') }}" data-mark="§05" class="{{ 'active' if request.path == url_for('login_page') }}" {{ 'aria-current="page"' if request.path == url_for('login_page') }}>Log in</a>
+      <a href="{{ url_for('register_page') }}" data-mark="§06" class="{{ 'active' if request.path == url_for('register_page') }}" {{ 'aria-current="page"' if request.path == url_for('register_page') }}>Register</a>
     {% endif %}
     <span class="nav-version">v{{ app_version }}</span>
   </div>

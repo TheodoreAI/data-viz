@@ -646,6 +646,11 @@ def uv_index_page():
     return render_template('uv_index.html')
 
 
+@app.route('/about')
+def about_page():
+    return render_template('about.html')
+
+
 OPEN_METEO_URL = 'https://api.open-meteo.com/v1/forecast'
 
 

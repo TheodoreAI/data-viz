@@ -364,7 +364,7 @@ export default {
   flex: 1;
   border: 1px solid var(--mp-frame);
   padding: 1.5rem;
-  text-align: center;
+  text-align: start;
 }
 .feed-card-image {
   width: 100%;
