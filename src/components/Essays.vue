@@ -443,38 +443,67 @@ export default {
 </template>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
+
 .essays-page {
-  max-width: 960px;
+  --mp-wall: #f7f6f3;
+  --mp-frame: #e4e1d9;
+  --mp-frame-strong: #22201b;
+  --mp-ink: #22201b;
+  --mp-ink-soft: #756f60;
+
+  max-width: 640px;
   margin: 0 auto;
-  padding: 2rem 1.25rem 3rem;
+  padding: 2.5rem 1.25rem 3rem;
+  background: var(--mp-wall);
+  color: var(--mp-ink);
+  font-family: "IBM Plex Serif", Georgia, serif;
 }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .essays-page {
+    --mp-wall: #171613;
+    --mp-frame: #34312a;
+    --mp-frame-strong: #d9d5c9;
+    --mp-ink: #f0eee6;
+    --mp-ink-soft: #a39d8b;
+  }
+}
+:root[data-theme="dark"] .essays-page {
+  --mp-wall: #171613;
+  --mp-frame: #34312a;
+  --mp-frame-strong: #d9d5c9;
+  --mp-ink: #f0eee6;
+  --mp-ink-soft: #a39d8b;
+}
+
 h1 {
-  font-size: 1.3rem;
-  margin: 0 0 1.25rem;
+  font-size: 1.5rem;
+  font-weight: 500;
+  margin: 0 0 1.5rem;
 }
 .status {
-  color: var(--text-secondary, #6b5d47);
+  color: var(--mp-ink-soft);
+  font-family: Inter, sans-serif;
   font-size: 0.9rem;
 }
 .form-error {
   color: #b0413e;
 }
 .composer {
-  border: 1px solid var(--gridline, #d8c9a3);
-  border-radius: 6px;
-  padding: 0.75rem;
-  margin-bottom: 2rem;
+  border: 1px solid var(--mp-frame);
+  padding: 0.9rem;
+  margin-bottom: 2.5rem;
 }
 .composer textarea {
   width: 100%;
   resize: vertical;
-  font-family: inherit;
+  font-family: "IBM Plex Serif", Georgia, serif;
   font-size: 1rem;
   line-height: 1.6;
   padding: 0.75rem;
-  border: 1px solid var(--gridline, #d8c9a3);
-  border-radius: 4px;
-  background: var(--surface-1, #fcfcfb);
+  border: 1px solid var(--mp-frame);
+  background: var(--mp-wall);
   color: inherit;
   box-sizing: border-box;
   max-height: 60vh;
@@ -491,17 +520,16 @@ h1 {
   gap: 0.5rem;
   margin-top: 0.6rem;
   padding: 0.4rem 0.5rem;
-  border: 1px solid var(--gridline, #d8c9a3);
-  border-radius: 4px;
+  border: 1px solid var(--mp-frame);
 }
 .attached-thumb {
   width: 32px;
   height: 32px;
   object-fit: cover;
-  border-radius: 4px;
   flex: none;
 }
 .attached-title {
+  font-family: Inter, sans-serif;
   font-size: 0.85rem;
   flex: 1;
   overflow: hidden;
@@ -515,7 +543,7 @@ h1 {
   background: transparent;
   border: none;
   cursor: pointer;
-  color: var(--text-secondary, #6b5d47);
+  color: var(--mp-ink-soft);
 }
 .attached-remove svg {
   width: 12px;
@@ -531,12 +559,12 @@ h1 {
   width: 64px;
   height: 64px;
   object-fit: cover;
-  border-radius: 4px;
-  border: 1px solid var(--gridline, #d8c9a3);
+  border: 1px solid var(--mp-frame);
 }
 .attached-image-status {
+  font-family: Inter, sans-serif;
   font-size: 0.78rem;
-  color: var(--text-secondary, #6b5d47);
+  color: var(--mp-ink-soft);
 }
 .photo-button {
   flex: none;
@@ -545,13 +573,12 @@ h1 {
   justify-content: center;
   width: 2rem;
   height: 2rem;
-  border: 1px solid var(--gridline, #d8c9a3);
-  border-radius: 4px;
+  border: 1px solid var(--mp-frame);
   cursor: pointer;
-  color: var(--series-1, #2f6690);
+  color: var(--mp-ink);
 }
 .photo-button:hover {
-  border-color: var(--series-1, #2f6690);
+  border-color: var(--mp-frame-strong);
 }
 .photo-button svg {
   width: 1rem;
@@ -564,6 +591,7 @@ h1 {
   align-items: center;
   gap: 0.6rem;
   margin-top: 0.6rem;
+  font-family: Inter, sans-serif;
 }
 .saved-picker {
   flex: 1 1 0;
@@ -571,9 +599,8 @@ h1 {
   font-family: inherit;
   font-size: 0.82rem;
   padding: 0.3rem 0.4rem;
-  border: 1px solid var(--gridline, #d8c9a3);
-  border-radius: 4px;
-  background: var(--surface-1, #fcfcfb);
+  border: 1px solid var(--mp-frame);
+  background: var(--mp-wall);
   color: inherit;
   max-width: 55%;
 }
@@ -582,18 +609,19 @@ h1 {
 }
 .char-count {
   font-size: 0.78rem;
-  color: var(--text-secondary, #6b5d47);
+  color: var(--mp-ink-soft);
 }
 .char-count.over {
   color: #b0413e;
 }
 .post-button {
-  background: var(--series-1, #2f6690);
-  color: #fff;
+  background: var(--mp-frame-strong);
+  color: var(--mp-wall);
   border: none;
-  border-radius: 4px;
   padding: 0.4rem 0.9rem;
-  font-size: 0.85rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   cursor: pointer;
 }
 .post-button:disabled {
@@ -606,16 +634,14 @@ h1 {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.25rem;
 }
 .post {
   display: flex;
-  gap: 0.75rem;
-  padding: 1rem;
-  background: var(--card-bg, #fff);
-  border: none;
-  border-radius: var(--card-radius, 16px);
-  box-shadow: 0 8px 24px rgba(20, 23, 31, 0.08);
+  gap: 0.9rem;
+  padding: 1.25rem;
+  background: var(--mp-wall);
+  border: 1px solid var(--mp-frame);
   opacity: 0;
   transform: translateY(12px);
   transition: opacity 0.5s ease, transform 0.5s ease;
@@ -636,7 +662,7 @@ h1 {
   height: 40px;
   border-radius: 50%;
   flex: none;
-  background: var(--gridline, #e2e5eb);
+  background: var(--mp-frame);
 }
 .post-body {
   flex: 1;
@@ -647,19 +673,20 @@ h1 {
   align-items: baseline;
   gap: 0.5rem;
   flex-wrap: wrap;
+  font-family: Inter, sans-serif;
 }
 .post-author {
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 .post-date {
-  font-size: 0.75rem;
-  color: var(--text-secondary, #6b5d47);
+  font-size: 0.72rem;
+  color: var(--mp-ink-soft);
 }
 .post-text {
-  margin: 0.3rem 0 0;
+  margin: 0.5rem 0 0;
   font-size: 0.9rem;
-  line-height: 1.6;
+  line-height: 1.7;
   max-width: 65ch;
   white-space: pre-wrap;
   overflow-wrap: break-word;
@@ -670,51 +697,51 @@ h1 {
   padding: 0;
   background: none;
   border: none;
-  font-family: inherit;
-  font-size: 0.8rem;
+  font-family: Inter, sans-serif;
+  font-size: 0.75rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
   font-weight: 600;
-  color: var(--series-1, #2f6690);
+  color: var(--mp-ink-soft);
   cursor: pointer;
 }
 .read-more:hover {
-  text-decoration: underline;
+  color: var(--mp-ink);
 }
 .post-image {
   display: block;
   width: 100%;
   max-height: 360px;
   object-fit: cover;
-  border-radius: 12px;
-  margin-top: 0.6rem;
+  margin-top: 0.75rem;
 }
 .shared-item {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  margin-top: 0.6rem;
-  padding: 0.5rem;
-  border: 1px solid var(--gridline, #d8c9a3);
-  border-radius: 12px;
+  margin-top: 0.75rem;
+  padding: 0.6rem;
+  border: 1px solid var(--mp-frame);
   text-decoration: none;
   color: inherit;
 }
 .shared-item:hover {
-  border-color: var(--series-1, #2f6690);
+  border-color: var(--mp-frame-strong);
 }
 .shared-thumb {
   width: 40px;
   height: 40px;
   object-fit: cover;
-  border-radius: 4px;
   flex: none;
 }
 .shared-info {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  font-family: Inter, sans-serif;
 }
 .shared-title {
-  color: var(--series-1, #2f6690);
+  color: var(--mp-ink);
   font-size: 0.85rem;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -722,29 +749,35 @@ h1 {
 }
 .shared-subtitle {
   font-size: 0.75rem;
-  color: var(--text-secondary, #6b5d47);
+  color: var(--mp-ink-soft);
 }
 .post-actions {
   display: flex;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
+  gap: 0.75rem;
+  margin-top: 0.6rem;
+  font-family: Inter, sans-serif;
 }
 .share-button {
   background: transparent;
-  border: 1px solid var(--gridline, #d8c9a3);
-  color: var(--series-1, #2f6690);
-  border-radius: 4px;
-  padding: 0.25rem 0.6rem;
-  font-size: 0.75rem;
+  border: none;
+  color: var(--mp-ink-soft);
+  padding: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
   cursor: pointer;
+}
+.share-button:hover {
+  color: var(--mp-ink);
 }
 .remove-button {
   background: transparent;
-  border: 1px solid var(--gridline, #d8c9a3);
+  border: none;
   color: #b0413e;
-  border-radius: 4px;
-  padding: 0.25rem 0.6rem;
-  font-size: 0.75rem;
+  padding: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
   cursor: pointer;
 }
 .remove-button:disabled {
@@ -753,12 +786,15 @@ h1 {
 }
 .load-more {
   display: block;
-  margin: 1rem auto 0;
+  margin: 1.25rem auto 0;
   background: transparent;
-  border: 1px solid var(--gridline, #d8c9a3);
-  border-radius: 4px;
+  border: 1px solid var(--mp-frame);
+  color: var(--mp-ink);
+  font-family: Inter, sans-serif;
   padding: 0.4rem 1rem;
-  font-size: 0.82rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
   cursor: pointer;
 }
 .load-more:disabled {

@@ -549,17 +549,17 @@ export default {
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;500;600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
 .jog-tracker {
-  --cl-bg: #eef1f4;
+  --cl-bg: #f7f6f3;
   --cl-panel: #ffffff;
-  --cl-ink: #16202b;
-  --cl-ink-soft: #5b6b7a;
-  --cl-line: #d7dde3;
-  --cl-teal: #0f7d8c;
-  --cl-teal-deep: #0a5a66;
-  --cl-teal-tint: #e3f3f0;
+  --cl-ink: #22201b;
+  --cl-ink-soft: #756f60;
+  --cl-line: #e4e1d9;
+  --cl-teal: #4d6a5a;
+  --cl-teal-deep: #3a5245;
+  --cl-teal-tint: #e9efe9;
   --cl-crit: #b8323a;
   --cl-crit-tint: #fce9e6;
 
@@ -568,33 +568,33 @@ export default {
   padding: 2rem 1.25rem 3rem;
   background: var(--cl-bg);
   color: var(--cl-ink);
-  font-family: "Space Grotesk", system-ui, sans-serif;
+  font-family: "IBM Plex Serif", Georgia, serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .jog-tracker {
-    --cl-bg: #10151a;
-    --cl-panel: #1a2129;
-    --cl-ink: #eef1f4;
-    --cl-ink-soft: #93a1ae;
-    --cl-line: #2b333c;
-    --cl-teal: #34c3d1;
-    --cl-teal-deep: #6fdbe6;
-    --cl-teal-tint: #123338;
+    --cl-bg: #171613;
+    --cl-panel: #22201b;
+    --cl-ink: #f0eee6;
+    --cl-ink-soft: #a39d8b;
+    --cl-line: #34312a;
+    --cl-teal: #7fa88f;
+    --cl-teal-deep: #a3c7ae;
+    --cl-teal-tint: #1e2a22;
     --cl-crit: #ef7a80;
     --cl-crit-tint: #3a1f22;
   }
 }
 
 :root[data-theme="dark"] .jog-tracker {
-  --cl-bg: #10151a;
-  --cl-panel: #1a2129;
-  --cl-ink: #eef1f4;
-  --cl-ink-soft: #93a1ae;
-  --cl-line: #2b333c;
-  --cl-teal: #34c3d1;
-  --cl-teal-deep: #6fdbe6;
-  --cl-teal-tint: #123338;
+  --cl-bg: #171613;
+  --cl-panel: #22201b;
+  --cl-ink: #f0eee6;
+  --cl-ink-soft: #a39d8b;
+  --cl-line: #34312a;
+  --cl-teal: #7fa88f;
+  --cl-teal-deep: #a3c7ae;
+  --cl-teal-tint: #1e2a22;
   --cl-crit: #ef7a80;
   --cl-crit-tint: #3a1f22;
 }
@@ -611,9 +611,8 @@ export default {
   margin-bottom: 0.5rem;
 }
 h1 {
-  font-size: 1.15rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-size: 1.3rem;
+  font-weight: 500;
   margin: 0;
 }
 .status-chip {
@@ -664,12 +663,14 @@ h1 {
 
 .subtitle {
   color: var(--cl-ink-soft);
+  font-family: Inter, sans-serif;
   font-size: 0.83rem;
   margin: 0 0 1.25rem;
   line-height: 1.5;
 }
 .status {
   color: var(--cl-ink-soft);
+  font-family: Inter, sans-serif;
   font-size: 0.85rem;
 }
 .status a {
@@ -682,15 +683,14 @@ h1 {
 .panel {
   background: var(--cl-panel);
   border: 1px solid var(--cl-line);
-  border-radius: 8px;
-  box-shadow: 0 1px 2px rgba(22, 32, 43, 0.04);
   margin-bottom: 1rem;
   overflow: hidden;
 }
 .panel-head {
   padding: 0.9rem 1.1rem;
   border-bottom: 1px solid var(--cl-line);
-  font-size: 0.68rem;
+  font-family: Inter, sans-serif;
+  font-size: 0.66rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -735,11 +735,12 @@ h1 {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  font-family: inherit;
-  font-size: 0.85rem;
+  font-family: Inter, sans-serif;
+  font-size: 0.78rem;
   font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
   padding: 0.75rem 1.4rem;
-  border-radius: 6px;
   cursor: pointer;
   border: none;
 }

@@ -533,11 +533,40 @@ export default {
 </template>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
+
 .profile-page {
+  --mp-wall: #f7f6f3;
+  --mp-frame: #e4e1d9;
+  --mp-frame-strong: #22201b;
+  --mp-ink: #22201b;
+  --mp-ink-soft: #756f60;
+
   max-width: 420px;
   margin: 0 auto;
-  padding: 2rem 1.25rem 3rem;
+  padding: 2.5rem 1.25rem 3rem;
+  background: var(--mp-wall);
+  color: var(--mp-ink);
+  font-family: "IBM Plex Serif", Georgia, serif;
 }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .profile-page {
+    --mp-wall: #171613;
+    --mp-frame: #34312a;
+    --mp-frame-strong: #d9d5c9;
+    --mp-ink: #f0eee6;
+    --mp-ink-soft: #a39d8b;
+  }
+}
+:root[data-theme="dark"] .profile-page {
+  --mp-wall: #171613;
+  --mp-frame: #34312a;
+  --mp-frame-strong: #d9d5c9;
+  --mp-ink: #f0eee6;
+  --mp-ink-soft: #a39d8b;
+}
+
 .profile-header {
   display: flex;
   align-items: center;
@@ -549,22 +578,25 @@ export default {
 }
 .avatar {
   border-radius: 50%;
-  border: 1px solid var(--gridline, #d8c9a3);
-  background: var(--surface-1, #fcfcfb);
+  border: 1px solid var(--mp-frame);
+  background: var(--mp-wall);
   flex: none;
 }
 h1 {
   font-size: 1.3rem;
+  font-weight: 500;
   margin: 0;
   overflow-wrap: break-word;
 }
 .username-sub {
-  color: var(--text-secondary, #6b5d47);
+  color: var(--mp-ink-soft);
+  font-family: Inter, sans-serif;
   font-size: 0.8rem;
   margin: 0.1rem 0 0;
 }
 .email {
-  color: var(--text-secondary, #6b5d47);
+  color: var(--mp-ink-soft);
+  font-family: Inter, sans-serif;
   font-size: 0.9rem;
   margin: 0.15rem 0 0;
 }
@@ -572,41 +604,41 @@ h1 {
   margin-bottom: 1rem;
 }
 .meta {
-  color: var(--text-secondary, #6b5d47);
+  color: var(--mp-ink-soft);
+  font-family: Inter, sans-serif;
   font-size: 0.8rem;
   margin: 0.2rem 0;
 }
 .bio-section {
   margin: 1.25rem 0;
-  padding: 1rem;
-  border: 1px solid var(--gridline, #d8c9a3);
-  border-radius: 6px;
+  padding: 1.25rem;
+  border: 1px solid var(--mp-frame);
 }
 .bio-text {
   margin: 0 0 0.6rem;
   font-size: 0.9rem;
-  line-height: 1.4;
+  line-height: 1.6;
   white-space: pre-wrap;
 }
 .bio-empty {
-  color: var(--text-secondary, #6b5d47);
+  color: var(--mp-ink-soft);
   font-style: italic;
 }
 .bio-input {
   width: 100%;
-  font-family: inherit;
+  font-family: Inter, sans-serif;
   font-size: 0.9rem;
   padding: 0.5rem;
-  border: 1px solid var(--gridline, #d8c9a3);
-  border-radius: 4px;
-  background: var(--surface-1, #fcfcfb);
+  border: 1px solid var(--mp-frame);
+  background: var(--mp-wall);
   color: inherit;
   resize: vertical;
 }
 .char-count {
   margin: 0.3rem 0 0;
+  font-family: Inter, sans-serif;
   font-size: 0.75rem;
-  color: var(--text-secondary, #6b5d47);
+  color: var(--mp-ink-soft);
   text-align: right;
 }
 .bio-actions {
@@ -615,11 +647,13 @@ h1 {
   margin-top: 0.6rem;
 }
 .status {
-  color: var(--text-secondary, #6b5d47);
+  color: var(--mp-ink-soft);
+  font-family: Inter, sans-serif;
   font-size: 0.9rem;
 }
 .form-error {
   color: #b0413e;
+  font-family: Inter, sans-serif;
   font-size: 0.85rem;
   margin: 0 0 0.5rem;
 }
@@ -628,17 +662,18 @@ h1 {
 .cancel-button,
 .logout-button {
   background: transparent;
-  border: 1px solid var(--series-1, #2f6690);
-  color: var(--series-1, #2f6690);
-  border-radius: 4px;
+  border: 1px solid var(--mp-frame-strong);
+  color: var(--mp-ink);
+  font-family: Inter, sans-serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   padding: 0.4rem 0.9rem;
-  font-size: 0.85rem;
-  font-family: inherit;
   cursor: pointer;
 }
 .save-button {
-  background: var(--series-1, #2f6690);
-  color: #fff;
+  background: var(--mp-frame-strong);
+  color: var(--mp-wall);
 }
 .edit-button:disabled,
 .save-button:disabled,
@@ -650,24 +685,26 @@ h1 {
 .tab-bar {
   display: flex;
   gap: 0.4rem;
-  margin: 1.25rem 0 1.5rem;
-  border-bottom: 1px solid var(--gridline, #d8c9a3);
+  margin: 1.5rem 0 1.75rem;
+  border-bottom: 1px solid var(--mp-frame);
 }
 .tab-button {
   flex: 1;
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
-  color: var(--text-secondary, #6b5d47);
+  color: var(--mp-ink-soft);
+  font-family: Inter, sans-serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
   padding: 0.6rem 0.4rem;
-  font-family: inherit;
-  font-size: 0.85rem;
   cursor: pointer;
 }
 .tab-button.active {
-  color: var(--series-1, #2f6690);
-  border-bottom-color: var(--series-1, #2f6690);
-  font-weight: 700;
+  color: var(--mp-ink);
+  border-bottom-color: var(--mp-frame-strong);
+  font-weight: 600;
 }
 .tab-button.danger.active {
   color: #b0413e;
@@ -677,7 +714,8 @@ h1 {
   margin: 1.5rem 0;
 }
 .settings-section h2 {
-  font-size: 1rem;
+  font-size: 1.1rem;
+  font-weight: 500;
   margin: 0 0 0.5rem;
 }
 .settings-form {
@@ -690,20 +728,20 @@ h1 {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
+  font-family: Inter, sans-serif;
   font-size: 0.85rem;
   overflow-wrap: break-word;
 }
 .field input {
-  font-family: inherit;
+  font-family: Inter, sans-serif;
   font-size: 1rem;
   padding: 0.5rem 0.65rem;
-  border: 1px solid var(--gridline, #d8c9a3);
-  border-radius: 4px;
-  background: var(--surface-1, #fcfcfb);
+  border: 1px solid var(--mp-frame);
+  background: var(--mp-wall);
   color: inherit;
 }
 .field input:focus {
-  outline: 2px solid var(--series-1, #2f6690);
+  outline: 2px solid var(--mp-frame-strong);
   outline-offset: 1px;
 }
 .field input[aria-invalid="true"] {
@@ -720,43 +758,47 @@ h1 {
 .toggle-password {
   flex: none;
   background: transparent;
-  border: 1px solid var(--gridline, #d8c9a3);
-  color: var(--series-1, #2f6690);
-  border-radius: 4px;
+  border: 1px solid var(--mp-frame);
+  color: var(--mp-ink);
+  font-family: Inter, sans-serif;
+  border-radius: 0;
   padding: 0 0.75rem;
   font-size: 0.8rem;
   cursor: pointer;
 }
 .field-error {
   color: #b0413e;
+  font-family: Inter, sans-serif;
   font-size: 0.78rem;
 }
 .success-message {
   color: #3a7a4e;
+  font-family: Inter, sans-serif;
   font-size: 0.85rem;
   margin: 0 0 0.5rem;
 }
 .danger-zone {
-  padding: 1rem;
+  padding: 1.25rem;
   border: 1px solid rgba(176, 65, 62, 0.4);
-  border-radius: 6px;
 }
 .danger-zone h2 {
   color: #b0413e;
 }
 .danger-copy {
+  font-family: Inter, sans-serif;
   font-size: 0.85rem;
-  color: var(--text-secondary, #6b5d47);
+  color: var(--mp-ink-soft);
   margin: 0 0 0.75rem;
 }
 .danger-button {
   background: transparent;
   border: 1px solid #b0413e;
   color: #b0413e;
-  border-radius: 4px;
+  font-family: Inter, sans-serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   padding: 0.4rem 0.9rem;
-  font-size: 0.85rem;
-  font-family: inherit;
   cursor: pointer;
 }
 .danger-button:disabled {
@@ -776,20 +818,18 @@ h1 {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.6rem;
-  border: 1px solid var(--gridline, #d8c9a3);
-  border-radius: 6px;
+  padding: 0.75rem;
+  border: 1px solid var(--mp-frame);
 }
 .saved-thumb {
   flex: none;
   width: 52px;
   height: 52px;
-  border-radius: 4px;
   object-fit: cover;
-  background: var(--surface-1, #fcfcfb);
+  background: var(--mp-wall);
 }
 .saved-thumb-empty {
-  border: 1px dashed var(--gridline, #d8c9a3);
+  border: 1px dashed var(--mp-frame);
 }
 .saved-body {
   min-width: 0;
@@ -808,8 +848,9 @@ h1 {
 }
 .saved-subtitle {
   margin: 0.2rem 0 0;
+  font-family: Inter, sans-serif;
   font-size: 0.78rem;
-  color: var(--text-secondary, #6b5d47);
+  color: var(--mp-ink-soft);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -823,9 +864,9 @@ h1 {
   align-items: center;
   justify-content: center;
   background: transparent;
-  border: 1px solid var(--gridline, #d8c9a3);
+  border: 1px solid var(--mp-frame);
   border-radius: 50%;
-  color: var(--text-secondary, #6b5d47);
+  color: var(--mp-ink-soft);
   cursor: pointer;
 }
 .saved-remove svg {
