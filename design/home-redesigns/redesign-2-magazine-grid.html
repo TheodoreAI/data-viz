@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Redesign 2 — Magazine Grid</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="_shared.css">
+<style>
+  .mockup-banner { background: #0062c7; }
+  .page-head {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 1rem;
+    text-align: center;
+  }
+  .page-head h1 { font-size: 2.1rem; margin: 0 0 0.5rem; }
+  .page-head p { color: var(--text-secondary); margin: 0; }
+  .filters {
+    max-width: 1100px;
+    margin: 1rem auto 0;
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    padding: 0 1.5rem;
+  }
+  .filters button {
+    border: 1px solid var(--gridline);
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    border-radius: 999px;
+    padding: 0.4rem 1rem;
+    font-size: 0.8rem;
+    font-family: inherit;
+  }
+  .filters button.active { background: var(--series-1); color: #fff; border-color: var(--series-1); }
+  .grid {
+    max-width: 1100px;
+    margin: 1.75rem auto 3rem;
+    padding: 0 1.5rem;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem;
+  }
+  .grid article.feature { grid-column: span 2; grid-row: span 2; }
+  .tile {
+    background: var(--card-bg);
+    border-radius: 14px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .tile .media { height: 160px; }
+  .feature .media { height: 280px; }
+  .tile .body { padding: 1rem 1.15rem 1.25rem; flex: 1; display: flex; flex-direction: column; }
+  .tile .tag { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--series-1); margin-bottom: 0.4rem; }
+  .tile h2 { margin: 0 0 0.4rem; font-size: 1rem; line-height: 1.3; }
+  .feature h2 { font-size: 1.5rem; }
+  .tile p { margin: 0; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; flex: 1; }
+  .tile .meta { margin-top: 0.75rem; font-size: 0.72rem; color: var(--muted); }
+  @media (max-width: 800px) {
+    .grid { grid-template-columns: repeat(2, 1fr); }
+    .grid article.feature { grid-column: span 2; grid-row: span 1; }
+  }
+  @media (max-width: 520px) {
+    .grid { grid-template-columns: 1fr; }
+    .grid article.feature { grid-column: span 1; }
+  }
+</style>
+</head>
+<body>
+<div class="mockup-banner">
+  <strong>Redesign 2 / 5 — Magazine Grid</strong>
+  <span><a href="index.html">&larr; Back to gallery</a></span>
+</div>
+<div class="page-head">
+  <h1>Explore Wikipedia, at a glance</h1>
+  <p>A browsable grid of trending and random articles instead of one card at a time.</p>
+</div>
+<div class="filters">
+  <button class="active">All topics</button>
+  <button>Science</button>
+  <button>History</button>
+  <button>Technology</button>
+  <button>Art &amp; culture</button>
+  <button>Places</button>
+</div>
+<div class="grid">
+  <article class="tile feature">
+    <div class="media placeholder-media"></div>
+    <div class="body">
+      <div class="tag">Featured &middot; History</div>
+      <h2>The Silk Road's Forgotten Middlemen</h2>
+      <p>Long before "globalization" was a word, Sogdian merchants ran a 4,000-mile trade network connecting Byzantium to Chang'an — and left almost no trace in Western histories.</p>
+      <div class="meta">8 min read &middot; 214k views this week</div>
+    </div>
+  </article>
+  <article class="tile">
+    <div class="media placeholder-media"></div>
+    <div class="body">
+      <div class="tag">Science</div>
+      <h2>Tardigrades in Vacuum</h2>
+      <p>Microscopic animals that survive exposure to raw space.</p>
+      <div class="meta">3 min read</div>
+    </div>
+  </article>
+  <article class="tile">
+    <div class="media placeholder-media"></div>
+    <div class="body">
+      <div class="tag">Technology</div>
+      <h2>The First Computer Bug</h2>
+      <p>A literal moth, a logbook, and a legend.</p>
+      <div class="meta">2 min read</div>
+    </div>
+  </article>
+  <article class="tile">
+    <div class="media placeholder-media"></div>
+    <div class="body">
+      <div class="tag">Places</div>
+      <h2>Svalbard's Seed Vault</h2>
+      <p>A frozen mountain built to outlast civilizations.</p>
+      <div class="meta">4 min read</div>
+    </div>
+  </article>
+  <article class="tile">
+    <div class="media placeholder-media"></div>
+    <div class="body">
+      <div class="tag">Art &amp; culture</div>
+      <h2>Why Cathedrals Took Centuries</h2>
+      <p>Multi-generational architecture as an act of faith.</p>
+      <div class="meta">6 min read</div>
+    </div>
+  </article>
+  <article class="tile">
+    <div class="media placeholder-media"></div>
+    <div class="body">
+      <div class="tag">Science</div>
+      <h2>The Mpemba Effect</h2>
+      <p>Why hot water sometimes freezes faster than cold.</p>
+      <div class="meta">3 min read</div>
+    </div>
+  </article>
+</div>
+</body>
+</html>

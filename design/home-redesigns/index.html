@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Home Page Redesigns — Review Gallery</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="_shared.css">
+<style>
+  body { background: var(--surface-1); }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 3rem 1.5rem 4rem; }
+  h1 { font-size: 1.9rem; margin: 0 0 0.5rem; }
+  .lede { color: var(--text-secondary); margin: 0 0 2.5rem; max-width: 60ch; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem; }
+  .card {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    background: var(--card-bg);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    border: 1px solid var(--gridline);
+  }
+  .card .swatch { height: 110px; }
+  .swatch.c1 { background: linear-gradient(135deg,#7a513f,#b8935a); }
+  .swatch.c2 { background: linear-gradient(135deg,#0062c7,#3b9dff); }
+  .swatch.c3 { background: linear-gradient(135deg,#2f6690,#74804a); }
+  .swatch.c4 { background: linear-gradient(135deg,#3f3326,#6b5d47); }
+  .swatch.c5 { background: linear-gradient(135deg,#b8935a,#d1a869); }
+  .card .body { padding: 1.1rem 1.25rem 1.3rem; }
+  .card .num { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.4rem; }
+  .card h2 { margin: 0 0 0.5rem; font-size: 1.05rem; }
+  .card p { margin: 0; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Home page redesigns</h1>
+  <p class="lede">Five directions for redesigning the home page, built from the current app's design tokens (colors, fonts). Open any card to view a static preview. Pick the one you like — we can wire it into the real Vue component next.</p>
+  <div class="cards">
+    <a class="card" href="redesign-1-card-stack.html">
+      <div class="swatch c1"></div>
+      <div class="body">
+        <div class="num">Option 1</div>
+        <h2>Vertical Card Stack</h2>
+        <p>A refined version of today's swipe feed: rounded card, topic chips up top, and a progress rail on the side.</p>
+      </div>
+    </a>
+    <a class="card" href="redesign-2-magazine-grid.html">
+      <div class="swatch c2"></div>
+      <div class="body">
+        <div class="num">Option 2</div>
+        <h2>Magazine Grid</h2>
+        <p>Trades the one-at-a-time feed for a browsable grid with a large featured story, closer to a news homepage.</p>
+      </div>
+    </a>
+    <a class="card" href="redesign-3-split-hero.html">
+      <div class="swatch c3"></div>
+      <div class="body">
+        <div class="num">Option 3</div>
+        <h2>Split Hero</h2>
+        <p>Full-bleed featured article on the left, a scrollable "up next" queue on the right. Desktop-first.</p>
+      </div>
+    </a>
+    <a class="card" href="redesign-4-minimal-reader.html">
+      <div class="swatch c4"></div>
+      <div class="body">
+        <div class="num">Option 4</div>
+        <h2>Minimalist Reader</h2>
+        <p>Distraction-free, serif typography, centered column. Leans into the "reading" experience over browsing.</p>
+      </div>
+    </a>
+    <a class="card" href="redesign-5-dashboard.html">
+      <div class="swatch c5"></div>
+      <div class="body">
+        <div class="num">Option 5</div>
+        <h2>Dashboard</h2>
+        <p>Stats strip, article-of-the-day banner, trending list, and topic breakdown — an overview-first home page.</p>
+      </div>
+    </a>
+  </div>
+</div>
+</body>
+</html>
