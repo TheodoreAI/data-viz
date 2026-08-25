@@ -1,0 +1,73 @@
+/* Shared design tokens, lifted from static/style.css, used by all 5 mockups. */
+:root {
+  color-scheme: light;
+  --surface-1: #f2f2f7;
+  --text-primary: #000000;
+  --text-secondary: #6c6c70;
+  --muted: #6c6c70;
+  --gridline: #e2e5eb;
+  --card-bg: #ffffff;
+  --series-1: #0062c7;
+  --accent-1-strong: #0062c7;
+  --accent-2-warm: #ff5c7a;
+  --surface: #f3e9d2;
+  --surface-deep: #e9dbb6;
+  --ink: #3f3326;
+  --ink-soft: #6b5d47;
+  --blue: #2f6690;
+  --olive: #74804a;
+  --gold: #b8935a;
+  --font-sans: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-serif: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --surface-1: #1c1c1e;
+    --text-primary: #ffffff;
+    --text-secondary: #98989f;
+    --muted: #98989f;
+    --gridline: #38383a;
+    --card-bg: #2c2c2e;
+    --series-1: #3b9dff;
+    --accent-1-strong: #3b9dff;
+    --accent-2-warm: #ff7590;
+    --surface: #1c1a15;
+    --surface-deep: #131209;
+    --ink: #e8dfc8;
+    --ink-soft: #b3a888;
+    --blue: #86b3d9;
+    --olive: #9caa6e;
+    --gold: #d1a869;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--font-sans);
+  background: var(--surface-1);
+  color: var(--text-primary);
+}
+.mockup-banner {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  background: #111;
+  color: #fff;
+  font-size: 0.8rem;
+  font-family: var(--font-sans);
+}
+.mockup-banner a {
+  color: #fff;
+  text-decoration: underline;
+}
+.mockup-banner strong { font-weight: 600; }
+.placeholder-media {
+  background: linear-gradient(135deg, var(--accent-1-strong, var(--blue)) 0%, var(--accent-2-warm, var(--gold)) 100%);
+  display: block;
+}

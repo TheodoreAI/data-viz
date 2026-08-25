@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Redesign 5 — Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="_shared.css">
+<style>
+  .mockup-banner { background: #b8935a; color: #1c1c1e; }
+  .mockup-banner a { color: #1c1c1e; }
+  .dash {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 3rem;
+  }
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .stat {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 1rem 1.1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .stat .num { font-size: 1.5rem; font-weight: 700; color: var(--series-1); }
+  .stat .label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-top: 0.25rem; }
+  .banner {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    background: var(--card-bg);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .banner .media { width: 220px; height: 160px; flex: none; }
+  .banner .info { padding: 1rem 1.5rem 1rem 0; }
+  .banner .tag { font-size: 0.7rem; color: var(--gold); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.4rem; }
+  .banner h1 { margin: 0 0 0.5rem; font-size: 1.4rem; }
+  .banner p { margin: 0; color: var(--text-secondary); font-size: 0.9rem; line-height: 1.5; }
+  .cols { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; }
+  .panel { background: var(--card-bg); border-radius: 14px; padding: 1.25rem 1.4rem; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .panel h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 1rem; }
+  .list-row { display: flex; justify-content: space-between; padding: 0.6rem 0; border-bottom: 1px solid var(--gridline); font-size: 0.9rem; }
+  .list-row:last-child { border-bottom: none; }
+  .list-row .rank { color: var(--muted); width: 1.5rem; }
+  .list-row .views { color: var(--muted); font-size: 0.8rem; }
+  .topic-tiles { display: flex; flex-direction: column; gap: 0.6rem; }
+  .topic-tile { display: flex; justify-content: space-between; padding: 0.6rem 0.85rem; border-radius: 10px; background: var(--surface-1); font-size: 0.85rem; }
+  .topic-tile .count { color: var(--series-1); font-weight: 600; }
+  @media (max-width: 760px) {
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .cols { grid-template-columns: 1fr; }
+    .banner { flex-direction: column; }
+    .banner .media { width: 100%; height: 180px; }
+    .banner .info { padding: 1rem 1.25rem 1.25rem; }
+  }
+</style>
+</head>
+<body>
+<div class="mockup-banner">
+  <strong>Redesign 5 / 5 — Dashboard</strong>
+  <span><a href="index.html">&larr; Back to gallery</a></span>
+</div>
+<div class="dash">
+  <div class="stats-row">
+    <div class="stat"><div class="num">128</div><div class="label">Articles today</div></div>
+    <div class="stat"><div class="num">12</div><div class="label">Topics</div></div>
+    <div class="stat"><div class="num">3.2k</div><div class="label">Trending views</div></div>
+    <div class="stat"><div class="num">42</div><div class="label">Saved by you</div></div>
+  </div>
+  <div class="banner">
+    <div class="media placeholder-media"></div>
+    <div class="info">
+      <div class="tag">Article of the day</div>
+      <h1>The Bridge Built From Living Roots</h1>
+      <p>In Meghalaya, India, communities have spent generations training rubber fig roots into footbridges that grow stronger every year instead of decaying.</p>
+    </div>
+  </div>
+  <div class="cols">
+    <div class="panel">
+      <h2>Trending this week</h2>
+      <div class="list-row"><span><span class="rank">1</span>Solar Maximum 2026</span><span class="views">18.2k views</span></div>
+      <div class="list-row"><span><span class="rank">2</span>The Antikythera Mechanism</span><span class="views">14.9k views</span></div>
+      <div class="list-row"><span><span class="rank">3</span>Deep-Sea Mining Debate</span><span class="views">12.1k views</span></div>
+      <div class="list-row"><span><span class="rank">4</span>Longevity of Greenland Sharks</span><span class="views">9.8k views</span></div>
+      <div class="list-row"><span><span class="rank">5</span>The Real Timeline of Rome's Fall</span><span class="views">8.4k views</span></div>
+    </div>
+    <div class="panel">
+      <h2>Browse by topic</h2>
+      <div class="topic-tiles">
+        <div class="topic-tile"><span>Science</span><span class="count">34</span></div>
+        <div class="topic-tile"><span>History</span><span class="count">28</span></div>
+        <div class="topic-tile"><span>Technology</span><span class="count">21</span></div>
+        <div class="topic-tile"><span>Art &amp; culture</span><span class="count">17</span></div>
+        <div class="topic-tile"><span>Places</span><span class="count">12</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
