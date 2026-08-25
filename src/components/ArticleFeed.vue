@@ -306,19 +306,19 @@ export default {
 .feed-header {
   flex: none;
   text-align: center;
-  padding: 1.25rem 1.1rem 0.5rem;
+  padding: 1.75rem 1.25rem 0.75rem;
 }
 .kicker {
   font-family: Inter, sans-serif;
-  font-size: 0.66rem;
+  font-size: 0.72rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--mp-ink-soft);
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.6rem;
 }
 .feed-header h1 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1.5rem;
   font-weight: 500;
   letter-spacing: 0.01em;
 }
@@ -358,12 +358,13 @@ export default {
   min-height: 0;
   overflow-y: auto;
   display: flex;
-  padding: 0.5rem 1.1rem 1rem;
+  flex-direction: column;
+  padding: 0.5rem 1.25rem 1.25rem;
 }
 .feed-card-inner {
   flex: 1;
   border: 1px solid var(--mp-frame);
-  padding: 1.5rem;
+  padding: 1.85rem;
   text-align: start;
 }
 .feed-card-image {
@@ -375,9 +376,9 @@ export default {
 }
 .feed-card-inner h2 {
   margin: 0 0 1rem;
-  font-size: 1.4rem;
+  font-size: 1.6rem;
   font-weight: 600;
-  line-height: 1.2;
+  line-height: 1.25;
 }
 .feed-card-inner h2 a {
   color: inherit;
@@ -385,7 +386,7 @@ export default {
 }
 .feed-card-inner p {
   margin: 0 0 1.5rem;
-  font-size: 0.9rem;
+  font-size: 1.05rem;
   line-height: 1.8;
   color: var(--mp-ink);
 }
