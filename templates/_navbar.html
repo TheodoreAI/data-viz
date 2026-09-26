@@ -36,7 +36,6 @@
       <a href="{{ url_for('profile_page') }}" data-mark="§07" class="{{ 'active' if request.path == url_for('profile_page') }}" {{ 'aria-current="page"' if request.path == url_for('profile_page') }}>{{ current_user.display_name or current_user.username }}</a>
     {% else %}
       <a href="{{ url_for('login_page') }}" data-mark="§04" class="{{ 'active' if request.path == url_for('login_page') }}" {{ 'aria-current="page"' if request.path == url_for('login_page') }}>Log in</a>
-      <a href="{{ url_for('register_page') }}" data-mark="§05" class="{{ 'active' if request.path == url_for('register_page') }}" {{ 'aria-current="page"' if request.path == url_for('register_page') }}>Register</a>
     {% endif %}
 
     <span class="nav-version">v{{ app_version }}</span>

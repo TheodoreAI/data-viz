@@ -29,8 +29,6 @@ export default {
       tabs: [
         { id: 'wikipedia', label: 'Wikipedia' },
         { id: 'hackernews', label: 'Hacker News' },
-        { id: 'youtube', label: 'YouTube' },
-        { id: 'stackoverflow', label: 'Stack Overflow' },
         { id: 'devto', label: 'DEV' },
         { id: 'lobsters', label: 'Lobsters' },
         { id: 'github', label: 'GitHub' },

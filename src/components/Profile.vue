@@ -275,7 +275,7 @@ export default {
           this.deleteErrors = data.errors || { form: 'Something went wrong. Please try again.' };
           return;
         }
-        window.location.href = '/register';
+        window.location.href = '/login';
       } catch {
         this.deleteErrors = { form: "Couldn't reach the server. Check your connection and try again." };
       } finally {

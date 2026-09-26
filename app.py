@@ -28,7 +28,6 @@ from auth import authenticate_user
 from auth import change_password
 from auth import delete_account
 from auth import generate_reset_token
-from auth import register_user
 from auth import reset_password as apply_password_reset
 from auth import update_bio
 from auth import update_display_name
@@ -207,7 +206,15 @@ def hello_world():
 
 @app.route('/register')
 def register_page():
-    return render_template('register.html')
+    # Registration is disabled. Returning 404 (instead of rendering the page)
+    # means direct navigation and any client-side redirect to /register all
+    # fail server-side, so the feature can't be reached through the browser.
+    return (
+        render_template(
+            'error.html', title='Registration unavailable', message='Registration is currently disabled.'
+        ),
+        404,
+    )
 
 
 @app.route('/login')
@@ -316,21 +323,10 @@ def reset_password_page():
 
 
 @app.route('/api/register', methods=['POST'])
-@limiter.limit('10 per hour')
 def api_register():
-    data = request.get_json(silent=True) or {}
-    username = (data.get('username') or '').strip()
-    email = (data.get('email') or '').strip().lower()
-    password = data.get('password') or ''
-
-    user, errors = register_user(username, email, password)
-    if errors:
-        return jsonify({'errors': errors}), 400
-
-    access_token = create_access_token(identity=str(user.id))
-    response = jsonify({'user': user.to_dict()})
-    set_access_cookies(response, access_token)
-    return response, 201
+    # Registration is disabled. Returning 404 blocks any client-side
+    # fetch('/api/register') from creating accounts.
+    return jsonify({'error': 'Not found'}), 404
 
 
 @app.route('/api/login', methods=['POST'])
