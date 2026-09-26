@@ -196,12 +196,6 @@ export default {
           <hr class="caption-rule">
           <div class="feed-card-actions">
             <a :href="currentArticle.content_urls.desktop.page" target="_blank" class="read-more-link">Read Full Entry</a>
-            <button
-              type="button"
-              class="save-button"
-              :disabled="savedTitles.has(currentArticle.title)"
-              @click="saveCurrentArticle"
-            >{{ savedTitles.has(currentArticle.title) ? 'Saved' : (savingTitle === currentArticle.title ? 'Saving…' : 'Save to Collection') }}</button>
           </div>
         </div>
       </article>
@@ -415,24 +409,6 @@ export default {
 .read-more-link:hover {
   color: var(--mp-ink);
 }
-.save-button {
-  background: none;
-  border: none;
-  color: var(--mp-ink-soft);
-  font-family: inherit;
-  font-size: 0.75rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  cursor: pointer;
-  padding: 0;
-}
-.save-button:hover:not(:disabled) {
-  color: var(--mp-ink);
-}
-.save-button:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
 .feed-loading {
   flex: none;
   text-align: center;
@@ -465,6 +441,109 @@ export default {
   }
   .swipe-hint-up {
     top: 0.25rem;
+  }
+
+  /* Header: tighten the vertical rhythm so the title sits comfortably
+     under the top safe-area inset on notched phones. */
+  .feed-header {
+    padding-top: 1.1rem;
+    padding-bottom: 0.5rem;
+  }
+  .feed-header h1 {
+    font-size: 1.35rem;
+  }
+
+  /* Topic pills: keep them on one line and let the row scroll
+     horizontally instead of wrapping into a cramped stack on narrow
+     screens. Scrollbars are hidden so it reads as a clean filter strip. */
+  .topic-row {
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin: 0.75rem -1rem 0.5rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  .topic-row::-webkit-scrollbar {
+    display: none;
+  }
+  .topic-pill {
+    min-height: 40px;
+    font-size: 0.8rem;
+    padding: 0.35rem 0.9rem;
+  }
+
+  /* Card: keep the outer box edge-to-edge but give the inner content a
+     small horizontal gutter so the text doesn't butt right up against
+     the screen edges. */
+  .feed-card {
+    padding: 0.25rem 0 1rem;
+  }
+  .feed-card-inner {
+    padding: 1.35rem 1.25rem;
+  }
+  .feed-card-image {
+    max-height: 240px;
+  }
+  .feed-card-inner h2 {
+    font-size: 1.4rem;
+  }
+  .feed-card-inner p {
+    font-size: 1rem;
+    line-height: 1.7;
+  }
+
+  /* Anchor the bottom hints above the home indicator / safe-area inset
+     so nothing sits under it, and keep the down-swipe arrow clear of
+     the scroll note. */
+  .swipe-hint-down {
+    bottom: calc(0.5rem + env(safe-area-inset-bottom));
+  }
+  .scroll-note {
+    margin-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  }
+
+  /* App-like touch behavior: stop quick swipes from selecting title text
+     or triggering double-tap zoom, while still allowing the vertical
+     scroll that drives the feed. */
+  .feed-card {
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: pan-y;
+  }
+
+  /* Cap the title at two lines so each card stays roughly the same height
+     and the feed reads as a tidy stack rather than a ragged column. */
+  .feed-card-inner h2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Round the hero image to match the card so it sits inside the frame
+     cleanly instead of poking past the corners. */
+  .feed-card-image {
+    border-radius: 10px;
+  }
+
+  /* Action buttons: stack the remaining action as a full-width tap target
+     so it's easy to hit one-handed instead of a small centered text link. */
+  .feed-card-actions {
+    width: 100%;
+    margin-top: 0.6rem;
+  }
+  .read-more-link {
+    display: block;
+    width: 100%;
+    text-align: center;
+    padding: 0.85rem 1rem;
+    font-size: 0.82rem;
+    border-radius: 10px;
+    letter-spacing: 0.04em;
   }
 }
 
