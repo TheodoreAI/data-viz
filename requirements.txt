@@ -4,7 +4,7 @@ flask-jwt-extended
 flask-migrate
 flask-limiter
 python-dotenv
-psycopg2-binary
+psycopg[binary]
 requests
 gunicorn
 Pillow
