@@ -98,6 +98,9 @@
 .about-features li {
   padding: 1.25rem 1.4rem;
   border: 1px solid var(--mp-frame);
+  border-radius: var(--card-radius, 16px);
+  background: var(--card-bg, var(--mp-wall));
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 .about-features h2 {
   font-size: 1rem;
@@ -151,5 +154,32 @@
   text-transform: uppercase;
   font-variant-numeric: tabular-nums;
   margin: 0;
+}
+
+@media (max-width: 640px) {
+  /* Full-bleed container: edge-to-edge with a smaller gutter so the
+     page reads like an app on phones. */
+  .about-page {
+    padding: 1.5rem 1rem 2.5rem;
+  }
+  .about-page h1 {
+    font-size: 1.4rem;
+  }
+  .lede {
+    font-size: 0.95rem;
+    margin-bottom: 1.5rem;
+  }
+  .about-features {
+    gap: 0.9rem;
+  }
+  .about-features li {
+    padding: 1rem 1.15rem;
+  }
+  .about-features h2 {
+    font-size: 0.95rem;
+  }
+  .caption-rule {
+    margin-bottom: 1rem;
+  }
 }
 </style>

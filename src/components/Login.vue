@@ -89,6 +89,9 @@ export default {
   max-width: 420px;
   margin: 0 auto;
   padding: 2rem 1.25rem 3rem;
+  border-radius: var(--card-radius, 16px);
+  background: var(--card-bg, var(--surface-1));
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 h1 {
   font-size: 1.3rem;
@@ -167,5 +170,32 @@ h1 {
 }
 .auth-switch a {
   color: var(--series-1, #2f6690);
+}
+
+@media (max-width: 640px) {
+  /* Full-bleed container: edge-to-edge with a smaller gutter so the
+     form reads like an app on phones. */
+  .auth-page {
+    max-width: none;
+    padding: 2.5rem 1.25rem 3rem;
+  }
+  h1 {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .auth-form {
+    gap: 1.1rem;
+  }
+  .field input {
+    font-size: 1rem;
+    padding: 0.7rem 0.85rem;
+  }
+  .submit-button {
+    font-size: 1rem;
+    padding: 0.8rem 1rem;
+  }
+  .toggle-password {
+    padding: 0.5rem 0.9rem;
+  }
 }
 </style>

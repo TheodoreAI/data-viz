@@ -117,8 +117,8 @@ export default {
         <div class="mp-item-body">
           <h2><a :href="item.url" target="_blank" rel="noopener">{{ item.title }}</a></h2>
           <div class="mp-meta">
-            <span>{{ formatMetric(item[metrics.primary]) }} {{ metrics.primaryLabel }}</span>
-            <span v-if="metrics.secondary != null && item[metrics.secondary] != null">
+            <span class="metric-chip">{{ formatMetric(item[metrics.primary]) }} {{ metrics.primaryLabel }}</span>
+            <span v-if="metrics.secondary != null && item[metrics.secondary] != null" class="metric-chip">
               {{ formatMetric(item[metrics.secondary]) }} {{ metrics.secondaryLabel }}
             </span>
           </div>
@@ -205,13 +205,18 @@ export default {
   padding: 0.3rem 0.6rem;
   cursor: pointer;
   text-transform: capitalize;
+  transition: background 0.15s ease, color 0.15s ease, border-radius 0.15s ease;
 }
 .mp-tab:hover {
   color: var(--mp-ink);
 }
 .mp-tab.active {
-  color: var(--mp-ink);
-  border-color: var(--mp-frame-strong);
+  color: var(--mp-wall);
+  background: var(--mp-frame-strong);
+  border-radius: var(--pill-radius, 999px);
+}
+.mp-tab:active {
+  transform: scale(0.96);
 }
 
 .status {
@@ -233,15 +238,30 @@ export default {
   align-items: baseline;
   gap: 1rem;
   border: 1px solid var(--mp-frame);
+  border-radius: var(--card-radius, 16px);
   padding: 1.1rem 1.25rem;
   margin: 0 0 1rem;
+  background: var(--card-bg, var(--mp-wall));
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+}
+.mp-item:active {
+  transform: scale(0.99);
+  opacity: 0.85;
 }
 .mp-num {
   flex: none;
   font-family: Inter, sans-serif;
   font-size: 0.78rem;
-  color: var(--mp-ink-soft);
-  min-width: 1.4rem;
+  font-weight: 600;
+  color: var(--mp-ink);
+  min-width: 1.6rem;
+  height: 1.6rem;
+  line-height: 1.6rem;
+  text-align: center;
+  border: 1px solid var(--mp-frame);
+  border-radius: 50%;
+  padding: 0 0.35rem;
 }
 .mp-item-body {
   min-width: 0;
@@ -268,6 +288,66 @@ export default {
   letter-spacing: 0.03em;
   text-transform: uppercase;
   color: var(--mp-ink-soft);
+}
+.metric-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--pill-radius, 999px);
+  background: var(--mp-frame);
+  color: var(--mp-ink);
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 640px) {
+  /* Full-bleed container: edge-to-edge with a smaller gutter and a
+     comfortable top/bottom so the page reads like an app on phones. */
+  .mp-root {
+    padding: 1.5rem 1rem 2.5rem;
+  }
+  .mp-head {
+    margin-bottom: 1.1rem;
+  }
+  .mp-head h1 {
+    font-size: 1.35rem;
+  }
+
+  /* Tabs: keep all 10 on one line and let the row scroll horizontally
+     thumb-friendly instead of wrapping into a cramped stack. Scrollbars
+     are hidden so it reads as a clean strip. */
+  .mp-tabs {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin: 0 -1rem 1.4rem;
+    padding: 0 1rem;
+  }
+  .mp-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .mp-tab {
+    flex: none;
+    min-height: 40px;
+    padding: 0.4rem 0.9rem;
+    font-size: 0.8rem;
+  }
+
+  /* Cards: let the title sit on one line so rows stay uniform height, and
+     anchor the last card above the home indicator. */
+  .mp-item h2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: 1rem;
+  }
+  .mp-item:last-of-type {
+    margin-bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
 }
 
 @media (min-width: 641px) {

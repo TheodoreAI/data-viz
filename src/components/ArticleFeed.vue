@@ -340,8 +340,12 @@ export default {
   color: var(--mp-ink);
 }
 .topic-pill.active {
-  color: var(--mp-ink);
-  border-color: var(--mp-frame-strong);
+  color: var(--mp-wall);
+  background: var(--mp-frame-strong);
+  border-radius: var(--pill-radius, 999px);
+}
+.topic-pill:active {
+  transform: scale(0.96);
 }
 .topic-pill:disabled {
   opacity: 0.6;
@@ -358,8 +362,11 @@ export default {
 .feed-card-inner {
   flex: 1;
   border: 1px solid var(--mp-frame);
+  border-radius: var(--card-radius, 16px);
   padding: 1.85rem;
   text-align: start;
+  background: var(--card-bg, var(--mp-wall));
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 .feed-card-image {
   width: 100%;
@@ -443,11 +450,12 @@ export default {
     top: 0.25rem;
   }
 
-  /* Header: tighten the vertical rhythm so the title sits comfortably
-     under the top safe-area inset on notched phones. */
+  /* Header: keep the title clear of the top safe-area inset and pull the
+     topic pills closer so there's less empty space between the title and
+     the filter row. */
   .feed-header {
     padding-top: 1.1rem;
-    padding-bottom: 0.5rem;
+    padding-bottom: 0.1rem;
   }
   .feed-header h1 {
     font-size: 1.35rem;
@@ -480,6 +488,9 @@ export default {
      the screen edges. */
   .feed-card {
     padding: 0.25rem 0 1rem;
+  }
+  .feed-card:active {
+    transform: scale(0.995);
   }
   .feed-card-inner {
     padding: 1.35rem 1.25rem;
