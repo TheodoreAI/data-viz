@@ -81,7 +81,6 @@ export default {
       </button>
     </form>
     <p class="auth-switch"><a href="/forgot-password">Forgot your password?</a></p>
-    <p class="auth-switch">Need an account? <a href="/register">Register</a></p>
   </div>
 </template>
 

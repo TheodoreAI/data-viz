@@ -1,21 +1,17 @@
 import os
 import time
 from datetime import datetime, timedelta
-from html import unescape
 
 import requests
 
 HN_HEADERS = {'User-Agent': 'data-viz-app/1.0 (mateoej12@gmail.com)'}
-STACKOVERFLOW_HEADERS = {'User-Agent': 'data-viz-app/1.0 (mateoej12@gmail.com)'}
 DEVTO_HEADERS = {'User-Agent': 'data-viz-app/1.0 (mateoej12@gmail.com)'}
 LOBSTERS_HEADERS = {'User-Agent': 'data-viz-app/1.0 (mateoej12@gmail.com)'}
 CARGO_HEADERS = {'User-Agent': 'data-viz-app/1.0 (mateoej12@gmail.com)'}
 
 HN_ALGOLIA_URL = 'https://hn.algolia.com/api/v1/search'
-STACKOVERFLOW_URL = 'https://api.stackexchange.com/2.3/questions'
 DEVTO_URL = 'https://dev.to/api/articles'
 LOBSTERS_URL = 'https://lobste.rs/hottest.json'
-YOUTUBE_URL = 'https://www.googleapis.com/youtube/v3/videos'
 NPM_DOWNLOADS_URL_POINT = 'https://api.npmjs.org/downloads/point/{range}/{package}'
 NPM_REGISTRY_URL = 'https://registry.npmjs.org/{package}'
 CARGO_URL = 'https://crates.io/api/v1/crates'
@@ -25,8 +21,6 @@ GITHUB_HEADERS = {
     'User-Agent': 'data-viz-app/1.0 (mateoej12@gmail.com)',
     'Accept': 'application/vnd.github+json',
 }
-
-YOUTUBE_API_KEY = os.environ.get('YOUTUBE_API_KEY')
 
 ITEM_COUNT = 12
 
@@ -61,31 +55,6 @@ def fetch_hacker_news():
             'comments': hit.get('num_comments') or 0,
             'age_hours': round((now - hit['created_at_i']) / 3600, 1),
             'url': hit.get('url') or f'https://news.ycombinator.com/item?id={hit["objectID"]}',
-        })
-    return items
-
-
-def fetch_stackoverflow():
-    """Top questions from the last day on Stack Overflow, ranked by score."""
-    response = requests.get(STACKOVERFLOW_URL, headers=STACKOVERFLOW_HEADERS, params={
-        'order': 'desc',
-        'sort': 'votes',
-        'site': 'stackoverflow',
-        'fromdate': int(time.time()) - 60 * 60 * 24 * 3,
-        'pagesize': ITEM_COUNT,
-    })
-    response.raise_for_status()
-    questions = response.json()['items']
-
-    now = time.time()
-    items = []
-    for q in questions[:ITEM_COUNT]:
-        items.append({
-            'title': unescape(q['title']),
-            'score': q.get('score') or 0,
-            'comments': q.get('answer_count') or 0,
-            'age_hours': round((now - q['creation_date']) / 3600, 1),
-            'url': q['link'],
         })
     return items
 
@@ -228,34 +197,6 @@ def fetch_cargo():
     return items
 
 
-def fetch_youtube():
-    """Current trending videos (US), from the YouTube Data API."""
-    response = requests.get(YOUTUBE_URL, params={
-        'chart': 'mostPopular',
-        'regionCode': 'US',
-        'maxResults': ITEM_COUNT,
-        'part': 'snippet,statistics',
-        'key': YOUTUBE_API_KEY,
-    })
-    response.raise_for_status()
-    videos = response.json()['items']
-
-    now = time.time()
-    items = []
-    for video in videos[:ITEM_COUNT]:
-        snippet = video['snippet']
-        stats = video.get('statistics', {})
-        published = datetime.fromisoformat(snippet['publishedAt'].replace('Z', '+00:00'))
-        items.append({
-            'title': snippet['title'],
-            'score': int(stats.get('viewCount') or 0),
-            'comments': int(stats.get('commentCount') or 0),
-            'age_hours': round((now - published.timestamp()) / 3600, 1),
-            'url': f'https://www.youtube.com/watch?v={video["id"]}',
-        })
-    return items
-
-
 # These are free third-party APIs with their own rate limits — an
 # in-process TTL cache means a burst of page loads doesn't fan out to
 # five upstream requests per visitor.
@@ -279,8 +220,6 @@ SOURCES = {
     source: _cached(source, fetch)
     for source, fetch in {
         'hackernews': fetch_hacker_news,
-        'youtube': fetch_youtube,
-        'stackoverflow': fetch_stackoverflow,
         'devto': fetch_devto,
         'lobsters': fetch_lobsters,
         'github': fetch_github,
