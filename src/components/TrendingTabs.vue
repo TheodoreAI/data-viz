@@ -9,6 +9,7 @@ const METRICS_BY_TAB = {
   npm: { primary: 'downloads', primaryLabel: 'downloads/wk', secondary: 'growth_pct', secondaryLabel: 'growth' },
   cargo: { primary: 'downloads', primaryLabel: 'downloads', secondary: 'total_downloads', secondaryLabel: 'all-time' },
   github: { primary: 'score', primaryLabel: 'stars', secondary: 'comments', secondaryLabel: 'forks' },
+  go: { primary: 'score', primaryLabel: 'stars', secondary: 'comments', secondaryLabel: 'forks' },
 };
 const DEFAULT_METRICS = { primary: 'score', primaryLabel: 'points', secondary: 'comments', secondaryLabel: 'comments' };
 
@@ -32,6 +33,7 @@ export default {
         { id: 'devto', label: 'DEV' },
         { id: 'lobsters', label: 'Lobsters' },
         { id: 'github', label: 'GitHub' },
+        { id: 'go', label: 'Go' },
         { id: 'npm', label: 'npm' },
         { id: 'cargo', label: 'Cargo' },
       ],

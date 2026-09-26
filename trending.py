@@ -175,6 +175,36 @@ def fetch_npm():
     return items[:ITEM_COUNT]
 
 
+def fetch_go():
+    """Top Go modules created in the last week, ranked by stars — a proxy for
+    Go's unofficial trending page. pkg.go.dev has no trending/ranking endpoint
+    (its search API only sorts by relevance), so GitHub's search API filtered to
+    Go repos is the closest signal for what's newly popular in the ecosystem."""
+    since = (datetime.utcnow() - timedelta(days=7)).strftime('%Y-%m-%d')
+    response = requests.get(GITHUB_SEARCH_URL, headers=GITHUB_HEADERS, params={
+        'q': f'language:Go created:>{since}',
+        'sort': 'stars',
+        'order': 'desc',
+        'per_page': ITEM_COUNT,
+    })
+    response.raise_for_status()
+    repos = response.json()['items']
+
+    now = time.time()
+    items = []
+    for repo in repos[:ITEM_COUNT]:
+        created = datetime.fromisoformat(repo['created_at'].replace('Z', '+00:00'))
+        items.append({
+            'title': repo['full_name'],
+            'description': repo.get('description') or '',
+            'score': repo.get('stargazers_count') or 0,
+            'comments': repo.get('forks_count') or 0,
+            'age_hours': round((now - created.timestamp()) / 3600, 1),
+            'url': repo['html_url'],
+        })
+    return items
+
+
 def fetch_cargo():
     """Top Rust crates ranked by recent (90-day) download count, from the crates.io registry."""
     response = requests.get(CARGO_URL, headers=CARGO_HEADERS, params={
@@ -223,6 +253,7 @@ SOURCES = {
         'devto': fetch_devto,
         'lobsters': fetch_lobsters,
         'github': fetch_github,
+        'go': fetch_go,
         'npm': fetch_npm,
         'cargo': fetch_cargo,
     }.items()
