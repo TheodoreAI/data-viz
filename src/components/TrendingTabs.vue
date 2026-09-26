@@ -10,6 +10,8 @@ const METRICS_BY_TAB = {
   cargo: { primary: 'downloads', primaryLabel: 'downloads', secondary: 'total_downloads', secondaryLabel: 'all-time' },
   github: { primary: 'score', primaryLabel: 'stars', secondary: 'comments', secondaryLabel: 'forks' },
   go: { primary: 'score', primaryLabel: 'stars', secondary: 'comments', secondaryLabel: 'forks' },
+  arxiv: { primary: 'age_hours', primaryLabel: 'hours', secondary: null, sortDesc: false },
+  pypi: { primary: 'downloads', primaryLabel: 'downloads/wk', secondary: null },
 };
 const DEFAULT_METRICS = { primary: 'score', primaryLabel: 'points', secondary: 'comments', secondaryLabel: 'comments' };
 
@@ -36,6 +38,8 @@ export default {
         { id: 'go', label: 'Go' },
         { id: 'npm', label: 'npm' },
         { id: 'cargo', label: 'Cargo' },
+        { id: 'pypi', label: 'PyPI' },
+        { id: 'arxiv', label: 'arXiv' },
       ],
       trendingCache: {},
       loading: false,
@@ -52,7 +56,8 @@ export default {
     items() {
       const items = this.activeTab === 'wikipedia' ? this.initialArticles : (this.trendingCache[this.activeTab] || []);
       const m = this.metrics;
-      return [...items].sort((a, b) => (b[m.primary] || 0) - (a[m.primary] || 0));
+      const dir = m.sortDesc === false ? -1 : 1;
+      return [...items].sort((a, b) => dir * ((b[m.primary] || 0) - (a[m.primary] || 0)));
     },
   },
   methods: {

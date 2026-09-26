@@ -1,8 +1,10 @@
 import os
 import time
 from datetime import datetime, timedelta
+from datetime import timezone
 
 import requests
+import xml.etree.ElementTree as ET
 
 HN_HEADERS = {'User-Agent': 'data-viz-app/1.0 (mateoej12@gmail.com)'}
 DEVTO_HEADERS = {'User-Agent': 'data-viz-app/1.0 (mateoej12@gmail.com)'}
@@ -227,6 +229,74 @@ def fetch_cargo():
     return items
 
 
+ARXIV_URL = 'http://export.arxiv.org/api/query'
+ARXIV_NAMESPACES = {'atom': 'http://www.w3.org/2005/Atom'}
+
+# Popular Python packages to rank by weekly downloads from PyPI stats.
+Pypi_PACKAGES = [
+    'flask', 'django', 'fastapi', 'requests', 'numpy', 'pandas',
+    'scipy', 'scikit-learn', 'tensorflow', 'torch', 'matplotlib',
+    'sqlalchemy', 'pydantic', 'celery', 'pytest', 'black', 'uvicorn',
+]
+
+
+def fetch_arxiv():
+    """Most recent arXiv papers, ranked by submission date — a science-flavored
+    tab that fits the data-viz identity better than another dev feed."""
+    response = requests.get(ARXIV_URL, params={
+        'search_query': 'cat:cs.AI',
+        'sortBy': 'submittedDate',
+        'sortOrder': 'descending',
+        'max_results': ITEM_COUNT,
+    })
+    response.raise_for_status()
+    root = ET.fromstring(response.content)
+
+    now = datetime.now(timezone.utc)
+    items = []
+    for entry in root.findall('atom:entry', ARXIV_NAMESPACES):
+        title = ' '.join(entry.findtext('atom:title', default='', namespaces=ARXIV_NAMESPACES).split())
+        summary = ' '.join(entry.findtext('atom:summary', default='', namespaces=ARXIV_NAMESPACES).split())
+        published = entry.findtext('atom:published', default='', namespaces=ARXIV_NAMESPACES)
+        link = entry.findtext('atom:id', default='', namespaces=ARXIV_NAMESPACES)
+
+        published_dt = datetime.fromisoformat(published.replace('Z', '+00:00'))
+        age_hours = round((now - published_dt).total_seconds() / 3600, 1)
+
+        items.append({
+            'title': title,
+            'description': summary,
+            'age_hours': age_hours,
+            'url': link,
+        })
+    return items
+
+
+def fetch_pypi():
+    """Weekly PyPI download counts for a curated set of popular packages, ranked
+    by downloads. Uses pypistats.org's per-package recent-downloads endpoint,
+    which returns last_day/last_week/last_month counts."""
+    items = []
+    for package in Pypi_PACKAGES:
+        resp = requests.get(
+            f'https://pypistats.org/api/packages/{package}/recent'
+        )
+        if not resp.ok:
+            continue
+        stats = resp.json()
+        data = stats.get('data') or {}
+        last_week = data.get('last_week') or 0
+
+        items.append({
+            'title': stats.get('package', package),
+            'description': '',
+            'downloads': last_week,
+            'url': f'https://pypi.org/project/{package}/',
+        })
+    items.sort(key=lambda i: i['downloads'], reverse=True)
+    return items[:ITEM_COUNT]
+
+
 # These are free third-party APIs with their own rate limits — an
 # in-process TTL cache means a burst of page loads doesn't fan out to
 # five upstream requests per visitor.
@@ -256,5 +326,7 @@ SOURCES = {
         'go': fetch_go,
         'npm': fetch_npm,
         'cargo': fetch_cargo,
+        'arxiv': fetch_arxiv,
+        'pypi': fetch_pypi,
     }.items()
 }
