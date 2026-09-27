@@ -218,6 +218,10 @@ export default {
   height: 100dvh;
   display: flex;
   flex-direction: column;
+  /* Grow only the card so it fills the viewport; the scroll-note
+     floats over the card instead of pushing it up. */
+  align-items: stretch;
+  justify-content: flex-start;
   overflow: hidden;
   padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   background: var(--mp-wall);
@@ -351,7 +355,8 @@ export default {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  padding: 0 1.25rem 1.25rem;
+  /* Give the card content breathing room from the top of the viewport. */
+  padding: 1.25rem 1.25rem 1.25rem;
 }
 .feed-card-inner {
   flex: 1;
@@ -425,13 +430,23 @@ export default {
   padding: 0.75rem;
 }
 .scroll-note {
-  flex: none;
+  position: absolute;
+  left: 50%;
+  bottom: 0.9rem;
+  transform: translateX(-50%);
+  z-index: 10;
+  white-space: nowrap;
   text-align: center;
   font-family: Inter, sans-serif;
-  font-size: 0.68rem;
+  font-size: 0.66rem;
   letter-spacing: 0.05em;
   color: var(--mp-ink-soft);
-  margin: 0.5rem 0 0.75rem;
+  padding: 0.2rem 0.6rem;
+  background: var(--mp-wall);
+  border: 1px solid var(--mp-frame);
+  border-radius: 999px;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
 .slide-up-enter-active, .slide-up-leave-active,
@@ -479,7 +494,8 @@ export default {
      small horizontal gutter so the text doesn't butt right up against
      the screen edges. */
   .feed-card {
-    padding: 0 0 1rem;
+    /* Give the card content breathing room from the top of the viewport. */
+    padding: max(0.75rem, env(safe-area-inset-top)) 0 1rem;
     user-select: none;
     -webkit-user-select: none;
     touch-action: pan-y;
@@ -517,7 +533,7 @@ export default {
     bottom: calc(0.5rem + env(safe-area-inset-bottom));
   }
   .scroll-note {
-    margin-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+    bottom: calc(0.9rem + env(safe-area-inset-bottom));
   }
 
   /* Cap the title at two lines so each card stays roughly the same height
