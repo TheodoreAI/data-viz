@@ -162,11 +162,6 @@ export default {
 
 <template>
   <div class="feed-root">
-    <header class="feed-header">
-      <div class="kicker">On Display</div>
-      <h1>Data Viz</h1>
-    </header>
-
     <nav class="topic-row" aria-label="Filter by topic">
       <button
         type="button"
@@ -189,7 +184,7 @@ export default {
     <div v-if="canGoBack" class="swipe-hint swipe-hint-up" aria-hidden="true">︿</div>
     <Transition v-if="currentArticle" :name="direction === 'up' ? 'slide-up' : 'slide-down'" mode="out-in">
       <article :key="currentIndex" ref="cardEl" class="feed-card" :class="{ cooling: navigating }">
-        <div class="feed-card-inner">
+        <div class="feed-card-inner" :class="{ 'has-image': !!currentArticle.thumbnail, 'no-image': !currentArticle.thumbnail }">
           <img v-if="currentArticle.thumbnail" class="feed-card-image" :src="currentArticle.thumbnail.source" :alt="currentArticle.title">
           <h2><a :href="currentArticle.content_urls.desktop.page" target="_blank">{{ currentArticle.title }}</a></h2>
           <p>{{ currentArticle.extract }}</p>
@@ -220,11 +215,11 @@ export default {
   --mp-ink-soft: #756f60;
 
   position: relative;
-  height: calc(100dvh - var(--navbar-height, 44px));
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   background: var(--mp-wall);
   color: var(--mp-ink);
   font-family: "IBM Plex Serif", Georgia, serif;
@@ -251,7 +246,7 @@ export default {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 3;
+  z-index: 9;
   color: var(--mp-ink-soft);
   opacity: 0.5;
   font-size: 1.1rem;
@@ -259,7 +254,7 @@ export default {
   pointer-events: none;
 }
 .swipe-hint-up {
-  top: calc(var(--navbar-height, 44px) + 0.25rem);
+  top: calc(var(--navbar-height, 44px) + 2.75rem);
 }
 .swipe-hint-down {
   bottom: 0.5rem;
@@ -278,7 +273,7 @@ export default {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  z-index: 4;
+  z-index: 12;
   background: var(--mp-wall);
   color: var(--mp-ink);
   border: 1px solid var(--mp-frame);
@@ -297,52 +292,51 @@ export default {
   font-size: 0.85rem;
   padding: 0.5rem 1.25rem;
 }
-.feed-header {
-  flex: none;
-  text-align: center;
-  padding: 1.75rem 1.25rem 0.75rem;
-}
-.kicker {
-  font-family: Inter, sans-serif;
-  font-size: 0.72rem;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--mp-ink-soft);
-  margin-bottom: 0.6rem;
-}
-.feed-header h1 {
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-}
 .topic-row {
-  flex: none;
+  position: absolute;
+  top: calc(var(--navbar-height, 44px) + 0.35rem);
+  left: 0;
+  right: 0;
+  z-index: 8;
   display: flex;
   justify-content: center;
   gap: 0.4rem;
   flex-wrap: wrap;
-  padding: 0.75rem 1rem 0.5rem;
+  padding: 0 1rem;
   font-family: Inter, sans-serif;
+  pointer-events: none;
 }
 .topic-pill {
+  pointer-events: auto;
   font-family: inherit;
   font-size: 0.72rem;
-  color: var(--mp-ink-soft);
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid transparent;
-  padding: 0.3rem 0.6rem;
+  color: var(--mp-ink);
+  background: rgba(247, 246, 243, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--mp-frame);
+  border-radius: var(--pill-radius, 999px);
+  padding: 0.3rem 0.65rem;
   cursor: pointer;
   text-transform: capitalize;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+:root[data-theme="dark"] .topic-pill {
+  background: rgba(23, 22, 19, 0.78);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .topic-pill {
+    background: rgba(23, 22, 19, 0.78);
+  }
 }
 .topic-pill:hover {
   color: var(--mp-ink);
+  background: var(--mp-wall);
 }
 .topic-pill.active {
   color: var(--mp-wall);
   background: var(--mp-frame-strong);
-  border-radius: var(--pill-radius, 999px);
+  border-color: var(--mp-frame-strong);
 }
 .topic-pill:active {
   transform: scale(0.96);
@@ -357,7 +351,7 @@ export default {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  padding: 0.5rem 1.25rem 1.25rem;
+  padding: 0 1.25rem 1.25rem;
 }
 .feed-card-inner {
   flex: 1;
@@ -367,13 +361,20 @@ export default {
   text-align: start;
   background: var(--card-bg, var(--mp-wall));
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
 }
-.feed-card-image {
-  width: 100%;
-  max-height: 280px;
+.feed-card-inner.no-image {
+  padding-top: calc(var(--navbar-height, 44px) + 3.5rem);
+}
+.feed-card-inner.has-image {
+  padding-top: 0;
+}
+.feed-card-inner.has-image .feed-card-image {
+  margin: 0 -1.85rem 1.5rem;
+  width: calc(100% + 3.7rem);
+  max-height: 320px;
   object-fit: cover;
   display: block;
-  margin: 0 auto 1.5rem;
 }
 .feed-card-inner h2 {
   margin: 0 0 1rem;
@@ -447,47 +448,41 @@ export default {
     height: 100dvh;
   }
   .swipe-hint-up {
-    top: 0.25rem;
-  }
-
-  /* Header: keep the title clear of the top safe-area inset and pull the
-     topic pills closer so there's less empty space between the title and
-     the filter row. */
-  .feed-header {
-    padding-top: 1.1rem;
-    padding-bottom: 0.1rem;
-  }
-  .feed-header h1 {
-    font-size: 1.35rem;
+    top: calc(max(0.5rem, env(safe-area-inset-top)) + 2.75rem);
   }
 
   /* Topic pills: keep them on one line and let the row scroll
      horizontally instead of wrapping into a cramped stack on narrow
      screens. Scrollbars are hidden so it reads as a clean filter strip. */
   .topic-row {
+    top: max(0.5rem, env(safe-area-inset-top));
     justify-content: flex-start;
     flex-wrap: nowrap;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    margin: 0.75rem -1rem 0.5rem;
-    padding-left: 1rem;
-    padding-right: 1rem;
+    margin: 0;
+    padding: 0 1rem;
+    pointer-events: auto;
   }
   .topic-row::-webkit-scrollbar {
     display: none;
   }
   .topic-pill {
-    min-height: 40px;
+    min-height: 38px;
     font-size: 0.8rem;
     padding: 0.35rem 0.9rem;
+    flex-shrink: 0;
   }
 
   /* Card: keep the outer box edge-to-edge but give the inner content a
      small horizontal gutter so the text doesn't butt right up against
      the screen edges. */
   .feed-card {
-    padding: 0.25rem 0 1rem;
+    padding: 0 0 1rem;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: pan-y;
   }
   .feed-card:active {
     transform: scale(0.995);
@@ -495,8 +490,17 @@ export default {
   .feed-card-inner {
     padding: 1.35rem 1.25rem;
   }
-  .feed-card-image {
-    max-height: 240px;
+  .feed-card-inner.no-image {
+    padding-top: calc(max(0.5rem, env(safe-area-inset-top)) + 3.5rem);
+  }
+  .feed-card-inner.has-image {
+    padding-top: 0;
+  }
+  .feed-card-inner.has-image .feed-card-image {
+    margin: 0 -1.25rem 1.25rem;
+    width: calc(100% + 2.5rem);
+    max-height: 280px;
+    border-radius: 0;
   }
   .feed-card-inner h2 {
     font-size: 1.4rem;
@@ -516,15 +520,6 @@ export default {
     margin-bottom: calc(0.75rem + env(safe-area-inset-bottom));
   }
 
-  /* App-like touch behavior: stop quick swipes from selecting title text
-     or triggering double-tap zoom, while still allowing the vertical
-     scroll that drives the feed. */
-  .feed-card {
-    user-select: none;
-    -webkit-user-select: none;
-    touch-action: pan-y;
-  }
-
   /* Cap the title at two lines so each card stays roughly the same height
      and the feed reads as a tidy stack rather than a ragged column. */
   .feed-card-inner h2 {
@@ -533,12 +528,6 @@ export default {
     line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-  }
-
-  /* Round the hero image to match the card so it sits inside the frame
-     cleanly instead of poking past the corners. */
-  .feed-card-image {
-    border-radius: 10px;
   }
 
   /* Action buttons: stack the remaining action as a full-width tap target
@@ -560,17 +549,16 @@ export default {
 
 @media (min-width: 641px) {
   .feed-root {
-    height: auto;
-    min-height: 100dvh;
+    height: 100dvh;
     max-width: 640px;
     margin: 0 auto;
-    overflow: visible;
+    overflow: hidden;
   }
   .feed-card {
-    overflow-y: visible;
+    overflow-y: auto;
   }
   .feed-card-image {
-    max-height: 340px;
+    max-height: 360px;
   }
 }
 </style>
