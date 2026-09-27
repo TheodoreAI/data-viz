@@ -207,12 +207,16 @@ export default {
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
 
+/* Feed colors derive from the global theme tokens in style.css so light/dark
+   switching has a single source of truth shared with the navbar and drawer. */
 .feed-root {
-  --mp-wall: #f7f6f3;
-  --mp-frame: #e4e1d9;
-  --mp-frame-strong: #22201b;
-  --mp-ink: #22201b;
-  --mp-ink-soft: #756f60;
+  --mp-wall: var(--surface-1);
+  --mp-card: var(--card-bg);
+  --mp-frame: var(--gridline);
+  --mp-frame-strong: var(--text-primary);
+  --mp-ink: var(--text-primary);
+  --mp-ink-soft: var(--text-secondary);
+  --mp-glass: color-mix(in srgb, var(--surface-1) 78%, transparent);
 
   position: relative;
   height: 100dvh;
@@ -227,23 +231,6 @@ export default {
   background: var(--mp-wall);
   color: var(--mp-ink);
   font-family: "IBM Plex Serif", Georgia, serif;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .feed-root {
-    --mp-wall: #171613;
-    --mp-frame: #34312a;
-    --mp-frame-strong: #d9d5c9;
-    --mp-ink: #f0eee6;
-    --mp-ink-soft: #a39d8b;
-  }
-}
-:root[data-theme="dark"] .feed-root {
-  --mp-wall: #171613;
-  --mp-frame: #34312a;
-  --mp-frame-strong: #d9d5c9;
-  --mp-ink: #f0eee6;
-  --mp-ink-soft: #a39d8b;
 }
 
 .swipe-hint {
@@ -315,7 +302,7 @@ export default {
   font-family: inherit;
   font-size: 0.72rem;
   color: var(--mp-ink);
-  background: rgba(247, 246, 243, 0.78);
+  background: var(--mp-glass);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid var(--mp-frame);
@@ -325,17 +312,10 @@ export default {
   text-transform: capitalize;
   transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
 }
-:root[data-theme="dark"] .topic-pill {
-  background: rgba(23, 22, 19, 0.78);
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .topic-pill {
-    background: rgba(23, 22, 19, 0.78);
+@media (hover: hover) {
+  .topic-pill:hover {
+    background: var(--mp-wall);
   }
-}
-.topic-pill:hover {
-  color: var(--mp-ink);
-  background: var(--mp-wall);
 }
 .topic-pill.active {
   color: var(--mp-wall);
@@ -364,7 +344,7 @@ export default {
   border-radius: var(--card-radius, 16px);
   padding: 1.85rem;
   text-align: start;
-  background: var(--card-bg, var(--mp-wall));
+  background: var(--mp-card);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   overflow: hidden;
 }
@@ -490,27 +470,25 @@ export default {
     flex-shrink: 0;
   }
 
-  /* Card: keep the outer box edge-to-edge but give the inner content a
-     small horizontal gutter so the text doesn't butt right up against
-     the screen edges. */
+  /* Card: on phones the card *is* the page — full-bleed on the page
+     surface, no frame — so there's no panel-within-a-panel and no band
+     below it for the menu button to straddle. Top padding clears the
+     floating topic pills; bottom padding clears the scroll note and the
+     menu button. */
   .feed-card {
-    /* Give the card content breathing room from the top of the viewport. */
-    padding: max(0.75rem, env(safe-area-inset-top)) 0 1rem;
+    padding: 0;
     user-select: none;
     -webkit-user-select: none;
     touch-action: pan-y;
   }
-  .feed-card:active {
-    transform: scale(0.995);
-  }
-  .feed-card-inner {
-    padding: 1.35rem 1.25rem;
-  }
-  .feed-card-inner.no-image {
-    padding-top: calc(max(0.5rem, env(safe-area-inset-top)) + 3.5rem);
-  }
+  .feed-card-inner,
+  .feed-card-inner.no-image,
   .feed-card-inner.has-image {
-    padding-top: 0;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background: var(--mp-wall);
+    padding: calc(max(0.5rem, env(safe-area-inset-top)) + 4.25rem) 1.25rem calc(5rem + env(safe-area-inset-bottom));
   }
   .feed-card-inner.has-image .feed-card-image {
     margin: 0 -1.25rem 1.25rem;
@@ -558,6 +536,7 @@ export default {
     text-align: center;
     padding: 0.85rem 1rem;
     font-size: 0.82rem;
+    border: 1px solid var(--mp-frame);
     border-radius: 10px;
     letter-spacing: 0.04em;
   }

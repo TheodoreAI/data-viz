@@ -25,6 +25,11 @@
 
   applyTheme(currentTheme());
 
+  // Follow OS light/dark changes until the user picks a theme explicitly.
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () {
+    if (!localStorage.getItem('theme')) applyTheme(currentTheme());
+  });
+
   button.addEventListener('click', function () {
     var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
     localStorage.setItem('theme', next);
