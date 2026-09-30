@@ -1,0 +1,3 @@
+value: Load 12-paper OpenAlex pages as the user nears the bottom, cache each server-side page, and deduplicate client-side by arXiv URL.
+reason: Incremental loading provides an infinite-scroll experience without a large initial payload; URL deduplication handles duplicate scholarly records across OpenAlex pages.
+decided_at: 2026-09-30T01:19:19+00:00

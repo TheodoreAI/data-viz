@@ -1,0 +1,3 @@
+value: Use OpenAlex to rank arXiv-hosted papers whose primary field is Computer Science by all-time citation count.
+reason: OpenAlex supports source, field, and citation sorting in one reliable request; arXiv has no citation or rating field, and Semantic Scholar returned rate limits without an API key.
+decided_at: 2026-09-30T01:15:33+00:00

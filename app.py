@@ -623,7 +623,11 @@ def api_trending(source):
         return jsonify({'error': 'Unknown source.'}), 404
 
     try:
-        items = fetch()
+        if source == 'arxiv':
+            page = request.args.get('page', default=1, type=int) or 1
+            items = fetch(max(1, min(page, 100)))
+        else:
+            items = fetch()
     except requests.RequestException:
         return jsonify({'error': f"Couldn't reach {source} right now. Please try again."}), 502
 

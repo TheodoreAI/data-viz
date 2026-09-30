@@ -1,10 +1,8 @@
 import os
 import time
 from datetime import datetime, timedelta
-from datetime import timezone
 
 import requests
-import xml.etree.ElementTree as ET
 
 HN_HEADERS = {'User-Agent': 'data-viz-app/1.0 (mateoej12@gmail.com)'}
 DEVTO_HEADERS = {'User-Agent': 'data-viz-app/1.0 (mateoej12@gmail.com)'}
@@ -229,8 +227,12 @@ def fetch_cargo():
     return items
 
 
-ARXIV_URL = 'http://export.arxiv.org/api/query'
-ARXIV_NAMESPACES = {'atom': 'http://www.w3.org/2005/Atom'}
+OPENALEX_WORKS_URL = 'https://api.openalex.org/works'
+OPENALEX_ARXIV_SOURCE_ID = 'S4306400194'
+OPENALEX_COMPUTER_SCIENCE_FIELD_ID = '17'
+OPENALEX_HEADERS = {
+    'User-Agent': 'data-viz-app/1.0 (mailto:mateoej12@gmail.com)',
+}
 
 # Popular Python packages to rank by weekly downloads from PyPI stats.
 Pypi_PACKAGES = [
@@ -240,34 +242,51 @@ Pypi_PACKAGES = [
 ]
 
 
-def fetch_arxiv():
-    """Most recent arXiv papers, ranked by submission date — a science-flavored
-    tab that fits the data-viz identity better than another dev feed."""
-    response = requests.get(ARXIV_URL, params={
-        'search_query': 'cat:cs.AI',
-        'sortBy': 'submittedDate',
-        'sortOrder': 'descending',
-        'max_results': ITEM_COUNT,
+def _arxiv_url(locations):
+    for location in locations:
+        source = location.get('source') or {}
+        if not source.get('id', '').endswith(f'/{OPENALEX_ARXIV_SOURCE_ID}'):
+            continue
+        url = location.get('landing_page_url') or ''
+        if 'arxiv.org/abs/' in url:
+            return url.replace('http://', 'https://', 1)
+        if 'arxiv.org/pdf/' in url:
+            arxiv_id = url.split('arxiv.org/pdf/', 1)[-1].removesuffix('.pdf')
+            return f'https://arxiv.org/abs/{arxiv_id}'
+        location_id = location.get('id') or ''
+        if location_id.startswith('pmh:oai:arXiv.org:'):
+            return f"https://arxiv.org/abs/{location_id.rsplit(':', 1)[-1]}"
+        doi_marker = 'doi.org/10.48550/arxiv.'
+        if doi_marker in url.lower():
+            return f"https://arxiv.org/abs/{url.lower().split(doi_marker, 1)[-1]}"
+    return ''
+
+
+def fetch_arxiv(page=1):
+    """Most-cited arXiv papers whose primary OpenAlex field is Computer Science."""
+    response = requests.get(OPENALEX_WORKS_URL, headers=OPENALEX_HEADERS, params={
+        'filter': (
+            f'locations.source.id:{OPENALEX_ARXIV_SOURCE_ID},'
+            f'primary_topic.field.id:{OPENALEX_COMPUTER_SCIENCE_FIELD_ID}'
+        ),
+        'sort': 'cited_by_count:desc',
+        'page': page,
+        'per-page': ITEM_COUNT,
+        'select': 'display_name,publication_year,cited_by_count,locations,primary_topic',
     })
     response.raise_for_status()
-    root = ET.fromstring(response.content)
-
-    now = datetime.now(timezone.utc)
     items = []
-    for entry in root.findall('atom:entry', ARXIV_NAMESPACES):
-        title = ' '.join(entry.findtext('atom:title', default='', namespaces=ARXIV_NAMESPACES).split())
-        summary = ' '.join(entry.findtext('atom:summary', default='', namespaces=ARXIV_NAMESPACES).split())
-        published = entry.findtext('atom:published', default='', namespaces=ARXIV_NAMESPACES)
-        link = entry.findtext('atom:id', default='', namespaces=ARXIV_NAMESPACES)
-
-        published_dt = datetime.fromisoformat(published.replace('Z', '+00:00'))
-        age_hours = round((now - published_dt).total_seconds() / 3600, 1)
-
+    for work in response.json().get('results', []):
+        url = _arxiv_url(work.get('locations') or [])
+        if not url:
+            continue
+        topic = work.get('primary_topic') or {}
         items.append({
-            'title': title,
-            'description': summary,
-            'age_hours': age_hours,
-            'url': link,
+            'title': work.get('display_name') or 'Untitled paper',
+            'description': topic.get('display_name') or '',
+            'citations': work.get('cited_by_count') or 0,
+            'year': work.get('publication_year'),
+            'url': url,
         })
     return items
 
@@ -305,13 +324,14 @@ _cache = {}
 
 
 def _cached(source, fetch):
-    def wrapped():
-        cached = _cache.get(source)
+    def wrapped(*args):
+        cache_key = (source, args)
+        cached = _cache.get(cache_key)
         if cached and time.time() - cached[0] < CACHE_TTL_SECONDS:
             return cached[1]
 
-        items = fetch()
-        _cache[source] = (time.time(), items)
+        items = fetch(*args)
+        _cache[cache_key] = (time.time(), items)
         return items
     return wrapped
 

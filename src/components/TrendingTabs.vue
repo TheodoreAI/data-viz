@@ -10,7 +10,7 @@ const METRICS_BY_TAB = {
   cargo: { primary: 'downloads', primaryLabel: 'downloads', secondary: 'total_downloads', secondaryLabel: 'all-time' },
   github: { primary: 'score', primaryLabel: 'stars', secondary: 'comments', secondaryLabel: 'forks' },
   go: { primary: 'score', primaryLabel: 'stars', secondary: 'comments', secondaryLabel: 'forks' },
-  arxiv: { primary: 'age_hours', primaryLabel: 'hours', secondary: null, sortDesc: false },
+  arxiv: { primary: 'citations', primaryLabel: 'citations', secondary: 'year', secondaryLabel: 'published' },
   pypi: { primary: 'downloads', primaryLabel: 'downloads/wk', secondary: null },
 };
 const DEFAULT_METRICS = { primary: 'score', primaryLabel: 'points', secondary: 'comments', secondaryLabel: 'comments' };
@@ -43,8 +43,18 @@ export default {
       ],
       trendingCache: {},
       loading: false,
+      loadingMore: false,
       error: false,
+      loadMoreError: false,
+      arxivPage: 0,
+      arxivHasMore: true,
     };
+  },
+  mounted() {
+    window.addEventListener('scroll', this.onScroll, { passive: true });
+  },
+  beforeUnmount() {
+    window.removeEventListener('scroll', this.onScroll);
   },
   computed: {
     activeTabLabel() {
@@ -68,14 +78,48 @@ export default {
       this.loading = true;
       this.error = false;
       try {
-        const response = await fetch(`/api/trending/${tabId}`);
+        const query = tabId === 'arxiv' ? '?page=1' : '';
+        const response = await fetch(`/api/trending/${tabId}${query}`);
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || `Request failed: ${response.status}`);
         this.trendingCache = { ...this.trendingCache, [tabId]: data.items };
+        if (tabId === 'arxiv') {
+          this.arxivPage = 1;
+          this.arxivHasMore = data.items.length > 0;
+        }
       } catch {
         this.error = true;
       } finally {
         this.loading = false;
+      }
+    },
+    onScroll() {
+      if (this.activeTab !== 'arxiv' || this.loading || this.loadingMore || !this.arxivHasMore) return;
+      const distanceFromBottom = document.documentElement.scrollHeight - window.innerHeight - window.scrollY;
+      if (distanceFromBottom < 500) this.loadMoreArxiv();
+    },
+    async loadMoreArxiv() {
+      this.loadingMore = true;
+      this.loadMoreError = false;
+      try {
+        const nextPage = this.arxivPage + 1;
+        const response = await fetch(`/api/trending/arxiv?page=${nextPage}`);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || `Request failed: ${response.status}`);
+
+        const currentItems = this.trendingCache.arxiv || [];
+        const knownUrls = new Set(currentItems.map(item => item.url));
+        const newItems = data.items.filter(item => !knownUrls.has(item.url));
+        this.trendingCache = {
+          ...this.trendingCache,
+          arxiv: [...currentItems, ...newItems],
+        };
+        this.arxivPage = nextPage;
+        this.arxivHasMore = data.items.length > 0;
+      } catch {
+        this.loadMoreError = true;
+      } finally {
+        this.loadingMore = false;
       }
     },
     formatMetric(value) {
@@ -91,6 +135,7 @@ export default {
       <div class="kicker">Right Now</div>
       <h1>What's Hot</h1>
       <p class="mp-sub" v-if="activeTab === 'wikipedia'">Most-viewed Wikipedia articles — {{ initialDate }}</p>
+      <p class="mp-sub" v-else-if="activeTab === 'arxiv'">All-time most cited Computer Science papers available on arXiv</p>
       <p class="mp-sub" v-else>Right now, on {{ activeTabLabel }}</p>
     </header>
 
@@ -125,6 +170,9 @@ export default {
         </div>
       </li>
     </ol>
+    <LoadingSpinner v-if="loadingMore" size="sm" inline />
+    <p v-else-if="loadMoreError" class="status form-error">Couldn't load more papers. Scroll again to retry.</p>
+    <p v-else-if="activeTab === 'arxiv' && !arxivHasMore && items.length" class="status">You've reached the end.</p>
   </div>
 </template>
 
