@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Redesign 3 — Split Hero</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="_shared.css">
+<style>
+  .mockup-banner { background: #74804a; }
+  .split {
+    display: flex;
+    min-height: calc(100vh - 40px);
+  }
+  .hero {
+    flex: 1.3;
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    padding: 3rem;
+    color: #fff;
+    background: linear-gradient(rgba(0,0,0,0.15), rgba(0,0,0,0.55)), linear-gradient(135deg, #2f6690, #74804a);
+  }
+  .hero-content { max-width: 520px; }
+  .hero .tag { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.2em; opacity: 0.85; margin-bottom: 0.75rem; }
+  .hero h1 { font-family: var(--font-serif); font-size: 2.6rem; line-height: 1.1; margin: 0 0 1rem; }
+  .hero p { font-size: 1.05rem; line-height: 1.6; opacity: 0.92; margin: 0 0 1.5rem; }
+  .hero .cta { display: inline-flex; gap: 0.5rem; align-items: center; background: #fff; color: #111; padding: 0.7rem 1.4rem; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 0.9rem; }
+  .side {
+    flex: 1;
+    background: var(--surface-1);
+    padding: 2rem 1.75rem;
+    overflow-y: auto;
+    border-left: 1px solid var(--gridline);
+  }
+  .side h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin: 0 0 1rem; }
+  .queue-item { display: flex; gap: 0.9rem; padding: 0.9rem 0; border-bottom: 1px solid var(--gridline); align-items: center; }
+  .queue-item .thumb { width: 56px; height: 56px; border-radius: 10px; flex: none; }
+  .queue-item .info h3 { margin: 0 0 0.25rem; font-size: 0.95rem; }
+  .queue-item .info span { font-size: 0.75rem; color: var(--muted); }
+  .topic-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 1.5rem 0; }
+  .topic-chips span { font-size: 0.72rem; padding: 0.3rem 0.7rem; border-radius: 999px; background: var(--card-bg); border: 1px solid var(--gridline); color: var(--text-secondary); }
+  @media (max-width: 860px) {
+    .split { flex-direction: column; }
+    .hero { min-height: 60vh; }
+    .side { border-left: none; border-top: 1px solid var(--gridline); }
+  }
+</style>
+</head>
+<body>
+<div class="mockup-banner">
+  <strong>Redesign 3 / 5 — Split Hero</strong>
+  <span><a href="index.html">&larr; Back to gallery</a></span>
+</div>
+<div class="split">
+  <div class="hero">
+    <div class="hero-content">
+      <div class="tag">Today's featured article</div>
+      <h1>The City That Sank Itself</h1>
+      <p>For three centuries, Jakarta has been quietly pumping its own groundwater dry — and now parts of it are sinking faster than the sea is rising.</p>
+      <a class="cta" href="#">Read the full story &rarr;</a>
+    </div>
+  </div>
+  <div class="side">
+    <h2>Up next in your feed</h2>
+    <div class="topic-chips">
+      <span>Science</span><span>History</span><span>Technology</span><span>Art</span><span>Places</span>
+    </div>
+    <div class="queue-item">
+      <div class="thumb placeholder-media"></div>
+      <div class="info"><h3>The Voynich Manuscript</h3><span>History &middot; unread</span></div>
+    </div>
+    <div class="queue-item">
+      <div class="thumb placeholder-media"></div>
+      <div class="info"><h3>How Octopuses Taste Light</h3><span>Science &middot; unread</span></div>
+    </div>
+    <div class="queue-item">
+      <div class="thumb placeholder-media"></div>
+      <div class="info"><h3>The Longest Traffic Jam</h3><span>Places &middot; unread</span></div>
+    </div>
+    <div class="queue-item">
+      <div class="thumb placeholder-media"></div>
+      <div class="info"><h3>Who Invented Zero?</h3><span>History &middot; unread</span></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

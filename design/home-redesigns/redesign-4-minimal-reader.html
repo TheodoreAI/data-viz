@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Redesign 4 — Minimalist Reader</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="_shared.css">
+<style>
+  .mockup-banner { background: #3f3326; }
+  body { background: var(--surface); }
+  .reader {
+    max-width: 620px;
+    margin: 0 auto;
+    padding: 4rem 1.5rem 5rem;
+    text-align: center;
+  }
+  .progress { display: flex; justify-content: center; gap: 0.3rem; margin-bottom: 3rem; }
+  .progress span { width: 22px; height: 3px; background: var(--ink-soft); opacity: 0.25; }
+  .progress span.active { opacity: 1; background: var(--ink); }
+  .kicker { font-size: 0.72rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 1.25rem; }
+  .reader h1 { font-family: var(--font-serif); font-size: 2.3rem; line-height: 1.2; margin: 0 0 2rem; color: var(--ink); }
+  .drop-cap::first-letter {
+    font-family: var(--font-serif);
+    font-size: 3.4rem;
+    float: left;
+    line-height: 0.8;
+    padding: 0.1rem 0.5rem 0 0;
+    color: var(--gold);
+  }
+  .reader p { font-family: var(--font-serif); font-size: 1.15rem; line-height: 1.85; color: var(--ink); text-align: left; margin: 0 0 1.5rem; }
+  .rule { width: 48px; height: 1px; background: var(--ink-soft); margin: 2.5rem auto; opacity: 0.5; }
+  .nav-row { display: flex; justify-content: center; gap: 2.5rem; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-soft); }
+  .nav-row button { background: none; border: none; font: inherit; color: inherit; cursor: pointer; }
+  .nav-row button.primary { color: var(--ink); font-weight: 600; }
+  .keyboard-hint { margin-top: 3rem; font-size: 0.7rem; color: var(--ink-soft); opacity: 0.7; }
+</style>
+</head>
+<body>
+<div class="mockup-banner">
+  <strong>Redesign 4 / 5 — Minimalist Reader</strong>
+  <span><a href="index.html">&larr; Back to gallery</a></span>
+</div>
+<div class="reader">
+  <div class="progress">
+    <span></span><span class="active"></span><span></span><span></span><span></span>
+  </div>
+  <div class="kicker">History &middot; Article 2 of 5</div>
+  <h1>The Library That Never Burned</h1>
+  <p class="drop-cap">Most retellings of the Library of Alexandria end in one dramatic fire, but the archaeological record tells a slower story: centuries of underfunding, shifting imperial priorities, and quiet neglect did far more damage than any single blaze.</p>
+  <p>By the time the last scholars left, the collection had already been scattered across smaller libraries in Antioch, Pergamon, and Constantinople — a diaspora of knowledge rather than a single catastrophe.</p>
+  <div class="rule"></div>
+  <div class="nav-row">
+    <button>&larr; Previous</button>
+    <button>Save for later</button>
+    <button class="primary">Next article &rarr;</button>
+  </div>
+  <div class="keyboard-hint">Use ↑ / ↓ or spacebar to move between articles</div>
+</div>
+</body>
+</html>
